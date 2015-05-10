@@ -1,0 +1,4 @@
+* text=auto
+
+Makefile text eol=lf
+*.java text eol=crlf
