@@ -1,0 +1,13 @@
+CD1(input String signal A;output String channel C;)->
+{
+	signal B;
+	int signal K;
+	{await(A);}||{send C("WWWW");}||{emit B;}
+	pause;
+	emit K(2);
+}
+
+CD2(input String channel C;)->
+{
+	receive C;
+}
