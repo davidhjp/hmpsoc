@@ -12,9 +12,11 @@ public class CompilerPrintStream extends PrintStream {
 	}
 
 	private static boolean v = false;
+	private static boolean vv = false;
 
 	public static void setVerbose() { v = true; }
-	public static void unsetVerbose() { v = false; }
+	public static void setDefaultVerbose() { vv = true; }
+	public static void resetVerbose() { v = vv; }
 
 
 	@Override

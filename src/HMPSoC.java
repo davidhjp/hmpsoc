@@ -47,12 +47,16 @@ public class HMPSoC {
 				return 0;
 			}
 		});
+		CompilerPrintStream.setVerbose();
 		hf.printHelp("jar hmpsoc.jar [OPTIONS] <filename>", options);
+		CompilerPrintStream.resetVerbose();
 	}
 
 	public static void main(String[] args) {
 		CompilerPrintStream cps = new CompilerPrintStream(System.out);
+		CompilerPrintStream cpser = new CompilerPrintStream(System.err);
 		System.setOut(cps);
+		System.setErr(cpser);
 		Options options = initOptions();
 
 		CommandLineParser parser = new DefaultParser();
@@ -63,7 +67,7 @@ public class HMPSoC {
 			Helper.setSingleArgInstance(cmd);
 		} catch (ParseException e) {
 			CompilerPrintStream.setVerbose();
-			System.out.println(e.getMessage());
+			System.err.println(e.getMessage());
 			System.exit(1);
 		}
 
@@ -76,6 +80,7 @@ public class HMPSoC {
 				switch(o.getOpt()){
 				case "v":
 					CompilerPrintStream.setVerbose();
+					CompilerPrintStream.setDefaultVerbose();
 					break;
 				}
 			}
@@ -98,7 +103,9 @@ public class HMPSoC {
 			if(cmd.hasOption("v"))
 				e.printStackTrace();
 			else
-				System.out.println(e.getMessage());
+				System.err.println(e.getMessage());
+			
+			System.exit(1);
 		}
 	}
 }
