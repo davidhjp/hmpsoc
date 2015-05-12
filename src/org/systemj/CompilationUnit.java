@@ -220,8 +220,33 @@ public class CompilationUnit {
 				an.setSigName(name);
 				String eval = cel.getChildText("Expr");
 				if(eval != null){
+					String type = co.getInternalSignalType(name);
 					an.setSigType(co.getInternalSignalType(name));
-					an.setStmt(name+".setValue("+eval+");");
+					an.setEmitVal(eval);
+					switch(type){
+					case "int":
+						eval = name+".setValue(new Integer("+eval+"));";
+						break;
+					case "short":
+						eval = name+".setValue(new Short("+eval+"));";
+						break;
+					case "long":
+						eval = name+".setValue(new Long("+eval+"));";
+						break;
+					case "byte":
+						eval = name+".setValue(new Byte("+eval+"));";
+						break;
+					case "float":
+						eval = name+".setValue(new Float("+eval+"));";
+						break;
+					case "char":
+						eval = name+".setValue(new Character("+eval+"));";
+						break;
+					case "double":
+						eval = name+".setValue(new Double("+eval+"));";
+						break;
+					}
+					an.setStmt(eval);
 				}
 				an.setType(ActionNode.TYPE.EMIT);
 			}
