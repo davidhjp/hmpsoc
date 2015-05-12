@@ -30,6 +30,14 @@ public class BaseGRCNode {
 		this.visited = visited;
 	}
 	
+	public void resetVisited(){
+		visited = false;
+		
+		for(BaseGRCNode n : children){
+			n.resetVisited();
+		}
+	}
+	
 	
 	public void addChild(BaseGRCNode n){
 		children.add(n);
