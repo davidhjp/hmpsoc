@@ -84,7 +84,7 @@ public class ActionNode extends BaseGRCNode {
 	public String dump(int indent) {
 		String str = "";
 		String ind = getIndent(indent,'-');
-		str += ind+"ActionNode\n";
+		str += ind+"ActionNode, Type: "+this.type+"\n";
 		ind = getIndent(indent);
 		
 		if(!this.isGrouped()){

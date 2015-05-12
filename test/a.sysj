@@ -4,11 +4,13 @@ CD->{
 	String ww = new String();
 	System.out.println("112312");
 	emit A(2);
+	i=123123;
 	if (i ==0 ){
 		pause;
 	}
 	else{
 		System.out.println("ss");
+		if(1==1){int aa = 0;}
 		pause;
 	}
 	pause;

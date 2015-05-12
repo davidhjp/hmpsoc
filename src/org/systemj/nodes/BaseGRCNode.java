@@ -58,6 +58,15 @@ public class BaseGRCNode {
 	public BaseGRCNode getParent(int i){
 		return parents.get(i);
 	}
+	
+	public void setChildren(List<BaseGRCNode> c){
+		children = c;
+	}
+	
+	public void setParents(List<BaseGRCNode> p){
+		parents = p;
+	}
+	
 	public int getNumParents(){
 		return parents.size();
 	}

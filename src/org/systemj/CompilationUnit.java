@@ -1,5 +1,6 @@
 package org.systemj;
 
+import java.awt.Desktop.Action;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -159,17 +160,62 @@ public class CompilationUnit {
 		// ----- 
 		
 		List<BaseGRCNode> glist = getGRC(l);
+		for(BaseGRCNode n : glist)
+			groupActions(n);
+		
 		UglyPrinter printer = new UglyPrinter(glist);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
 			printer.setDir(Helper.getSingleArgInstance().getOptionValue(Helper.D_OPTION));
 		}
 		printer.setDelcaredObjects(l);
 		printer.uglyprint();
-//		for(BaseGRCNode gg : glist){
-//			System.out.println("===");
-//			System.out.println(gg.dump(0));
-//		}
+		for(BaseGRCNode gg : glist){
+			System.out.println("===");
+			System.out.println(gg.dump(0));
+		}
 	}
+	
+	
+	public void groupActions(BaseGRCNode n){
+		if(n.getNumParents() == 1 && n.getNumChildren() == 1 && n.getParent(0).getNumChildren() == 1){
+			if(n instanceof ActionNode){
+				ActionNode an = (ActionNode)n;
+				if(n.getParent(0) instanceof ActionNode){
+					ActionNode pan = (ActionNode)n.getParent(0);
+
+					boolean grouped = false;
+					if(pan.getActionType() == ActionNode.TYPE.GROUPED_JAVA){
+						if(an.getActionType() == ActionNode.TYPE.JAVA || an.getActionType() == ActionNode.TYPE.VAR_DECL){
+							pan.addStmt(an.getStmt());
+							grouped = true;
+						}
+					}
+					else if (pan.getActionType() == ActionNode.TYPE.JAVA || pan.getActionType() == ActionNode.TYPE.VAR_DECL){
+						if(an.getActionType() == ActionNode.TYPE.JAVA || an.getActionType() == ActionNode.TYPE.VAR_DECL){
+							pan.setActionType(ActionNode.TYPE.GROUPED_JAVA);
+							pan.addStmt(pan.getStmt());
+							pan.addStmt(an.getStmt());
+							grouped = true;
+						}
+					}
+					if(grouped){
+						pan.setChildren(an.getChildren());
+						List<BaseGRCNode> parents = an.getChild(0).getParents();
+						for(int i=0; i<parents.size(); i++){
+							if(parents.get(i).equals(an)){
+								parents.set(i, pan);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		for(BaseGRCNode child : n.getChildren()){
+			groupActions(child);
+		}
+	}
+	
 
 	public static boolean isAGRCNode(Element e){
 		return nodenames.contains(e.getName());
@@ -230,11 +276,13 @@ public class CompilationUnit {
 			if(cel != null){
 				an.setStmt(cel.getChildText("Name")+".setClear();");
 				an.setActionType(ActionNode.TYPE.SIG_DECL);
+				return an;
 			}
 			cel = e.getChild("VariableDeclaration");
 			if(cel != null){
 				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
 				an.setActionType(ActionNode.TYPE.VAR_DECL);
+				return an;
 			}
 			cel = e.getChild("EmitStmt");
 			if(cel != null){
@@ -271,12 +319,12 @@ public class CompilationUnit {
 					an.setStmt(eval);
 				}
 				an.setActionType(ActionNode.TYPE.EMIT);
+				return an;
 			}
-			cel = e.getChild("ExprStmt");
-			if(cel != null){
-				an.setStmt(cel.getChildText("Expr"));
-				an.setActionType(ActionNode.TYPE.JAVA);
-			}
+			List<Element> l = e.getChildren();
+			cel = l.get(0);
+			an.setStmt(cel.getChildText("Expr"));
+			an.setActionType(ActionNode.TYPE.JAVA);
 			return an;
 		case BaseGRCNode.AJOIN_NODE:
 			return new AjoinNode();
