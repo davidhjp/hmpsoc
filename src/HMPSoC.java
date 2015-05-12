@@ -100,7 +100,7 @@ public class HMPSoC {
 			}
 		} catch (Exception e){
 			CompilerPrintStream.setVerbose();
-			if(cmd.hasOption("v"))
+			if(cmd.hasOption(Helper.VERBOSE_OPTION))
 				e.printStackTrace();
 			else
 				System.err.println(e.getMessage());

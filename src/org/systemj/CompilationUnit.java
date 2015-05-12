@@ -5,18 +5,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.filter.ElementFilter;
 import org.jdom.input.SAXBuilder;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.AforkNode;
+import org.systemj.nodes.AjoinNode;
 import org.systemj.nodes.BaseGRCNode;
+import org.systemj.nodes.EnterNode;
+import org.systemj.nodes.ForkNode;
+import org.systemj.nodes.JoinNode;
+import org.systemj.nodes.SwitchNode;
+import org.systemj.nodes.TerminateNode;
+import org.systemj.nodes.TestNode;
 
 public class CompilationUnit {
 	private String target;
@@ -26,8 +34,15 @@ public class CompilationUnit {
 	private boolean isis = false;
 	
 	private final static List<String> nodenames = Arrays.asList(new String[]{
-			"ActionNode", "AjoinNode", "EnterNode", "ForkNode", "JoinNode",
-			"SwitchNode", "TerminateNode", "TestNode", "AforkNode"
+			BaseGRCNode.ACTION_NODE,
+			BaseGRCNode.AFORK_NODE,
+			BaseGRCNode.AJOIN_NODE,
+			BaseGRCNode.ENTER_NODE,
+			BaseGRCNode.FORK_NODE,
+			BaseGRCNode.JOIN_NODE,
+			BaseGRCNode.SWITCH_NODE,
+			BaseGRCNode.TERMINATE_NODE,
+			BaseGRCNode.TEST_NODE
 	});
 	
 	public CompilationUnit(){}
@@ -44,33 +59,49 @@ public class CompilationUnit {
 
 	}
 	
-	private List<Interface> getInterfaces(){
+	private List<CommObjects> getCommObjects(){
 		Element el = doc.getRootElement();
 		Iterator<Element> ee = el.getDescendants(new ElementFilter("IO"));
 		Element ioel = ee.next();
 		List<Element> cdels = (List<Element>) ioel.getChildren("CD");
-		List<Interface> l = new ArrayList();
+		List<CommObjects> l = new ArrayList();
+		List<Element> cdsws = (List<Element>)((Element) el.getDescendants(new ElementFilter("AforkNode")).next()).getChild("Children").getChildren();
 		
 		for(Element cdel : cdels){
-			Interface cdit = new Interface(cdel.getAttributeValue("Name"));
+			String cdname = cdel.getAttributeValue("Name");
+			CommObjects cdit = new CommObjects(cdname);
 			for(Element e : (List<Element>)cdel.getChildren()){
 				switch(e.getName()){
 				case "iSignal":
-					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), true);
+					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), CommObjects.Mod.INPUT);
 					break;
 				case "oSignal":
-					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), false);
+					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), CommObjects.Mod.OUTPUT);
 					break;
 				case "iChannel":
-					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), true);
+					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), CommObjects.Mod.INPUT);
 					break;
 				case "oChannel":
-					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), false);
+					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), CommObjects.Mod.OUTPUT);
 					break;
 				default:
 					break;
 				}
 			}
+			
+			for(Element cdsw : cdsws){
+				String cdname2 = cdsw.getChildText("CDName");
+				if(cdname.equals(cdname2)){
+					Iterator<Element> si = cdsw.getDescendants(new ElementFilter("SignalDeclStmt"));
+					while(si.hasNext()){
+						Element e = si.next();
+						String signame = e.getChildText("Name");
+						if(!cdit.hasInternalSignal(signame))
+							cdit.addSignal(e.getChildText("Name"), e.getChildText("Type"), CommObjects.Mod.INTERNAL);
+					}
+				}
+			}
+			
 			l.add(cdit);
 			System.out.println(cdit);
 		}
@@ -78,21 +109,44 @@ public class CompilationUnit {
 		return l;
 	}
 	
+	private List<Element> getInternalSignalDecls(Element e){
+		ArrayList<Element> l = new ArrayList<Element>();
+		if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("false")){
+			e.setAttribute("Visited", "true");
+			if(e.getName().equals("SignalDeclStmt")){
+				l.add(e);
+			}
+			
+			List<Element> children = e.getChildren();
+			if(children != null){
+				for(Element ee : children){
+					l.addAll(getInternalSignalDecls(ee));
+				}
+			}
+		}
+		return l;
+	}
+	
+	
 	/**
 	 * Create AGRC Intermediate Representation for back-end code generation
 	 * @author hpar081
 	 */
 	public void process(){
-		List<Interface> l = getInterfaces();
-		resetVisitTag((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
+		List<CommObjects> l = getCommObjects();
+		resetVisitTagAGRC((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
 		
 		// ---- Debug
-		XMLOutputter xmlo = new XMLOutputter();
-		xmlo.setFormat(Format.getPrettyFormat());
-		System.out.println(xmlo.outputString(doc.getRootElement()));
+//		XMLOutputter xmlo = new XMLOutputter();
+//		xmlo.setFormat(Format.getPrettyFormat());
+//		System.out.println(xmlo.outputString(doc.getRootElement()));
 		// ----- 
 		
-		BaseGRCNode grc = getGRC();
+		List<BaseGRCNode> glist = getGRC(l);
+		for(BaseGRCNode gg : glist){
+			System.out.println("===");
+			System.out.println(gg.dump(0));
+		}
 	}
 
 	public static boolean isAGRCNode(Element e){
@@ -100,6 +154,14 @@ public class CompilationUnit {
 	}
 	
 	private void resetVisitTag(Element e){
+		e.removeAttribute("Visited");
+		
+		for(Element ee : (List<Element>)e.getChildren()){
+			resetVisitTag(ee);
+		}
+	}
+	
+	private void resetVisitTagAGRC(Element e){
 		if(isAGRCNode(e)){
 			if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("true")){
 				e.setAttribute("Visited", "false");
@@ -108,24 +170,136 @@ public class CompilationUnit {
 				return;
 			}
 		}
+		else
+			e.removeAttribute("Visited");
 
 		for(Element ee : (List<Element>)e.getChildren()){
-			resetVisitTag(ee);
+			resetVisitTagAGRC(ee);
 		}
 	}
 
-	private BaseGRCNode getGRC() {
+	private List<BaseGRCNode> getGRC(List<CommObjects> l) {
 		Element grc = (Element) doc.getRootElement().getDescendants(new ElementFilter("AforkNode")).next();
+		Element children = grc.getChild("Children");
 		AforkNode afk = new AforkNode();
+		List<BaseGRCNode> ll = new ArrayList<BaseGRCNode>();
 		
-		for(Element n : (List<Element>)grc.getChildren()){
-			getGRCTraverse(afk, n);
+		for(Element n : (List<Element>)children.getChildren()){
+			String cdname = n.getChildText("CDName");
+			CommObjects co = null;
+			for(CommObjects c : l){
+				if(c.getCDName().equals(cdname))
+					co = c;
+			}
+			if(co == null) throw new RuntimeException("Could not find a matched CD in CommObjects");
+			BaseGRCNode gn = getGRCTraverse(afk, n, new HashMap<Element,BaseGRCNode>(), co);
+			ll.add(gn);
 		}
-		return null;
+		this.resetVisitTagAGRC(grc);
+		return ll;
 	}
 	
-	private BaseGRCNode getGRCTraverse(BaseGRCNode p, Element cur){
-		// TODO: create node and traverse
-		return null;
+	
+	private  BaseGRCNode getNode(Element e, CommObjects co){
+		switch(e.getName()){
+		case BaseGRCNode.ACTION_NODE:
+			ActionNode an = new ActionNode();
+			Element cel = e.getChild("SignalDeclStmt");
+			if(cel != null){
+				an.setStmt(cel.getChildText("Name")+".setClear();");
+				an.setType(ActionNode.TYPE.SIG_DECL);
+			}
+			cel = e.getChild("VariableDeclaration");
+			if(cel != null){
+				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
+				an.setType(ActionNode.TYPE.VAR_DECL);
+			}
+			cel = e.getChild("EmitStmt");
+			if(cel != null){
+				String name = cel.getChildText("Name");
+				an.setSigName(name);
+				String eval = cel.getChildText("Expr");
+				if(eval != null){
+					an.setSigType(co.getInternalSignalType(name));
+					an.setStmt(name+".setValue("+eval+");");
+				}
+				an.setType(ActionNode.TYPE.EMIT);
+			}
+			cel = e.getChild("ExprStmt");
+			if(cel != null){
+				an.setStmt(cel.getChildText("Expr"));
+				an.setType(ActionNode.TYPE.JAVA);
+			}
+			return an;
+		case BaseGRCNode.AJOIN_NODE:
+			return new AjoinNode();
+		case BaseGRCNode.ENTER_NODE:
+			EnterNode en = new EnterNode();
+			en.setStatecode(e.getChildText("Statecode"));
+			en.setStatename(e.getChildText("Statename"));
+			return en;
+		case BaseGRCNode.FORK_NODE:
+			return new ForkNode();
+		case BaseGRCNode.JOIN_NODE:
+			return new JoinNode();
+		case BaseGRCNode.SWITCH_NODE:
+			SwitchNode sn = new SwitchNode();
+			sn.setStatename(e.getChildText("Statename"));
+			String cdname = e.getChildText("CDName");
+			if(cdname != null){
+				sn.setCDName(cdname);
+			}
+			return sn;
+		case BaseGRCNode.TERMINATE_NODE:
+			TerminateNode tn = new TerminateNode();
+			tn.setTermcode(e.getChildText("Value"));
+			return tn;
+		case BaseGRCNode.TEST_NODE:
+			TestNode test = new TestNode();
+			test.setExpr(e.getChildText("Expr"));
+			return test;
+		case BaseGRCNode.AFORK_NODE:
+			return new AforkNode();
+		default:
+			throw new RuntimeException("Unrecognized node type : "+e.getName());
+		}
+	}
+	
+	private BaseGRCNode getGRCTraverse(BaseGRCNode p, Element cur, Map<Element,BaseGRCNode> m, CommObjects co){
+		if(cur.getAttributeValue("Visited").equals("false")){
+			BaseGRCNode n = getNode(cur,co);
+			BaseGRCNode.connectParentChild(p, n);
+			m.put(cur, n);
+			cur.setAttribute("Visited", "true");
+			
+			Element children = cur.getChild("Children");
+			if(children != null){
+				for(Element e : (List<Element>)children.getChildren()){
+					getGRCTraverse(n, e, m,co);
+				}
+			}
+			
+			return n;
+		}
+		else{
+			BaseGRCNode node = m.get(cur);
+			BaseGRCNode.connectParentChild(p, node);
+			return node;
+		}
+		
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

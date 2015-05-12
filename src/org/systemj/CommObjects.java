@@ -3,56 +3,79 @@ package org.systemj;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Interface {
+public class CommObjects {
 	private String name;
 	
+	public enum Mod {
+		INPUT, OUTPUT, INTERNAL
+	}
+	
 	class Signal {
-		public boolean isIn = true;
+		public Mod dir;
 		public String type;
 		public String name;
 		
-		public void setOut() { isIn = false; }
-		public Signal(String n, String t, boolean d){
-			isIn = d;
+		public Signal(String n, String t, Mod d){
+			dir = d;
 			type = t;
 			name = n;
 		}
 	}
 	
 	class Channel {
-		public boolean isIn = true;
+		public Mod dir;
 		public String type;
 		public String name;
 		
-		public void setOut() { isIn = false; }
 		
-		public Channel(String n, String t, boolean d){
-			isIn = d;
+		public Channel(String n, String t, Mod d){
+			dir = d;
 			type = t;
 			name = n;
 		}
 	}
 	
-	public Interface(String n) { name = n; }
+	public CommObjects(String n) { name = n; }
 	public String getCDName() { return name; }
 	
 	private List<Signal> isignals = new ArrayList<Signal>();
 	private List<Signal> osignals = new ArrayList<Signal>();
+	private List<Signal> signals = new ArrayList<Signal>();
 	private List<Channel> ichans = new ArrayList<Channel>();
 	private List<Channel> ochans = new ArrayList<Channel>();
 	
-	public void addSignal(String n, String t, boolean d){
-		if(d)
+	public void addSignal(String n, String t, Mod d){
+		if(d == Mod.INPUT)
 			isignals.add(new Signal(n,t,d));
-		else
+		else if(d == Mod.OUTPUT)
 			osignals.add(new Signal(n,t,d));
+		else if(d == Mod.INTERNAL)
+			signals.add(new Signal(n,t,d));
 	}
 	
-	public void addChannel(String n, String t, boolean d){
-		if(d)
+	public void addChannel(String n, String t, Mod d){
+		if(d == Mod.INPUT)
 			ichans.add(new Channel(n,t,d));
-		else
+		else if(d == Mod.OUTPUT)
 			ochans.add(new Channel(n,t,d));
+		else if(d == Mod.INTERNAL)
+			throw new RuntimeException("Channels can only be their input/output");
+	}
+	
+	public boolean hasInternalSignal(String n){
+		for(Signal s : signals){
+			if(s.name.equals(n))
+				return true;
+		}
+		return false;
+	}
+	
+	public String getInternalSignalType(String n){
+		for(Signal s : signals){
+			if(s.name.equals(n))
+				return s.type;
+		}
+		return null;
 	}
 	
 	@Override
@@ -65,6 +88,10 @@ public class Interface {
 		}
 		sb.append("-------- Output signals --------\n");
 		for(Signal s : osignals){
+			sb.append("Name : "+s.name+" Type : "+s.type+"\n");
+		}
+		sb.append("-------- Internal signals --------\n");
+		for(Signal s : signals){
 			sb.append("Name : "+s.name+" Type : "+s.type+"\n");
 		}
 		sb.append("-------- Input channels --------\n");
