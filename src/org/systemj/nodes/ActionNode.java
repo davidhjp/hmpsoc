@@ -43,11 +43,11 @@ public class ActionNode extends BaseGRCNode {
 		return type == TYPE.GROUPED_JAVA;
 	}
 	
-	public TYPE getType() {
+	public TYPE getActionType() {
 		return type;
 	}
 
-	public void setType(TYPE type) {
+	public void setActionType(TYPE type) {
 		this.type = type;
 	}
 

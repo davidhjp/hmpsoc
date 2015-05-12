@@ -207,12 +207,12 @@ public class CompilationUnit {
 			Element cel = e.getChild("SignalDeclStmt");
 			if(cel != null){
 				an.setStmt(cel.getChildText("Name")+".setClear();");
-				an.setType(ActionNode.TYPE.SIG_DECL);
+				an.setActionType(ActionNode.TYPE.SIG_DECL);
 			}
 			cel = e.getChild("VariableDeclaration");
 			if(cel != null){
 				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
-				an.setType(ActionNode.TYPE.VAR_DECL);
+				an.setActionType(ActionNode.TYPE.VAR_DECL);
 			}
 			cel = e.getChild("EmitStmt");
 			if(cel != null){
@@ -248,12 +248,12 @@ public class CompilationUnit {
 					}
 					an.setStmt(eval);
 				}
-				an.setType(ActionNode.TYPE.EMIT);
+				an.setActionType(ActionNode.TYPE.EMIT);
 			}
 			cel = e.getChild("ExprStmt");
 			if(cel != null){
 				an.setStmt(cel.getChildText("Expr"));
-				an.setType(ActionNode.TYPE.JAVA);
+				an.setActionType(ActionNode.TYPE.JAVA);
 			}
 			return an;
 		case BaseGRCNode.AJOIN_NODE:
