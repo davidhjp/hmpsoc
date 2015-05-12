@@ -10,7 +10,12 @@ CD->{
 	}
 	else{
 		System.out.println("ss");
-		if(1==1){int aa = 0;}
+		if(1==1){
+			int aa = 0; 
+			String[] aaaa = new String[123];
+			String ha;
+			String[] ww;
+		}
 		pause;
 	}
 	pause;
