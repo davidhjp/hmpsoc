@@ -40,12 +40,13 @@ public class DeclaredObjects {
 	
 	class Var {
 		public String name;
-		public String init;
 		public String type;
-		public Var(String n, String type, String init){
+		public boolean array = false;
+		
+		public Var(String n, String type, boolean array){
 			name=n;
-			this.init = init;
 			this.type = type;
+			this.array = array;
 		}
 	}
 	
@@ -83,8 +84,8 @@ public class DeclaredObjects {
 		return vardecls.values().iterator();
 	}
 	
-	public void addVariable(String n, String type, String init){
-		vardecls.put(n,new Var(n,type,init));
+	public void addVariable(String n, String type, boolean array){
+		vardecls.put(n,new Var(n,type,array));
 	}
 	
 	public void addSignal(String n, String t, Mod d){
@@ -149,7 +150,7 @@ public class DeclaredObjects {
 		Iterator<Var> iter = this.vardecls.values().iterator();
 		while(iter.hasNext()){
 			Var v = iter.next();
-			sb.append("Name: "+v.name+", Type: "+v.type+", Init: "+v.init+"\n");
+			sb.append("Name: "+v.name+", Type: "+v.type+", Array?: "+v.array+"\n");
 		}
 		return sb.toString();
 	}

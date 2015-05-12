@@ -106,14 +106,18 @@ public class CompilationUnit {
 				}
 			}
 			
-			for(Element cdsw : cdsws){
-				String cdname2 = cdsw.getChildText("CDName");
+			Element vardecls = el.getChild("VarDecls");
+			for(Element cd : (List<Element>)vardecls.getChildren()){
+				String cdname2 = cd.getAttributeValue("Name");
 				if(cdname.equals(cdname2)){
-					Iterator<Element> si = cdsw.getDescendants(new ElementFilter("VariableDeclaration"));
+					Iterator<Element> si = cd.getDescendants(new ElementFilter("VarDecl"));
 					while(si.hasNext()){
 						Element e = si.next();
 						String signame = e.getChildText("Name");
-						cdit.addVariable(signame, e.getChildText("Type"), e.getChildText("VarInit"));
+						boolean isArray = false;
+						if(e.getChild("Array") != null)
+							isArray=true;
+						cdit.addVariable(signame, e.getChildText("Type"),isArray);
 					}
 				}
 			}
@@ -185,13 +189,13 @@ public class CompilationUnit {
 
 					boolean grouped = false;
 					if(pan.getActionType() == ActionNode.TYPE.GROUPED_JAVA){
-						if(an.getActionType() == ActionNode.TYPE.JAVA || an.getActionType() == ActionNode.TYPE.VAR_DECL){
+						if(an.getActionType() == ActionNode.TYPE.JAVA){
 							pan.addStmt(an.getStmt());
 							grouped = true;
 						}
 					}
-					else if (pan.getActionType() == ActionNode.TYPE.JAVA || pan.getActionType() == ActionNode.TYPE.VAR_DECL){
-						if(an.getActionType() == ActionNode.TYPE.JAVA || an.getActionType() == ActionNode.TYPE.VAR_DECL){
+					else if (pan.getActionType() == ActionNode.TYPE.JAVA){
+						if(an.getActionType() == ActionNode.TYPE.JAVA){
 							pan.setActionType(ActionNode.TYPE.GROUPED_JAVA);
 							pan.addStmt(pan.getStmt());
 							pan.addStmt(an.getStmt());
@@ -278,12 +282,12 @@ public class CompilationUnit {
 				an.setActionType(ActionNode.TYPE.SIG_DECL);
 				return an;
 			}
-			cel = e.getChild("VariableDeclaration");
-			if(cel != null){
-				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
-				an.setActionType(ActionNode.TYPE.VAR_DECL);
-				return an;
-			}
+//			cel = e.getChild("VariableDeclaration");
+//			if(cel != null){
+//				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
+//				an.setActionType(ActionNode.TYPE.VAR_DECL);
+//				return an;
+//			}
 			cel = e.getChild("EmitStmt");
 			if(cel != null){
 				String name = cel.getChildText("Name");

@@ -5,7 +5,7 @@ import java.util.List;
 
 public class ActionNode extends BaseGRCNode {
 	public enum TYPE{
-		GROUPED_JAVA, JAVA, EMIT, VAR_DECL, SIG_DECL
+		GROUPED_JAVA, JAVA, EMIT, SIG_DECL
 	}
 	private TYPE type = TYPE.JAVA;
 
