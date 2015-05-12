@@ -20,5 +20,20 @@ public class SwitchNode extends BaseGRCNode {
 		CDName = cDName;
 	}
 
+	@Override
+	public String dump(int indent) {
+		String str = "";
+		String ind = getIndent(indent,'-');
+		str += ind +"SwitchNode\n";
+		ind = getIndent(indent);
+		str += ind + "Statename: "+ Statename + "\n";
+		
+		for(BaseGRCNode child : children){
+			str += child.dump(indent+1);
+		}
+		
+		return str;
+	}
+
 	
 }
