@@ -1,6 +1,7 @@
 package org.systemj;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ import org.systemj.nodes.JoinNode;
 import org.systemj.nodes.SwitchNode;
 import org.systemj.nodes.TerminateNode;
 import org.systemj.nodes.TestNode;
+
+import args.Helper;
 
 public class CompilationUnit {
 	private String target;
@@ -59,7 +62,7 @@ public class CompilationUnit {
 
 	}
 	
-	private List<DeclaredObjects> getCommObjects(){
+	private List<DeclaredObjects> getDeclaredObjects(){
 		Element el = doc.getRootElement();
 		Iterator<Element> ee = el.getDescendants(new ElementFilter("IO"));
 		Element ioel = ee.next();
@@ -143,9 +146,10 @@ public class CompilationUnit {
 	/**
 	 * Create AGRC Intermediate Representation for back-end code generation
 	 * @author hpar081
+	 * @throws FileNotFoundException 
 	 */
-	public void process(){
-		List<DeclaredObjects> l = getCommObjects();
+	public void process() throws Exception {
+		List<DeclaredObjects> l = getDeclaredObjects();
 		resetVisitTagAGRC((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
 		
 		// ---- Debug
@@ -155,6 +159,12 @@ public class CompilationUnit {
 		// ----- 
 		
 		List<BaseGRCNode> glist = getGRC(l);
+		UglyPrinter printer = new UglyPrinter(glist);
+		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
+			printer.setDir(Helper.getSingleArgInstance().getOptionValue(Helper.D_OPTION));
+		}
+		printer.setDelcaredObjects(l);
+		printer.uglyprint();
 //		for(BaseGRCNode gg : glist){
 //			System.out.println("===");
 //			System.out.println(gg.dump(0));
