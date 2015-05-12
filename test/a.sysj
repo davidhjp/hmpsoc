@@ -1,0 +1,15 @@
+CD->{
+	int signal A;
+	int i = 20;
+	String ww = new String();
+	System.out.println("112312");
+	emit A(2);
+	if (i ==0 ){
+		pause;
+	}
+	else{
+		System.out.println("ss");
+		pause;
+	}
+	pause;
+}
