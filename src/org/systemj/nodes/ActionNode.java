@@ -5,7 +5,7 @@ import java.util.List;
 
 public class ActionNode extends BaseGRCNode {
 	public enum TYPE{
-		GROUPED_JAVA, JAVA, EMIT, SIG_DECL
+		GROUPED_JAVA, JAVA, EMIT, SIG_DECL, EXIT
 	}
 	private TYPE type = TYPE.JAVA;
 
@@ -15,7 +15,25 @@ public class ActionNode extends BaseGRCNode {
 	private String SigType;
 	private String EmitVal;
 	private boolean beforeTestNode = false;
+	private String Capturing;
+	private int ExitCode;
 	
+	public String getCapturing() {
+		return Capturing;
+	}
+
+	public void setCapturing(String capturing) {
+		Capturing = capturing;
+	}
+
+	public int getExitCode() {
+		return ExitCode;
+	}
+
+	public void setExitCode(int exitCode) {
+		ExitCode = exitCode;
+	}
+
 	public String getSigType() {
 		return SigType;
 	}

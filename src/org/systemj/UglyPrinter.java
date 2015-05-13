@@ -149,12 +149,13 @@ public class UglyPrinter {
 			List<StringBuilder> llsb = new ArrayList<StringBuilder>();
 			int i = 0;
 			for(ActionNode an : l){
-				if(an.getCasenumber() < 0)
-					throw new RuntimeException("Unresolved Action Case");
+
 				StringBuilder sb = new StringBuilder();
 				boolean gen = false;
 				switch(an.getActionType()){
 				case JAVA:
+					if(an.getCasenumber() < 0)
+						throw new RuntimeException("Unresolved Action Case");
 					sb.append("case "+an.getCasenumber()+":\n");
 					if(an.isBeforeTestNode())
 						sb.append("return "+an.getStmt()+";\n");
@@ -165,6 +166,8 @@ public class UglyPrinter {
 					gen = true;
 					break;
 				case GROUPED_JAVA:
+					if(an.getCasenumber() < 0)
+						throw new RuntimeException("Unresolved Action Case");
 					sb.append("case "+an.getCasenumber()+":\n");
 					for(String stmt : an.getStmts()){
 						sb.append(stmt+"\n");
@@ -173,14 +176,22 @@ public class UglyPrinter {
 					gen = true;
 					break;
 				case EMIT:
+					if(an.hasEmitVal()){
+						if(an.getCasenumber() < 0)
+							throw new RuntimeException("Unresolved Action Case");
+						sb.append("// Emit\n");
+						gen = true;
+					}
+					else
+						continue;
 //					if(an.hasEmitVal()){
 //						sb.append("hoho");
 //						sb.append("case "+an.getCasenumber()+":\n");
 //						sb.append(an.getEmitVal());
 //					}
 					break;
-				case SIG_DECL:
-					break;
+				default:
+					continue;
 				}
 				llsb.add(sb);
 				i++;

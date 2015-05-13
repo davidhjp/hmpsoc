@@ -195,17 +195,21 @@ public class CompilationUnit {
 		printer.uglyprint();
 		
 		// Debug
-		for(BaseGRCNode gg : glist){
-			System.out.println("===");
-			System.out.println(gg.dump(0));
-		}
+//		for(BaseGRCNode gg : glist){
+//			System.out.println("===");
+//			System.out.println(gg.dump(0));
+//		}
 	}
 	
 	
 	private int setCaseNumber(BaseGRCNode n, int casen) {
 		if(n instanceof ActionNode){
-			if(((ActionNode) n).getCasenumber() < 0)
+			if(((ActionNode) n).getCasenumber() < 0){
+				ActionNode an = (ActionNode)n;
+				if(an.getActionType() == ActionNode.TYPE.JAVA || an.getActionType() == ActionNode.TYPE.GROUPED_JAVA ||
+						(an.getActionType() == ActionNode.TYPE.EMIT && an.hasEmitVal()))
 				((ActionNode)n).setCasenumber(casen++);
+			}
 		}
 		
 		for(BaseGRCNode child : n.getChildren()){
@@ -428,6 +432,13 @@ public class CompilationUnit {
 					an.setStmt(eval);
 				}
 				an.setActionType(ActionNode.TYPE.EMIT);
+				return an;
+			}
+			cel = e.getChild("ExitStmt");
+			if(cel != null){
+				an.setActionType(ActionNode.TYPE.EXIT);
+				an.setCapturing(cel.getChildText("Capturing"));
+				an.setExitCode(Integer.valueOf(cel.getChildText("ExitCode")));
 				return an;
 			}
 			List<Element> l = e.getChildren();

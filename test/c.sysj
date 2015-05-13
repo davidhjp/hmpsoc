@@ -1,8 +1,14 @@
 CD->{
 	int i = 0;
 	System.out.println("123");
-	if(0==0){
-		pause;
+	trap(T){
+		if(0==0){
+			pause;
+			System.out.println("before");
+			exit(T);
+			System.out.println("not");
+		}
 	}
+	System.out.println("d");
 	pause;
 }
