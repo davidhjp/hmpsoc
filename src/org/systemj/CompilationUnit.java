@@ -180,9 +180,11 @@ public class CompilationUnit {
 			n.resetVisited();
 		}
 		
-		Map<Integer, List<ActionNode>> m = new HashMap<Integer, List<ActionNode>>();
+		List<List<ActionNode>> m = new ArrayList<List<ActionNode>>();
 		for(BaseGRCNode n : glist){
-			getActions(n, m);
+			List<ActionNode> list = new ArrayList<ActionNode>();
+			getActions(n, list);
+			m.add(list);
 			n.resetVisited();
 		}
 		
@@ -250,22 +252,14 @@ public class CompilationUnit {
 		}
 	}
 
-	public void getActions(BaseGRCNode n, Map<Integer, List<ActionNode>> m){
+	public void getActions(BaseGRCNode n, List<ActionNode> l){
 		if(!n.isVisited()){
 			n.setVisited(true);
 			if(n instanceof ActionNode){
-				int id = ((ActionNode) n).getJopid();
-				if(m.containsKey(id)){
-					m.get(id).add((ActionNode)n);
-				}
-				else{
-					ArrayList<ActionNode> l = new ArrayList<ActionNode>();
-					l.add((ActionNode)n);
-					m.put(id, l);
-				}
+				l.add((ActionNode)n);
 			}
 			for(BaseGRCNode child : n.getChildren()){
-				getActions(child, m);
+				getActions(child, l);
 			}
 		}
 	}

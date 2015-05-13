@@ -18,7 +18,7 @@ public class UglyPrinter {
 
 	private List<BaseGRCNode> nodes;
 	private List<DeclaredObjects> declo;
-	private Map<Integer,List<ActionNode>> actmap;
+	private List<List<ActionNode>> acts;
 	private String dir;
 	private PrintWriter pw;
 
@@ -91,65 +91,69 @@ public class UglyPrinter {
 	}
 
 	private void printJavaClass(File dir) throws FileNotFoundException {
-		Iterator<Integer> it = actmap.keySet().iterator();
-		while(it.hasNext()){
-			int jopid = it.next();
-			pw = new PrintWriter(new File(dir, "JOP"+jopid+".java"));
+		if(acts.size() != declo.size())
+			throw new RuntimeException("Error !");
+		
+		for(int k=0;k<acts.size();k++){
+			DeclaredObjects d = declo.get(k);
+			String CDName = d.getCDName();
+			pw = new PrintWriter(new File(dir, "CD"+k+".java"));
+			
 			
 			pw.println("package hmpsoc;\n");
-			pw.println("public class JOP"+jopid+"{");
-			for(DeclaredObjects d : declo){
-				{
-					Iterator<Signal> iter = d.getInputSignalIterator();
-					while(iter.hasNext()){
-						Signal s = iter.next();
-						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-					}
-				}
-				{
-					Iterator<Signal> iter = d.getOutputSignalIterator();
-					while(iter.hasNext()){
-						Signal s = iter.next();
-						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-					}
-				}
-				{
-					Iterator<Signal> iter = d.getInternalSignalIterator();
-					while(iter.hasNext()){
-						Signal s = iter.next();
-						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-					}
-				}
-				{
-					Iterator<Channel> iter = d.getInputChannelIterator();
-					while(iter.hasNext()){
-						Channel s = iter.next();
-						pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
-					}
-				}
-				{
-					Iterator<Channel> iter = d.getOutputChannelIterator();
-					while(iter.hasNext()){
-						Channel s = iter.next();
-						pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
-					}
-				}
-				{
-					Iterator<Var> iter = d.getVarDeclIterator();
-					while(iter.hasNext()){
-						Var s = iter.next();
-						pw.println("private static "+s.type+" "+s.name+";");
-					}
+			pw.println("public class CD"+k+"{");
+			pw.println("public static final String CDName = \""+CDName+"\";");
+			{
+				Iterator<Signal> iter = d.getInputSignalIterator();
+				while(iter.hasNext()){
+					Signal s = iter.next();
+					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
 				}
 			}
-			List<ActionNode> l = actmap.get(jopid);
+			{
+				Iterator<Signal> iter = d.getOutputSignalIterator();
+				while(iter.hasNext()){
+					Signal s = iter.next();
+					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				}
+			}
+			{
+				Iterator<Signal> iter = d.getInternalSignalIterator();
+				while(iter.hasNext()){
+					Signal s = iter.next();
+					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				}
+			}
+			{
+				Iterator<Channel> iter = d.getInputChannelIterator();
+				while(iter.hasNext()){
+					Channel s = iter.next();
+					pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
+				}
+			}
+			{
+				Iterator<Channel> iter = d.getOutputChannelIterator();
+				while(iter.hasNext()){
+					Channel s = iter.next();
+					pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
+				}
+			}
+			{
+				Iterator<Var> iter = d.getVarDeclIterator();
+				while(iter.hasNext()){
+					Var s = iter.next();
+					pw.println("private static "+s.type+" "+s.name+";");
+				}
+			}
+
+			
+			List<ActionNode> l = acts.get(k);
 			pw.println();
 			
 			List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
 			List<StringBuilder> llsb = new ArrayList<StringBuilder>();
 			int i = 0;
 			for(ActionNode an : l){
-
 				StringBuilder sb = new StringBuilder();
 				boolean gen = false;
 				switch(an.getActionType()){
@@ -179,16 +183,13 @@ public class UglyPrinter {
 					if(an.hasEmitVal()){
 						if(an.getCasenumber() < 0)
 							throw new RuntimeException("Unresolved Action Case");
-						sb.append("// Emit\n");
+						sb.append("case "+an.getCasenumber()+":\n");
+						sb.append(an.getStmt()+"\n");
+						sb.append("break;\n");
 						gen = true;
 					}
 					else
 						continue;
-//					if(an.hasEmitVal()){
-//						sb.append("hoho");
-//						sb.append("case "+an.getCasenumber()+":\n");
-//						sb.append(an.getEmitVal());
-//					}
 					break;
 				default:
 					continue;
@@ -196,6 +197,7 @@ public class UglyPrinter {
 				llsb.add(sb);
 				i++;
 				if(i > 100){
+					sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
 					lsb.add(llsb);
 					llsb = new ArrayList<StringBuilder>();
 					i = 0;
@@ -211,7 +213,11 @@ public class UglyPrinter {
 				for(StringBuilder sb : ll){
 					pw.print(sb.toString());
 				}
+				if(j == lsb.size()-1){
+					pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+				}
 				pw.println("}");
+				pw.println("return false;");
 				pw.println("}");
 			}
 
@@ -225,12 +231,12 @@ public class UglyPrinter {
 		
 	}
 
-	public Map<Integer, List<ActionNode>> getActmap() {
-		return actmap;
+	public List<List<ActionNode>> getActmap() {
+		return acts;
 	}
 
-	public void setActmap(Map<Integer, List<ActionNode>> actmap) {
-		this.actmap = actmap;
+	public void setActmap(List<List<ActionNode>> actmap) {
+		this.acts = actmap;
 	}
 
 }

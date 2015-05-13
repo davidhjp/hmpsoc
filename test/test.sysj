@@ -1,8 +1,8 @@
-CD1(input String signal A;output String channel C;)->
+CD1(input String signal A;output String channel C;output String channel SS;)->
 {
 	signal B;
 	int signal K;
-	{await(A);}||{send C("WWWW");}||{emit B;}
+	{await(A);}||{send C("WWWW");}||{emit B;}||{send SS("ss");}
 	pause;
 	emit K(2);
 }
