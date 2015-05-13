@@ -195,10 +195,10 @@ public class CompilationUnit {
 		printer.uglyprint();
 		
 		// Debug
-//		for(BaseGRCNode gg : glist){
-//			System.out.println("===");
-//			System.out.println(gg.dump(0));
-//		}
+		for(BaseGRCNode gg : glist){
+			System.out.println("===");
+			System.out.println(gg.dump(0));
+		}
 	}
 	
 	

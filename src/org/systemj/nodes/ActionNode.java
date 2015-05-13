@@ -35,6 +35,10 @@ public class ActionNode extends BaseGRCNode {
 	public String getEmitVal() {
 		return EmitVal;
 	}
+	
+	public boolean hasEmitVal(){
+		return EmitVal != null;
+	}
 
 	public void setEmitVal(String emitVal) {
 		EmitVal = emitVal;
@@ -85,7 +89,7 @@ public class ActionNode extends BaseGRCNode {
 	public String dump(int indent) {
 		String str = "";
 		String ind = getIndent(indent,'-');
-		str += ind+"ActionNode, Type: "+this.type+", JOPID: "+jopid+"\n";
+		str += ind+"ActionNode, Type: "+this.type+", Case: "+this.casenumber+", JOPID: "+jopid+"\n";
 		ind = getIndent(indent);
 		
 		if(!this.isGrouped()){

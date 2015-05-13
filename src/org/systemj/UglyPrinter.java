@@ -152,6 +152,7 @@ public class UglyPrinter {
 				if(an.getCasenumber() < 0)
 					throw new RuntimeException("Unresolved Action Case");
 				StringBuilder sb = new StringBuilder();
+				boolean gen = false;
 				switch(an.getActionType()){
 				case JAVA:
 					sb.append("case "+an.getCasenumber()+":\n");
@@ -161,6 +162,7 @@ public class UglyPrinter {
 						sb.append(an.getStmt()+"\n");
 						sb.append("break;\n");
 					}
+					gen = true;
 					break;
 				case GROUPED_JAVA:
 					sb.append("case "+an.getCasenumber()+":\n");
@@ -168,8 +170,15 @@ public class UglyPrinter {
 						sb.append(stmt+"\n");
 					}
 					sb.append("break;\n");
+					gen = true;
 					break;
 				case EMIT:
+//					if(an.hasEmitVal()){
+//						sb.append("hoho");
+//						sb.append("case "+an.getCasenumber()+":\n");
+//						sb.append(an.getEmitVal());
+//					}
+					break;
 				case SIG_DECL:
 					break;
 				}
