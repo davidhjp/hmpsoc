@@ -6,7 +6,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.systemj.DeclaredObjects.Channel;
 import org.systemj.DeclaredObjects.Signal;
@@ -20,7 +19,6 @@ public class UglyPrinter {
 	private List<DeclaredObjects> declo;
 	private List<List<ActionNode>> acts;
 	private String dir;
-	private PrintWriter pw;
 
 	public UglyPrinter () {}
 
@@ -97,7 +95,7 @@ public class UglyPrinter {
 		for(int k=0;k<acts.size();k++){
 			DeclaredObjects d = declo.get(k);
 			String CDName = d.getCDName();
-			pw = new PrintWriter(new File(dir, "CD"+k+".java"));
+			PrintWriter pw = new PrintWriter(new File(dir, "CD"+k+".java"));
 			
 			
 			pw.println("package hmpsoc;\n");
@@ -229,6 +227,46 @@ public class UglyPrinter {
 			pw.close();
 		}
 		
+		printJavaJOPThread(dir);
+		
+	}
+	
+	private void printJavaJOPThread(File dir) throws FileNotFoundException{
+//		CommandLine cl = Helper.getSingleArgInstance();
+//		String jopnum = cl.getOptionValue("j");
+//		int numjop = 1;
+//		if(jopnum != null){
+//			numjop = Integer.valueOf(jopnum);
+//		}
+		
+		PrintWriter pw = new PrintWriter(new File(dir, "JOPThread.java"));
+		pw.println("package hmpsoc;");
+		pw.println("/* import necessary packages */");
+		pw.println();
+		pw.println("public class JOPThread implements Runnable {\n");
+		pw.println();
+		pw.println("public void run (){");
+		pw.println("int cd = 0;");
+		pw.println("int case = 0;");
+		pw.println("while(true){");
+		pw.println("/* Retrieve cd and case numbers and assign them to 'cd' and 'case', respectively */");
+		pw.println("switch(cd){");
+		
+		for(int i=0; i<nodes.size(); i++){
+			pw.println("case "+i+":");
+			pw.println("CD"+i+".MethodCall_0(case);");
+			pw.println("break;");
+			pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+		}
+		
+		
+		pw.println("}");
+		pw.println("}");
+		pw.println("}");
+		pw.println("}");
+		
+		pw.flush();
+		pw.close();
 	}
 
 	public List<List<ActionNode>> getActmap() {

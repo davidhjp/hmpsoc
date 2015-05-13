@@ -67,25 +67,31 @@ public class HMPSoC {
 		try {
 			cmd = parser.parse(options, args);
 			Helper.setSingleArgInstance(cmd);
+
+			for(Option o : cmd.getOptions()){
+				if(o.getOpt().equals(Helper.HELP_OPTION)){
+					printHelp(options);
+					System.exit(0);
+				}
+				else{
+					switch(o.getOpt()){
+					case Helper.VERBOSE_OPTION:
+						CompilerPrintStream.setVerbose();
+						CompilerPrintStream.setDefaultVerbose();
+						break;
+					case Helper.JOP_NUM_OPTION:
+						if(o.getValue(Helper.JOP_NUM_OPTION).equals("0")){
+							throw new ParseException("JOP number should be greater than 0");
+						}
+					default:
+						break;
+					}
+				}
+			}
 		} catch (ParseException e) {
 			CompilerPrintStream.setVerbose();
 			System.err.println(e.getMessage());
 			System.exit(1);
-		}
-
-		for(Option o : cmd.getOptions()){
-			if(o.getOpt().equals(Helper.HELP_OPTION)){
-				printHelp(options);
-				System.exit(0);
-			}
-			else{
-				switch(o.getOpt()){
-				case "v":
-					CompilerPrintStream.setVerbose();
-					CompilerPrintStream.setDefaultVerbose();
-					break;
-				}
-			}
 		}
 
 		List<String> arglists = cmd.getArgList();
