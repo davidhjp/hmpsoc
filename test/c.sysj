@@ -1,0 +1,8 @@
+CD->{
+	int i = 0;
+	System.out.println("123");
+	if(0==0){
+		pause;
+	}
+	pause;
+}

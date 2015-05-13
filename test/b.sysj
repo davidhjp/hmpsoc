@@ -1,0 +1,27 @@
+CD(
+		input String channel CH;
+		output String channel CH2;
+		input String signal SS;
+		output String signal SSo;
+		)->{
+	System.out.println("hi");
+	present(SS){
+		pause;
+	}
+	if(1==1){
+		pause;
+	}
+	{
+		System.out.println("pp");
+		System.out.println("qq");
+		pause;
+	}
+	||
+	{
+		int i = 10;
+		int j =20;
+		pause;
+	}
+	System.out.println("yo");
+	pause;
+}
