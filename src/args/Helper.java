@@ -9,6 +9,7 @@ public class Helper {
 	public final static String VERBOSE_OPTION = "v";
 	public final static String VERBOSE_LONG_OPTION = "verbose";
 	public static final String D_OPTION = "d";
+	public static final String JOP_NUM_OPTION = "j";
 	
 	private static CommandLine cmd;
 	

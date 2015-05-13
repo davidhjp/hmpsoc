@@ -1,10 +1,10 @@
 package org.systemj;
 
-import java.awt.Desktop.Action;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -131,17 +131,14 @@ public class CompilationUnit {
 	
 	private List<Element> getInternalSignalDecls(Element e){
 		ArrayList<Element> l = new ArrayList<Element>();
-		if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("false")){
-			e.setAttribute("Visited", "true");
-			if(e.getName().equals("SignalDeclStmt")){
-				l.add(e);
-			}
-			
-			List<Element> children = e.getChildren();
-			if(children != null){
-				for(Element ee : children){
-					l.addAll(getInternalSignalDecls(ee));
-				}
+		if(e.getName().equals("SignalDeclStmt")){
+			l.add(e);
+		}
+
+		List<Element> children = e.getChildren();
+		if(children != null){
+			for(Element ee : children){
+				l.addAll(getInternalSignalDecls(ee));
 			}
 		}
 		return l;
@@ -155,7 +152,7 @@ public class CompilationUnit {
 	 */
 	public void process() throws Exception {
 		List<DeclaredObjects> l = getDeclaredObjects();
-		resetVisitTagAGRC((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
+//		resetVisitTagAGRC((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
 		
 		// ---- Debug
 //		XMLOutputter xmlo = new XMLOutputter();
@@ -164,18 +161,125 @@ public class CompilationUnit {
 		// ----- 
 		
 		List<BaseGRCNode> glist = getGRC(l);
+		for(BaseGRCNode n : glist){
+			splitTestAction(n);
+			n.resetVisited();
+		}
+
 		for(BaseGRCNode n : glist)
 			groupActions(n);
+		
+		for(BaseGRCNode n : glist)
+			setCaseNumber(n, 1);
+		
+		int mjop = 1;
+		if(Helper.getSingleArgInstance().hasOption("j"))
+			mjop = Integer.valueOf(Helper.getSingleArgInstance().getOptionValue("j")) + 1;
+		for(BaseGRCNode n : glist){
+			setActionTag(n, mjop);
+			n.resetVisited();
+		}
+		
+		Map<Integer, List<ActionNode>> m = new HashMap<Integer, List<ActionNode>>();
+		for(BaseGRCNode n : glist){
+			getActions(n, m);
+			n.resetVisited();
+		}
 		
 		UglyPrinter printer = new UglyPrinter(glist);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
 			printer.setDir(Helper.getSingleArgInstance().getOptionValue(Helper.D_OPTION));
 		}
 		printer.setDelcaredObjects(l);
+		printer.setActmap(m);
 		printer.uglyprint();
-		for(BaseGRCNode gg : glist){
-			System.out.println("===");
-			System.out.println(gg.dump(0));
+		
+		// Debug
+//		for(BaseGRCNode gg : glist){
+//			System.out.println("===");
+//			System.out.println(gg.dump(0));
+//		}
+	}
+	
+	
+	private int setCaseNumber(BaseGRCNode n, int casen) {
+		if(n instanceof ActionNode){
+			if(((ActionNode) n).getCasenumber() < 0)
+				((ActionNode)n).setCasenumber(casen++);
+		}
+		
+		for(BaseGRCNode child : n.getChildren()){
+			casen = setCaseNumber(child, casen);
+		}
+		
+		return casen;
+	}
+
+	private void splitTestAction(BaseGRCNode n) {
+		if(!n.isVisited()){
+			n.setVisited(true);
+			
+			if(n instanceof TestNode){
+				if(((TestNode) n).isJavastmt()){
+					ActionNode an = new ActionNode();
+					an.setStmt(((TestNode)n).getExpr());
+					an.setActionType(ActionNode.TYPE.JAVA);
+					if(n.getNumParents() > 1)
+						throw new RuntimeException("TestNode cannot have more than one parent");
+					BaseGRCNode bcn = n.getParent(0);
+					for(int i=0; i<bcn.getNumChildren(); i++){
+						if(bcn.getChild(i).equals(n)){
+							bcn.setChild(i, an);
+						}
+					}
+					an.addChild(n);
+					n.setParent(0, an);
+					an.setThnum(n.getThnum());
+					an.setBeforeTestNode(true);
+				}
+			}
+			
+			for(BaseGRCNode child : n.getChildren()){
+				splitTestAction(child);
+			}
+			
+		}
+	}
+
+	public void getActions(BaseGRCNode n, Map<Integer, List<ActionNode>> m){
+		if(!n.isVisited()){
+			n.setVisited(true);
+			if(n instanceof ActionNode){
+				int id = ((ActionNode) n).getJopid();
+				if(m.containsKey(id)){
+					m.get(id).add((ActionNode)n);
+				}
+				else{
+					ArrayList<ActionNode> l = new ArrayList<ActionNode>();
+					l.add((ActionNode)n);
+					m.put(id, l);
+				}
+			}
+			for(BaseGRCNode child : n.getChildren()){
+				getActions(child, m);
+			}
+		}
+	}
+	
+	public void setActionTag(BaseGRCNode n, int mjop){
+		if(!n.isVisited()){
+			n.setVisited(true);
+			if(n instanceof ActionNode){
+				if(n.getThnum() == -1)
+					throw new RuntimeException("ActionNode Thnum < 0 !!");
+				int jopid = n.getThnum() % mjop;
+				jopid = jopid == 0 ? 1 : jopid;
+				((ActionNode) n).setJopid(jopid);
+			}
+
+			for(BaseGRCNode child : n.getChildren()){
+				setActionTag(child, mjop);
+			}
 		}
 	}
 	
@@ -225,30 +329,30 @@ public class CompilationUnit {
 		return nodenames.contains(e.getName());
 	}
 	
-	private void resetVisitTag(Element e){
-		e.removeAttribute("Visited");
-		
-		for(Element ee : (List<Element>)e.getChildren()){
-			resetVisitTag(ee);
-		}
-	}
-	
-	private void resetVisitTagAGRC(Element e){
-		if(isAGRCNode(e)){
-			if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("true")){
-				e.setAttribute("Visited", "false");
-			}
-			else{
-				return;
-			}
-		}
-		else
-			e.removeAttribute("Visited");
-
-		for(Element ee : (List<Element>)e.getChildren()){
-			resetVisitTagAGRC(ee);
-		}
-	}
+//	private void resetVisitTag(Element e){
+//		e.removeAttribute("Visited");
+//		
+//		for(Element ee : (List<Element>)e.getChildren()){
+//			resetVisitTag(ee);
+//		}
+//	}
+//	
+//	private void resetVisitTagAGRC(Element e){
+//		if(isAGRCNode(e)){
+//			if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("true")){
+//				e.setAttribute("Visited", "false");
+//			}
+//			else{
+//				return;
+//			}
+//		}
+//		else
+//			e.removeAttribute("Visited");
+//
+//		for(Element ee : (List<Element>)e.getChildren()){
+//			resetVisitTagAGRC(ee);
+//		}
+//	}
 
 	private List<BaseGRCNode> getGRC(List<DeclaredObjects> l) {
 		Element grc = (Element) doc.getRootElement().getDescendants(new ElementFilter("AforkNode")).next();
@@ -264,10 +368,10 @@ public class CompilationUnit {
 					co = c;
 			}
 			if(co == null) throw new RuntimeException("Could not find a matched CD in CommObjects");
-			BaseGRCNode gn = getGRCTraverse(afk, n, new HashMap<Element,BaseGRCNode>(), co);
+			BaseGRCNode gn = getGRCTraverse(afk, n, new HashMap<String,BaseGRCNode>(), co);
 			ll.add(gn);
 		}
-		this.resetVisitTagAGRC(grc);
+//		this.resetVisitTagAGRC(grc);
 		return ll;
 	}
 	
@@ -276,6 +380,7 @@ public class CompilationUnit {
 		switch(e.getName()){
 		case BaseGRCNode.ACTION_NODE:
 			ActionNode an = new ActionNode();
+			an.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
 			Element cel = e.getChild("SignalDeclStmt");
 			if(cel != null){
 				an.setStmt(cel.getChildText("Name")+".setClear();");
@@ -331,18 +436,26 @@ public class CompilationUnit {
 			an.setActionType(ActionNode.TYPE.JAVA);
 			return an;
 		case BaseGRCNode.AJOIN_NODE:
-			return new AjoinNode();
+			AjoinNode ajn = new AjoinNode();
+			ajn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
+			return ajn;
 		case BaseGRCNode.ENTER_NODE:
 			EnterNode en = new EnterNode();
 			en.setStatecode(e.getChildText("Statecode"));
 			en.setStatename(e.getChildText("Statename"));
+			en.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
 			return en;
 		case BaseGRCNode.FORK_NODE:
-			return new ForkNode();
+			ForkNode fn = new ForkNode();
+			fn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
+			return fn;
 		case BaseGRCNode.JOIN_NODE:
-			return new JoinNode();
+			JoinNode jn = new JoinNode();
+			jn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
+			return jn;
 		case BaseGRCNode.SWITCH_NODE:
 			SwitchNode sn = new SwitchNode();
+			sn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
 			sn.setStatename(e.getChildText("Statename"));
 			String cdname = e.getChildText("CDName");
 			if(cdname != null){
@@ -351,25 +464,30 @@ public class CompilationUnit {
 			return sn;
 		case BaseGRCNode.TERMINATE_NODE:
 			TerminateNode tn = new TerminateNode();
+			tn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
 			tn.setTermcode(e.getChildText("Value"));
 			return tn;
 		case BaseGRCNode.TEST_NODE:
 			TestNode test = new TestNode();
+			test.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
 			test.setExpr(e.getChildText("Expr"));
+			if(e.getChild("Java") != null)
+				test.setJavastmt(true);
 			return test;
 		case BaseGRCNode.AFORK_NODE:
-			return new AforkNode();
+			AforkNode afn = new AforkNode();
+			afn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
+			return afn;
 		default:
 			throw new RuntimeException("Unrecognized node type : "+e.getName());
 		}
 	}
 	
-	private BaseGRCNode getGRCTraverse(BaseGRCNode p, Element cur, Map<Element,BaseGRCNode> m, DeclaredObjects co){
-		if(cur.getAttributeValue("Visited").equals("false")){
+	private BaseGRCNode getGRCTraverse(BaseGRCNode p, Element cur, Map<String,BaseGRCNode> m, DeclaredObjects co){
+		if(!cur.getName().equals("NodeRef")){
 			BaseGRCNode n = getNode(cur,co);
 			BaseGRCNode.connectParentChild(p, n);
-			m.put(cur, n);
-			cur.setAttribute("Visited", "true");
+			m.put(cur.getAttributeValue("ID"), n);
 			
 			Element children = cur.getChild("Children");
 			if(children != null){
@@ -381,8 +499,9 @@ public class CompilationUnit {
 			return n;
 		}
 		else{
-			BaseGRCNode node = m.get(cur);
-			BaseGRCNode.connectParentChild(p, node);
+			BaseGRCNode node = m.get(cur.getText());
+			if(node != null)
+				BaseGRCNode.connectParentChild(p, node);
 			return node;
 		}
 		

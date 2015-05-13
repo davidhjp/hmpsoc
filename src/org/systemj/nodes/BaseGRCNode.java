@@ -20,7 +20,7 @@ public class BaseGRCNode {
 	protected List<BaseGRCNode> children = new ArrayList<BaseGRCNode>();
 	protected List<BaseGRCNode> parents = new ArrayList<BaseGRCNode>();
 	protected String id = this.getClass().getSimpleName()+"@"+Integer.toHexString(this.hashCode());
-	
+	protected int thnum = -1;
 
 	
 	public boolean isVisited() {
@@ -123,6 +123,11 @@ public class BaseGRCNode {
 		}
 		return str;
 	}
-	
+	public int getThnum() {
+		return thnum;
+	}
+	public void setThnum(int thnum) {
+		this.thnum = thnum;
+	}
 	
 }

@@ -3,14 +3,22 @@ package org.systemj;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.systemj.DeclaredObjects.Channel;
+import org.systemj.DeclaredObjects.Signal;
+import org.systemj.DeclaredObjects.Var;
+import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
 
 public class UglyPrinter {
 
 	private List<BaseGRCNode> nodes;
 	private List<DeclaredObjects> declo;
+	private Map<Integer,List<ActionNode>> actmap;
 	private String dir;
 	private PrintWriter pw;
 
@@ -71,11 +79,138 @@ public class UglyPrinter {
 			f = new File("hmpsoc");
 			f.mkdir();
 		}
+		
+		printJavaClass(f);
+		
+		
 //		pw = new PrintWriter(f);
 //		pw.println("www");
 //		pw.flush();
 //		pw.close();
 		
+	}
+
+	private void printJavaClass(File dir) throws FileNotFoundException {
+		Iterator<Integer> it = actmap.keySet().iterator();
+		while(it.hasNext()){
+			int jopid = it.next();
+			pw = new PrintWriter(new File(dir, "JOP"+jopid+".java"));
+			
+			pw.println("package hmpsoc;\n");
+			pw.println("public class JOP"+jopid+"{");
+			for(DeclaredObjects d : declo){
+				{
+					Iterator<Signal> iter = d.getInputSignalIterator();
+					while(iter.hasNext()){
+						Signal s = iter.next();
+						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+					}
+				}
+				{
+					Iterator<Signal> iter = d.getOutputSignalIterator();
+					while(iter.hasNext()){
+						Signal s = iter.next();
+						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+					}
+				}
+				{
+					Iterator<Signal> iter = d.getInternalSignalIterator();
+					while(iter.hasNext()){
+						Signal s = iter.next();
+						pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+					}
+				}
+				{
+					Iterator<Channel> iter = d.getInputChannelIterator();
+					while(iter.hasNext()){
+						Channel s = iter.next();
+						pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
+					}
+				}
+				{
+					Iterator<Channel> iter = d.getOutputChannelIterator();
+					while(iter.hasNext()){
+						Channel s = iter.next();
+						pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
+					}
+				}
+				{
+					Iterator<Var> iter = d.getVarDeclIterator();
+					while(iter.hasNext()){
+						Var s = iter.next();
+						pw.println("private static "+s.type+" "+s.name+";");
+					}
+				}
+			}
+			List<ActionNode> l = actmap.get(jopid);
+			pw.println();
+			
+			List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
+			List<StringBuilder> llsb = new ArrayList<StringBuilder>();
+			int i = 0;
+			for(ActionNode an : l){
+				if(an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+				StringBuilder sb = new StringBuilder();
+				switch(an.getActionType()){
+				case JAVA:
+					sb.append("case "+an.getCasenumber()+":\n");
+					if(an.isBeforeTestNode())
+						sb.append("return "+an.getStmt()+";\n");
+					else{
+						sb.append(an.getStmt()+"\n");
+						sb.append("break;\n");
+					}
+					break;
+				case GROUPED_JAVA:
+					sb.append("case "+an.getCasenumber()+":\n");
+					for(String stmt : an.getStmts()){
+						sb.append(stmt+"\n");
+					}
+					sb.append("break;\n");
+					break;
+				case EMIT:
+				case SIG_DECL:
+					break;
+				}
+				llsb.add(sb);
+				i++;
+				if(i > 100){
+					lsb.add(llsb);
+					llsb = new ArrayList<StringBuilder>();
+					i = 0;
+				}
+			}
+			if(i <= 100)
+				lsb.add(llsb);
+			
+			for(int j=0 ; j<lsb.size(); j++){
+				List<StringBuilder> ll = lsb.get(j);
+				pw.println("public static boolean MethodCall_"+j+"(int casen){");
+				pw.println("switch(casen){");
+				for(StringBuilder sb : ll){
+					pw.print(sb.toString());
+				}
+				pw.println("}");
+				pw.println("}");
+			}
+
+			
+			
+			
+			pw.println("}");
+			pw.flush();
+			pw.close();
+		}
+		
+	}
+
+	public Map<Integer, List<ActionNode>> getActmap() {
+		return actmap;
+	}
+
+	public void setActmap(Map<Integer, List<ActionNode>> actmap) {
+		this.actmap = actmap;
 	}
 
 }

@@ -14,6 +14,7 @@ public class ActionNode extends BaseGRCNode {
 	private String SigName;
 	private String SigType;
 	private String EmitVal;
+	private boolean beforeTestNode = false;
 	
 	public String getSigType() {
 		return SigType;
@@ -84,7 +85,7 @@ public class ActionNode extends BaseGRCNode {
 	public String dump(int indent) {
 		String str = "";
 		String ind = getIndent(indent,'-');
-		str += ind+"ActionNode, Type: "+this.type+"\n";
+		str += ind+"ActionNode, Type: "+this.type+", JOPID: "+jopid+"\n";
 		ind = getIndent(indent);
 		
 		if(!this.isGrouped()){
@@ -103,6 +104,34 @@ public class ActionNode extends BaseGRCNode {
 			str += child.dump(indent+1);
 		}
 		return str;
+	}
+	
+	
+	private int casenumber = -1;
+	private int jopid = 0;
+
+	public int getCasenumber() {
+		return casenumber;
+	}
+
+	public void setCasenumber(int casenumber) {
+		this.casenumber = casenumber;
+	}
+
+	public int getJopid() {
+		return jopid;
+	}
+
+	public void setJopid(int jopid) {
+		this.jopid = jopid;
+	}
+
+	public boolean isBeforeTestNode() {
+		return beforeTestNode;
+	}
+
+	public void setBeforeTestNode(boolean beforeTestNode) {
+		this.beforeTestNode = beforeTestNode;
 	}
 	
 }
