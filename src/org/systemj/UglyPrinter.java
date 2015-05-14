@@ -12,6 +12,7 @@ import org.systemj.DeclaredObjects.Signal;
 import org.systemj.DeclaredObjects.Var;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
+import org.systemj.nodes.SwitchNode;
 
 public class UglyPrinter {
 
@@ -91,7 +92,7 @@ public class UglyPrinter {
 
 	private void printJavaClass(File dir) throws FileNotFoundException {
 
-		printClockDomain(dir);
+		printJavaClockDomain(dir);
 		printJavaJOPThread(dir);
 		printJavaMain(dir);
 		
@@ -101,11 +102,50 @@ public class UglyPrinter {
 
 	private void printASM(File dir) throws FileNotFoundException {
 		PrintWriter pw = new PrintWriter(new File(dir, target+".asm"));
+		long c = 0;
+		List<MemoryPointer> lmp = new ArrayList<MemoryPointer>();
 		
+		for(BaseGRCNode bcn : nodes){
+			String cdname = ((SwitchNode)bcn).getCDName();
+			MemoryPointer mp = new MemoryPointer();
+			mp.ptrInputSignal = c++;
+			mp.ptrOutputSignal = c++;
+			mp.ptrDataLock = c;
+			long dl = getMaxDataLock(bcn, 1);
+			c += dl;
+			mp.ptrPreInternalSignal = c;
+			
+			System.out.println("====== "+cdname+" constructed memory map =====");
+			System.out.println("iSignal    :"+mp.ptrInputSignal);
+			System.out.println("oSignal    :"+mp.ptrOutputSignal);
+			System.out.println("DataLock   :"+mp.ptrDataLock);
+			System.out.println("PreSig     :"+mp.ptrPreInternalSignal);
+			System.out.println("PreISig    :"+mp.ptrPreInputSignal);
+			System.out.println("PreOSig    :"+mp.ptrPreOutputSignal);
+			System.out.println("PC         :"+mp.ptrProgramCounter);
+			System.out.println("Term       :"+mp.ptrTerminateCode);
+			System.out.println("Switch     :"+mp.ptrSwitchNode);
+		}
 		
-		
+
+
 		pw.flush();
 		pw.close();
+	}
+
+	private long getMaxDataLock(BaseGRCNode bcn, long dl) {
+		if(bcn.getThnum() > dl){
+			dl = bcn.getThnum();
+		}
+		
+		for(BaseGRCNode child : bcn.getChildren()){
+			long r = getMaxDataLock(child, dl);
+			if(r > dl)
+				dl = r;
+		}
+		
+		return dl;
+		
 	}
 
 	private void printJavaMain(File dir) throws FileNotFoundException {
@@ -136,7 +176,7 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printClockDomain(File dir) throws FileNotFoundException {
+	private void printJavaClockDomain(File dir) throws FileNotFoundException {
 		if(acts.size() != declo.size())
 			throw new RuntimeException("Error !");
 		

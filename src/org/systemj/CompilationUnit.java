@@ -204,12 +204,12 @@ public class CompilationUnit {
 		printer.uglyprint();
 		
 		// Debug
-		if(Helper.getSingleArgInstance().hasOption(Helper.VERBOSE_OPTION)){
-			for(BaseGRCNode gg : glist){
-				System.out.println("====== "+((SwitchNode)gg).getCDName()+" graph =====");
-				System.out.println(gg.dump(0));
-			}
-		}
+//		if(Helper.getSingleArgInstance().hasOption(Helper.VERBOSE_OPTION)){
+//			for(BaseGRCNode gg : glist){
+//				System.out.println("====== "+((SwitchNode)gg).getCDName()+" graph =====");
+//				System.out.println(gg.dump(0));
+//			}
+//		}
 	}
 	
 	
