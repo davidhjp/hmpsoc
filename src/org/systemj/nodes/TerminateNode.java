@@ -2,15 +2,18 @@ package org.systemj.nodes;
 
 public class TerminateNode extends BaseGRCNode {
 	
-	private String termcode;
+	private int termcode;
+	
+	public TerminateNode(int t) { termcode = t; }
+	public TerminateNode() { }
 	
 
-	public String getTermcode() {
+	public int getTermcode() {
 		return termcode;
 	}
 
 
-	public void setTermcode(String termcode) {
+	public void setTermcode(int termcode) {
 		this.termcode = termcode;
 	}
 
@@ -19,7 +22,7 @@ public class TerminateNode extends BaseGRCNode {
 	public String dump(int indent) {
 		String str = "";
 		String ind = getIndent(indent,'-');
-		str += ind +"TerminateNode\n";
+		str += ind +"TerminateNode, ID:"+id+"\n";
 		ind = getIndent(indent);
 		str += ind + "TermCode: "+ termcode + "\n";
 		

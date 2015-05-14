@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +25,7 @@ import org.systemj.nodes.ForkNode;
 import org.systemj.nodes.JoinNode;
 import org.systemj.nodes.SwitchNode;
 import org.systemj.nodes.TerminateNode;
+import org.systemj.nodes.TestLock;
 import org.systemj.nodes.TestNode;
 
 import args.Helper;
@@ -188,22 +188,96 @@ public class CompilationUnit {
 			n.resetVisited();
 		}
 		
+		for(BaseGRCNode n : glist){
+			addTestLock(n);
+			n.resetVisited();
+		}
+		
+		
 		UglyPrinter printer = new UglyPrinter(glist);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
 			printer.setDir(Helper.getSingleArgInstance().getOptionValue(Helper.D_OPTION));
 		}
+		printer.setTarget(this.target.split("\\.")[0]);
 		printer.setDelcaredObjects(l);
 		printer.setActmap(m);
 		printer.uglyprint();
 		
 		// Debug
-//		for(BaseGRCNode gg : glist){
-//			System.out.println("===");
-//			System.out.println(gg.dump(0));
-//		}
+		if(Helper.getSingleArgInstance().hasOption(Helper.VERBOSE_OPTION)){
+			for(BaseGRCNode gg : glist){
+				System.out.println("====== "+((SwitchNode)gg).getCDName()+" graph =====");
+				System.out.println(gg.dump(0));
+			}
+		}
 	}
 	
 	
+	private void addTL(BaseGRCNode n){
+		if(n.getNumChildren() > 1) throw new RuntimeException("ActioNode has more than 1 child");
+		BaseGRCNode oc = n.getChild(0);
+		n.removeChild(oc);
+		oc.removeParent(n);
+		
+		TestLock tl = new TestLock();
+		BaseGRCNode.connectParentChild(n, tl);
+		
+		// Then :0, else : 1
+		tl.addChild(oc);
+		TerminateNode tn = new TerminateNode(Integer.MAX_VALUE);
+		BaseGRCNode.connectParentChild(tl, tn);
+		
+		BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
+		if(joraj == null){
+			System.out.println(n.dump(1));
+			throw new RuntimeException("Error while inserting TestLock");
+		}
+		BaseGRCNode.connectParentChild(tn, joraj);
+	}
+
+	private void addTestLock(BaseGRCNode n) {
+		if(n instanceof ActionNode && !n.isVisited()){
+			n.setVisited(true);
+			switch(((ActionNode) n).getActionType()){
+			case JAVA:
+			case GROUPED_JAVA:
+				addTL(n);
+				break;
+			case EMIT:
+				if(((ActionNode)n).hasEmitVal()){
+					addTL(n);
+				}
+				break;
+			default: break;
+			}
+		}
+		
+		for(BaseGRCNode child : n.getChildren()){
+			addTestLock(child);
+		}
+	}
+
+	private BaseGRCNode getFirstJoinOrAjoin(BaseGRCNode n, int level) {
+		if(n instanceof ForkNode){
+			level++;
+		}
+		else if(n instanceof JoinNode){
+			if(level == 0)
+				return n;
+			else 
+				level--;
+		}
+		else if(n instanceof AjoinNode)
+			return n;
+		
+		for(BaseGRCNode child : n.getChildren()){
+			BaseGRCNode rn = getFirstJoinOrAjoin(child, level);
+			if(rn != null)
+				return rn;
+		}
+		return null;
+	}
+
 	private int setCaseNumber(BaseGRCNode n, int casen) {
 		if(n instanceof ActionNode){
 			if(((ActionNode) n).getCasenumber() < 0){
@@ -357,6 +431,7 @@ public class CompilationUnit {
 		Element children = grc.getChild("Children");
 		AforkNode afk = new AforkNode();
 		List<BaseGRCNode> ll = new ArrayList<BaseGRCNode>();
+		Map<String,BaseGRCNode> m =  new HashMap<String,BaseGRCNode>();
 		
 		for(Element n : (List<Element>)children.getChildren()){
 			String cdname = n.getChildText("CDName");
@@ -366,7 +441,7 @@ public class CompilationUnit {
 					co = c;
 			}
 			if(co == null) throw new RuntimeException("Could not find a matched CD in CommObjects");
-			BaseGRCNode gn = getGRCTraverse(afk, n, new HashMap<String,BaseGRCNode>(), co);
+			BaseGRCNode gn = getGRCTraverse(afk, n, m, co);
 			ll.add(gn);
 		}
 //		this.resetVisitTagAGRC(grc);
@@ -470,7 +545,7 @@ public class CompilationUnit {
 		case BaseGRCNode.TERMINATE_NODE:
 			TerminateNode tn = new TerminateNode();
 			tn.setThnum(Integer.valueOf(e.getAttributeValue("ThNum")));
-			tn.setTermcode(e.getChildText("Value"));
+			tn.setTermcode(Integer.valueOf(e.getChildText("Value")));
 			return tn;
 		case BaseGRCNode.TEST_NODE:
 			TestNode test = new TestNode();
@@ -493,6 +568,7 @@ public class CompilationUnit {
 			BaseGRCNode n = getNode(cur,co);
 			BaseGRCNode.connectParentChild(p, n);
 			m.put(cur.getAttributeValue("ID"), n);
+			n.id = cur.getAttributeValue("ID");
 			
 			Element children = cur.getChild("Children");
 			if(children != null){

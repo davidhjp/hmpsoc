@@ -15,10 +15,11 @@ import org.systemj.nodes.BaseGRCNode;
 
 public class UglyPrinter {
 
+	private String target;
 	private List<BaseGRCNode> nodes;
 	private List<DeclaredObjects> declo;
 	private List<List<ActionNode>> acts;
-	private String dir;
+	private String topdir;
 
 	public UglyPrinter () {}
 
@@ -29,7 +30,7 @@ public class UglyPrinter {
 
 	public UglyPrinter(List<BaseGRCNode> nodes, String dir) {
 		super();
-		this.dir = dir;
+		this.topdir = dir;
 		this.nodes = nodes;
 	}
 
@@ -42,14 +43,14 @@ public class UglyPrinter {
 	}
 
 	public String getDir() {
-		return dir;
+		return topdir;
 	}
 
 	public void setDir(String dir) {
-		this.dir = dir;
+		this.topdir = dir;
 	}
 
-	public boolean hasDir() { return dir != null; }
+	public boolean hasDir() { return topdir != null; }
 
 	public List<BaseGRCNode> getNodes() {
 		return nodes;
@@ -70,11 +71,11 @@ public class UglyPrinter {
 	
 		File f = null;
 		if(this.hasDir()){
-			f = new File(dir+"/hmpsoc");
+			f = new File(topdir+"/"+target);
 			f.mkdirs();
 		}
 		else{
-			f = new File("hmpsoc");
+			f = new File(target);
 			f.mkdir();
 		}
 		
@@ -89,6 +90,53 @@ public class UglyPrinter {
 	}
 
 	private void printJavaClass(File dir) throws FileNotFoundException {
+
+		printClockDomain(dir);
+		printJavaJOPThread(dir);
+		printJavaMain(dir);
+		
+		printASM(dir);
+		
+	}
+
+	private void printASM(File dir) throws FileNotFoundException {
+		PrintWriter pw = new PrintWriter(new File(dir, target+".asm"));
+		
+		
+		
+		pw.flush();
+		pw.close();
+	}
+
+	private void printJavaMain(File dir) throws FileNotFoundException {
+		PrintWriter pw = new PrintWriter(new File(dir, "RTSMain.java"));
+		pw.println("package "+target+";");
+		pw.println("import com.jopdesign.io.IOFactory;");
+		pw.println("import com.jopdesign.io.SysDevice;");
+		pw.println("import com.jopdesign.sys.Startup;");
+		pw.println();
+		pw.println("public class RTSMain {");
+		pw.println("public static void main(String[] arg){");
+		pw.println("SysDevice sys = IOFactory.getFactory().getSysDevice();");
+		pw.println("for(int i=0; i < sys.nrCpu-1; i++){");
+		pw.println("Runnable r = new JOPThread();");
+		pw.println("Startup.setRunnable(r, i);");
+		pw.println("}");
+		pw.println("sys.signal = 1;");
+		
+		pw.println("\n/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */\n");
+		
+		pw.println("while(true){");
+		pw.println("\n/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */\n");
+		pw.println("}");
+		
+		pw.println("}");
+		pw.println("}");
+		pw.flush();
+		pw.close();
+	}
+	
+	private void printClockDomain(File dir) throws FileNotFoundException {
 		if(acts.size() != declo.size())
 			throw new RuntimeException("Error !");
 		
@@ -98,7 +146,7 @@ public class UglyPrinter {
 			PrintWriter pw = new PrintWriter(new File(dir, "CD"+k+".java"));
 			
 			
-			pw.println("package hmpsoc;\n");
+			pw.println("package "+target+";\n");
 			pw.println("public class CD"+k+"{");
 			pw.println("public static final String CDName = \""+CDName+"\";");
 			{
@@ -218,8 +266,6 @@ public class UglyPrinter {
 				pw.println("return false;");
 				pw.println("}");
 			}
-
-			
 			
 			
 			pw.println("}");
@@ -227,10 +273,10 @@ public class UglyPrinter {
 			pw.close();
 		}
 		
-		printJavaJOPThread(dir);
 		
 	}
-	
+
+
 	private void printJavaJOPThread(File dir) throws FileNotFoundException{
 //		CommandLine cl = Helper.getSingleArgInstance();
 //		String jopnum = cl.getOptionValue("j");
@@ -240,26 +286,27 @@ public class UglyPrinter {
 //		}
 		
 		PrintWriter pw = new PrintWriter(new File(dir, "JOPThread.java"));
-		pw.println("package hmpsoc;");
-		pw.println("/* import necessary packages */");
+		pw.println("package "+target+";");
+		pw.println("/* TODO: import necessary packages */");
 		pw.println();
-		pw.println("public class JOPThread implements Runnable {\n");
+		pw.println("public class JOPThread implements java.lang.Runnable {");
+		pw.println("public static int JOP_NUM = "+nodes.size());
 		pw.println();
 		pw.println("public void run (){");
 		pw.println("int cd = 0;");
-		pw.println("int case = 0;");
+		pw.println("int casen = 0;");
 		pw.println("while(true){");
-		pw.println("/* Retrieve cd and case numbers and assign them to 'cd' and 'case', respectively */");
+		pw.println("\n/* TODO: Retrieve cd and case numbers and assign them to 'cd' and 'case', respectively */\n");
 		pw.println("switch(cd){");
 		
 		for(int i=0; i<nodes.size(); i++){
 			pw.println("case "+i+":");
-			pw.println("CD"+i+".MethodCall_0(case);");
+			pw.println("CD"+i+".MethodCall_0(casen);");
 			pw.println("break;");
-			pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+			
 		}
 		
-		
+		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 		pw.println("}");
 		pw.println("}");
 		pw.println("}");
@@ -275,6 +322,14 @@ public class UglyPrinter {
 
 	public void setActmap(List<List<ActionNode>> actmap) {
 		this.acts = actmap;
+	}
+
+	public String getTarget() {
+		return target;
+	}
+
+	public void setTarget(String target) {
+		this.target = target;
 	}
 
 }

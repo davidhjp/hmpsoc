@@ -25,7 +25,7 @@ public class EnterNode extends BaseGRCNode {
 	public String dump(int indent) {
 		String str = "";
 		String ind = getIndent(indent,'-');
-		str += ind +"EnterNode\n";
+		str += ind +"EnterNode, ID: "+id+"\n";
 		ind = getIndent(indent);
 		str += ind + "Statename: "+ statename + "\n";
 		str += ind + "Statecode: " + statecode + "\n";

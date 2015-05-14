@@ -19,8 +19,9 @@ public class BaseGRCNode {
 	protected boolean visited = false;
 	protected List<BaseGRCNode> children = new ArrayList<BaseGRCNode>();
 	protected List<BaseGRCNode> parents = new ArrayList<BaseGRCNode>();
-	protected String id = this.getClass().getSimpleName()+"@"+Integer.toHexString(this.hashCode());
 	protected int thnum = -1;
+	
+	public String id;
 
 	
 	public boolean isVisited() {
@@ -38,6 +39,13 @@ public class BaseGRCNode {
 		}
 	}
 	
+	public void removeChild(BaseGRCNode n){
+		children.remove(n);
+	}
+	
+	public void removeParent(BaseGRCNode n){
+		parents.remove(n);
+	}
 	
 	public void addChild(BaseGRCNode n){
 		children.add(n);
@@ -117,7 +125,7 @@ public class BaseGRCNode {
 	
 	public String dump(int indent){
 		String ind = getIndent(indent,'-');
-		String str = new String(ind+this.getClass().getSimpleName()+/*"@"+Integer.toHexString(this.hashCode())+*/"\n");
+		String str = new String(ind+this.getClass().getSimpleName()+", ID: "+id+"\n");
 		for(BaseGRCNode child : children){
 			str += child.dump(indent+1);
 		}
