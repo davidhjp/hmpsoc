@@ -11,7 +11,7 @@ all:
 	mkdir bin
 	mv hmpsoc.jar bin
 	cp lib/jdom.jar lib/commons-cli-1.3.jar bin
-	echo -e '#!/bin/bash\njava -jar hmpsoc.jar $$@'> bin/hmpsoc
+	echo -e '#!/bin/bash\njava -jar $$(dirname $$0)/hmpsoc.jar $$@'> bin/hmpsoc
 	chmod u+x bin/hmpsoc
 
 clean:
