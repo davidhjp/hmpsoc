@@ -50,7 +50,7 @@ public class HMPSoC {
 			}
 		});
 		CompilerPrintStream.setVerbose();
-		hf.printHelp("jar hmpsoc.jar [OPTIONS] <filename>", options);
+		hf.printHelp("java -jar hmpsoc.jar [OPTIONS] <filename>", options);
 		CompilerPrintStream.resetVerbose();
 	}
 
