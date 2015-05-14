@@ -18,7 +18,10 @@ public class MemoryPointer {
 	
 	public static final int ptrLastAddressPlusOne = 10; // This must be fixed
 	private Long[] ptrMemory = new Long[11];
-	public Map<String, Integer> sMap = new HashMap<String, Integer>();
+	public Map<String, Integer> signalMap = new HashMap<String, Integer>();
+	public Map<String, Integer> insignalMap = new HashMap<String, Integer>();
+	public Map<String, Integer> osignalMap = new HashMap<String, Integer>();
+	public Map<String, Integer> switchMap = new HashMap<String, Integer>();
 	
 	
 	

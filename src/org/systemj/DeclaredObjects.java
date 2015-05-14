@@ -58,7 +58,7 @@ public class DeclaredObjects {
 	private List<Signal> signals = new ArrayList<Signal>();
 	private List<Channel> ichans = new ArrayList<Channel>();
 	private List<Channel> ochans = new ArrayList<Channel>();
-	private Map<String,Var> vardecls = new HashMap<String,Var>();
+	private List<Var> vardecls = new ArrayList<Var>();
 	
 	public Iterator<Signal> getInputSignalIterator(){
 		return isignals.iterator();
@@ -81,11 +81,11 @@ public class DeclaredObjects {
 	}
 	
 	public Iterator<Var> getVarDeclIterator(){
-		return vardecls.values().iterator();
+		return vardecls.iterator();
 	}
 	
 	public void addVariable(String n, String type, boolean array){
-		vardecls.put(n,new Var(n,type,array));
+		vardecls.add(new Var(n,type,array));
 	}
 	
 	public void addSignal(String n, String t, Mod d){
@@ -147,7 +147,7 @@ public class DeclaredObjects {
 			sb.append("Name : "+s.name+", Type : "+s.type+"\n");
 		}
 		sb.append("-------- Variable decls --------\n");
-		Iterator<Var> iter = this.vardecls.values().iterator();
+		Iterator<Var> iter = this.vardecls.iterator();
 		while(iter.hasNext()){
 			Var v = iter.next();
 			sb.append("Name: "+v.name+", Type: "+v.type+", Array?: "+v.array+"\n");

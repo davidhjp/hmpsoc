@@ -6,6 +6,7 @@ CD1(input String signal A;output String channel C;output String channel SS;)->
 	{await(A);}||{send C("WWWW");}||{emit B;}||{send SS("ss");}
 	pause;
 	emit K(2);
+	String www = new String();
 }
 
 CD2(input String channel C;)->

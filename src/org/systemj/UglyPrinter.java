@@ -113,43 +113,66 @@ public class UglyPrinter {
 			String cdname = ((SwitchNode)bcn).getCDName();
 			DeclaredObjects doo = declo.get(i);
 			MemoryPointer mp = new MemoryPointer();
-			mp.setInputSignalPointer(c++);
-			mp.setOutputSignalPointer(c++);
-			mp.setDataLockPointer(c);
-			long dl = getMaxDataLock(bcn, 1);
-			c += dl;
-			mp.setInternalSignalPointer(c);
-			// insert cur-internal sig
-			Iterator<Signal> ii = doo.getInternalSignalIterator();
-			int counter = 0;
-			while(ii.hasNext()){
-				Signal sig = ii.next();
-				mp.sMap.put(sig.name, counter);
-				counter++;
+			{
+				// ====== Memory Layout ======
+				mp.setInputSignalPointer(c++);
+				mp.setOutputSignalPointer(c++);
+				mp.setDataLockPointer(c);
+				long dl = getMaxDataLock(bcn, 1);
+				c += dl;
+				
+				mp.setInternalSignalPointer(c);
+				Iterator<Signal> ii = doo.getInternalSignalIterator();
+				int counter = 0;
+				while(ii.hasNext()){
+					Signal sig = ii.next();
+					mp.signalMap.put(sig.name, counter++);
+				}
+				long locs = 0;
+				if(counter > mp.WORD_SIZE){
+					locs = counter / mp.WORD_SIZE;
+					if(!(counter % mp.WORD_SIZE == 0))
+						locs++;
+				}
+				else{
+					locs = 1;
+				}
+				
+				c += locs;
+				mp.setPreInternalSignalPointer(c);
+				c += locs;
+				mp.setPreInputSignalPointer(c++);
+
+				ii = doo.getInputSignalIterator();
+				counter = 0;
+				while(ii.hasNext()){
+					mp.insignalMap.put(ii.next().name, counter++);
+				}
+
+				mp.setPreOutputSignalPointer(c++);
+				ii = doo.getOutputSignalIterator();
+				counter = 0;
+				while(ii.hasNext()){
+					mp.osignalMap.put(ii.next().name, counter++);
+				}
+
+				mp.setProgramCounterPointer(c);
+				c += dl;
+				mp.setTermianteCodePointer(c);
+				long numterm = getMaxTermCode(bcn, 1);
+				c += numterm;
+				
+				mp.setSwitchNodePointer(c);
+				Set<String> sws = getSwitchSet(bcn);
+				Iterator<String> iii = sws.iterator();
+				counter = 0;
+				while(iii.hasNext()){
+					mp.switchMap.put(iii.next(), counter++);
+				}
+				c += sws.size();
+
+				mp.setLastAddr(c);
 			}
-			long locs = 0;
-			if(counter > mp.WORD_SIZE){
-				locs = counter / mp.WORD_SIZE;
-				if(!(counter % mp.WORD_SIZE == 0))
-					locs++;
-			}
-			else{
-				locs = 1;
-			}
-			c += locs;
-			mp.setPreInternalSignalPointer(c);
-			c += locs;
-			mp.setPreInputSignalPointer(c++);
-			mp.setPreOutputSignalPointer(c++);
-			mp.setProgramCounterPointer(c);
-			c += dl;
-			mp.setTermianteCodePointer(c);
-			long numterm = getMaxTermCode(bcn, 1);
-			c += numterm;
-			mp.setSwitchNodePointer(c);
-			Set<String> sws = getSwitchSet(bcn);
-			c += sws.size();
-			mp.setLastAddr(c);
 			
 			
 			System.out.println("====== "+cdname+" constructed memory map =====");
@@ -157,8 +180,8 @@ public class UglyPrinter {
 			System.out.println("oSignal    :"+mp.getOutputSignalPointer());
 			System.out.println("DataLock   :"+mp.getDataLockPointer());
 			System.out.println("Signal     :"+mp.getInternalSignalPointer());
-			if(!mp.sMap.isEmpty())
-				System.out.println(mp.sMap);
+			if(!mp.signalMap.isEmpty())
+				System.out.println(mp.signalMap);
 			System.out.println("PreSig     :"+mp.getPreInternalSignalPointer());
 			System.out.println("PreISig    :"+mp.getPreInputSignalPointer());
 			System.out.println("PreOSig    :"+mp.getPreOutputSignalPointer());
