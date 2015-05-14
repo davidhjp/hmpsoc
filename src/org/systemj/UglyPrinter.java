@@ -4,14 +4,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.systemj.DeclaredObjects.Channel;
 import org.systemj.DeclaredObjects.Signal;
 import org.systemj.DeclaredObjects.Var;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
+import org.systemj.nodes.ForkNode;
 import org.systemj.nodes.SwitchNode;
 
 public class UglyPrinter {
@@ -105,32 +108,98 @@ public class UglyPrinter {
 		long c = 0;
 		List<MemoryPointer> lmp = new ArrayList<MemoryPointer>();
 		
-		for(BaseGRCNode bcn : nodes){
+		for(int i=0; i<nodes.size(); i++){
+			BaseGRCNode bcn = nodes.get(i);
 			String cdname = ((SwitchNode)bcn).getCDName();
+			DeclaredObjects doo = declo.get(i);
 			MemoryPointer mp = new MemoryPointer();
-			mp.ptrInputSignal = c++;
-			mp.ptrOutputSignal = c++;
-			mp.ptrDataLock = c;
+			mp.setInputSignalPointer(c++);
+			mp.setOutputSignalPointer(c++);
+			mp.setDataLockPointer(c);
 			long dl = getMaxDataLock(bcn, 1);
 			c += dl;
-			mp.ptrPreInternalSignal = c;
+			mp.setInternalSignalPointer(c);
+			// insert cur-internal sig
+			Iterator<Signal> ii = doo.getInternalSignalIterator();
+			int counter = 0;
+			while(ii.hasNext()){
+				Signal sig = ii.next();
+				mp.sMap.put(sig.name, counter);
+				counter++;
+			}
+			long locs = 0;
+			if(counter > mp.WORD_SIZE){
+				locs = counter / mp.WORD_SIZE;
+				if(!(counter % mp.WORD_SIZE == 0))
+					locs++;
+			}
+			else{
+				locs = 1;
+			}
+			c += locs;
+			mp.setPreInternalSignalPointer(c);
+			c += locs;
+			mp.setPreInputSignalPointer(c++);
+			mp.setPreOutputSignalPointer(c++);
+			mp.setProgramCounterPointer(c);
+			c += dl;
+			mp.setTermianteCodePointer(c);
+			long numterm = getMaxTermCode(bcn, 1);
+			c += numterm;
+			mp.setSwitchNodePointer(c);
+			Set<String> sws = getSwitchSet(bcn);
+			c += sws.size();
+			mp.setLastAddr(c);
+			
 			
 			System.out.println("====== "+cdname+" constructed memory map =====");
-			System.out.println("iSignal    :"+mp.ptrInputSignal);
-			System.out.println("oSignal    :"+mp.ptrOutputSignal);
-			System.out.println("DataLock   :"+mp.ptrDataLock);
-			System.out.println("PreSig     :"+mp.ptrPreInternalSignal);
-			System.out.println("PreISig    :"+mp.ptrPreInputSignal);
-			System.out.println("PreOSig    :"+mp.ptrPreOutputSignal);
-			System.out.println("PC         :"+mp.ptrProgramCounter);
-			System.out.println("Term       :"+mp.ptrTerminateCode);
-			System.out.println("Switch     :"+mp.ptrSwitchNode);
+			System.out.println("iSignal    :"+mp.getInputSignalPointer());
+			System.out.println("oSignal    :"+mp.getOutputSignalPointer());
+			System.out.println("DataLock   :"+mp.getDataLockPointer());
+			System.out.println("Signal     :"+mp.getInternalSignalPointer());
+			if(!mp.sMap.isEmpty())
+				System.out.println(mp.sMap);
+			System.out.println("PreSig     :"+mp.getPreInternalSignalPointer());
+			System.out.println("PreISig    :"+mp.getPreInputSignalPointer());
+			System.out.println("PreOSig    :"+mp.getPreOutputSignalPointer());
+			System.out.println("PC         :"+mp.getProgramCounterPointer());
+			System.out.println("Term       :"+mp.getTerminateCodePointer());
+			System.out.println("Switch     :"+mp.getSwitchNodePointer());
+			System.out.println("LastAddr+1 :"+mp.getLastAddr());
+			
 		}
 		
 
 
 		pw.flush();
 		pw.close();
+	}
+
+
+	private Set<String> getSwitchSet(BaseGRCNode bcn) {
+		Set<String> ss = new HashSet<String>();
+		if(bcn instanceof SwitchNode){
+			ss.add(((SwitchNode) bcn).getStatename());
+		}
+		
+		for(BaseGRCNode child : bcn.getChildren()){
+			ss.addAll(getSwitchSet(child));
+		}
+		return ss;
+	}
+
+	private long getMaxTermCode(BaseGRCNode bcn, long i) {
+		if(bcn instanceof ForkNode)
+			i++;
+
+		long temp = i;
+		for(BaseGRCNode child : bcn.getChildren()){
+			long r = getMaxTermCode(child, i);
+			if(r > temp)
+				temp = r;
+		}
+		return temp;
+
 	}
 
 	private long getMaxDataLock(BaseGRCNode bcn, long dl) {
