@@ -15,6 +15,7 @@ import org.systemj.DeclaredObjects.Var;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
 import org.systemj.nodes.ForkNode;
+import org.systemj.nodes.JoinNode;
 import org.systemj.nodes.SwitchNode;
 
 public class UglyPrinter {
@@ -214,6 +215,8 @@ public class UglyPrinter {
 	private long getMaxTermCode(BaseGRCNode bcn, long i) {
 		if(bcn instanceof ForkNode)
 			i++;
+		else if(bcn instanceof JoinNode)
+			i--;
 
 		long temp = i;
 		for(BaseGRCNode child : bcn.getChildren()){
