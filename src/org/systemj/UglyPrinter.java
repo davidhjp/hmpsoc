@@ -191,10 +191,49 @@ public class UglyPrinter {
 			System.out.println("Switch     :"+mp.getSwitchNodePointer());
 			System.out.println("LastAddr+1 :"+mp.getLastAddr());
 			
+			lmp.add(mp);
 		}
 		
+		// Printing ASM
+		pw.println("start NOOP");
+		for(int i=0; i<lmp.size(); i++){
+			MemoryPointer mp = lmp.get(i);
+			pw.println("; ====== "+((SwitchNode)nodes.get(i)).getCDName()+" constructed memory map =====");
+			pw.println("; iSignal    :"+mp.getInputSignalPointer());
+			pw.println("; oSignal    :"+mp.getOutputSignalPointer());
+			pw.println("; DataLock   :"+mp.getDataLockPointer());
+			pw.println("; Signal     :"+mp.getInternalSignalPointer());
+			if(!mp.signalMap.isEmpty())
+				pw.println("; "+mp.signalMap);
+			pw.println("; PreSig     :"+mp.getPreInternalSignalPointer());
+			pw.println("; PreISig    :"+mp.getPreInputSignalPointer());
+			pw.println("; PreOSig    :"+mp.getPreOutputSignalPointer());
+			pw.println("; PC         :"+mp.getProgramCounterPointer());
+			pw.println("; Term       :"+mp.getTerminateCodePointer());
+			pw.println("; Switch     :"+mp.getSwitchNodePointer());
+			pw.println("; LastAddr+1 :"+mp.getLastAddr());
+			
+			Iterator<String> iter = mp.switchMap.keySet().iterator();
+			while(iter.hasNext()){
+				String swname = iter.next();
+				String label = swname.toLowerCase()+"@1";
+				pw.println("  LDR R0 #"+label);
+				pw.println("  STR R0 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
+			}
+		}
+		
+		for(int i=0; i<nodes.size(); i++){
+			SwitchNode topnode = (SwitchNode) nodes.get(i);
+			MemoryPointer mp = lmp.get(i);
+			pw.println("HOUSEKEEPING NOOP");
+			
+			topnode.setTopLevel();
+			topnode.weirdPrint(pw, mp, 1);
+			
+			
+		}
 
-
+		pw.println("ENDPROG");
 		pw.flush();
 		pw.close();
 	}

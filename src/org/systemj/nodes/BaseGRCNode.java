@@ -1,7 +1,10 @@
 package org.systemj.nodes;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.systemj.MemoryPointer;
 
 public class BaseGRCNode {
 
@@ -138,4 +141,12 @@ public class BaseGRCNode {
 		this.thnum = thnum;
 	}
 	
+	
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode){
+		pw.println("; TODO: Override "+this.getClass().getSimpleName()+".weirdPrint(..) method");
+		
+		for(BaseGRCNode child : this.getChildren()){
+			child.weirdPrint(pw, mp, termcode);
+		}
+	}
 }
