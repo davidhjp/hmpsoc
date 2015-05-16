@@ -22,5 +22,6 @@ jar: clean
 
 clean:
 	rm -rfv bin
+	rm -rfv hmpsoc
 	find src/ -type f -iname '*.class' -delete
 
