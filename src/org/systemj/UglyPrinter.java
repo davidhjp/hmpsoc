@@ -96,7 +96,7 @@ public class UglyPrinter {
 
 	private void printJavaClass(File dir) throws FileNotFoundException {
 
-		printJavaClockDomain(dir);
+		
 		printJavaJOPThread(dir);
 		printJavaMain(dir);
 		
@@ -114,12 +114,15 @@ public class UglyPrinter {
 			String cdname = ((SwitchNode)bcn).getCDName();
 			DeclaredObjects doo = declo.get(i);
 			MemoryPointer mp = new MemoryPointer();
+			if(!bcn.isTopLevel())
+				throw new RuntimeException(""+bcn.getClass()+" must be top-level");
+			mp.setToplevelThnum(bcn.getThnum());
 			{
 				// ====== Memory Layout ======
 				mp.setInputSignalPointer(c++);
 				mp.setOutputSignalPointer(c++);
 				mp.setDataLockPointer(c);
-				long dl = getMaxDataLock(bcn, 1);
+				int dl = getMaxDataLock(bcn, 1, mp.getToplevelThnum()-1);
 				c += dl;
 				
 				mp.setInternalSignalPointer(c);
@@ -225,12 +228,42 @@ public class UglyPrinter {
 		for(int i=0; i<nodes.size(); i++){
 			SwitchNode topnode = (SwitchNode) nodes.get(i);
 			MemoryPointer mp = lmp.get(i);
-			pw.println("HOUSEKEEPING NOOP");
+			pw.println("HOUSEKEEPING"+i+" NOOP");
+			pw.println("  LDR R11 #0; Content of R11 is already ZERO");
+			pw.println("  LER R0; Checking whether reactive-interface-JOP is ready");
+			pw.println("  PRESENT R0 HOUSEKEEPING"+i);
+			pw.println("  SEOT; JOP is ready!");
+			pw.println("  CER");
+			pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
+			pw.println("; TODO: Send OSig vals (R0) to JOP");
+			pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
+			pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
+			pw.println("  STR R0 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
+			pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()));
+			pw.println("  STR R0 $"+Long.toHexString(mp.getPreOutputSignalPointer())+"; Updating PreOSig");
+			for(long j=0; j<mp.getSizeInternalSignal(); j++){
+				pw.println("  LDR R0 $"+Long.toHexString((mp.getInternalSignalPointer()+j)));
+				pw.println("  STR R0 $"+Long.toHexString((mp.getPreInternalSignalPointer()+j))+"; Updating PreSig");
+			}
+			for(long j=0; j<mp.getSizeProgramCounter(); j++){
+				pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
+			}
+			pw.println("; TODO: Get ISig vals from JOP (I am expecting them to be stored in R0)");
+			pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
+			pw.println("  LDR R0 #$8000");
+			pw.println("  DCALLNB R0; Sending casenumber 0 (housekeeing)");
+			pw.println("LOCK"+mp.getCount()+"CD"+i+" LDR R0 $"+mp.getDataLockPointer());
+			pw.println("  PRESENT R0 "+"LOCK"+mp.getCount()+"CD"+i+"; Blocking until housekeeping is done");
+			pw.println("  CEOT; Clearing EOT register");
+			pw.println("RUN"+i+" NOOP");
+			for(long j=0; j<mp.getSizeTerminateCode(); j++)
+				pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
 			
-			topnode.setTopLevel();
-			topnode.weirdPrint(pw, mp, 1);
 			
 			
+			topnode.weirdPrint(pw, mp, 1, i);
+			
+			printJavaClockDomain(dir, mp, i);
 		}
 
 		pw.println("ENDPROG");
@@ -267,13 +300,13 @@ public class UglyPrinter {
 
 	}
 
-	private long getMaxDataLock(BaseGRCNode bcn, long dl) {
+	private int getMaxDataLock(BaseGRCNode bcn, int dl, int ttnum) {
 		if(bcn.getThnum() > dl){
-			dl = bcn.getThnum();
+			dl = bcn.getThnum() - ttnum;
 		}
 		
 		for(BaseGRCNode child : bcn.getChildren()){
-			long r = getMaxDataLock(child, dl);
+			int r = getMaxDataLock(child, dl, ttnum);
 			if(r > dl)
 				dl = r;
 		}
@@ -310,155 +343,150 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printJavaClockDomain(File dir) throws FileNotFoundException {
+	private void printJavaClockDomain(File dir, MemoryPointer mp, int k) throws FileNotFoundException {
 		if(acts.size() != declo.size())
 			throw new RuntimeException("Error !");
-		
-		for(int k=0;k<acts.size();k++){
-			DeclaredObjects d = declo.get(k);
-			String CDName = d.getCDName();
-			PrintWriter pw = new PrintWriter(new File(dir, "CD"+k+".java"));
-			
-			
-			pw.println("package "+target+";\n");
-			pw.println("public class CD"+k+"{");
-			pw.println("public static final String CDName = \""+CDName+"\";");
-			{
-				Iterator<Signal> iter = d.getInputSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Signal> iter = d.getOutputSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Signal> iter = d.getInternalSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Channel> iter = d.getInputChannelIterator();
-				while(iter.hasNext()){
-					Channel s = iter.next();
-					pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Channel> iter = d.getOutputChannelIterator();
-				while(iter.hasNext()){
-					Channel s = iter.next();
-					pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Var> iter = d.getVarDeclIterator();
-				while(iter.hasNext()){
-					Var s = iter.next();
-					pw.println("private static "+s.type+" "+s.name+";");
-				}
-			}
 
-			
-			List<ActionNode> l = acts.get(k);
-			pw.println();
-			
-			List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
-			List<StringBuilder> llsb = new ArrayList<StringBuilder>();
-			int i = 0;
-			for(ActionNode an : l){
-				StringBuilder sb = new StringBuilder();
-				boolean gen = false;
-				switch(an.getActionType()){
-				case JAVA:
+		DeclaredObjects d = declo.get(k);
+		String CDName = d.getCDName();
+		PrintWriter pw = new PrintWriter(new File(dir, "CD"+k+".java"));
+
+
+		pw.println("package "+target+";\n");
+		pw.println("public class CD"+k+"{");
+		pw.println("public static final String CDName = \""+CDName+"\";");
+		{
+			Iterator<Signal> iter = d.getInputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getOutputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getInternalSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getInputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getOutputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Var> iter = d.getVarDeclIterator();
+			while(iter.hasNext()){
+				Var s = iter.next();
+				pw.println("private static "+s.type+" "+s.name+";");
+			}
+		}
+
+
+		List<ActionNode> l = acts.get(k);
+		pw.println();
+
+		List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
+		List<StringBuilder> llsb = new ArrayList<StringBuilder>();
+		int i = 0;
+		for(ActionNode an : l){
+			StringBuilder sb = new StringBuilder();
+			boolean gen = false;
+			switch(an.getActionType()){
+			case JAVA:
+				if(an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+//				System.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
+				sb.append("case "+an.getCasenumber()+":\n");
+				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+				if(an.isBeforeTestNode())
+					sb.append("return "+an.getStmt()+";\n");
+				else{
+					sb.append(an.getStmt()+"\n");
+					sb.append("break;\n");
+				}
+				gen = true;
+				break;
+			case GROUPED_JAVA:
+				if(an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+				sb.append("case "+an.getCasenumber()+":\n");
+				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+				for(String stmt : an.getStmts()){
+					sb.append(stmt+"\n");
+				}
+				sb.append("break;\n");
+				gen = true;
+				break;
+			case EMIT:
+				if(an.hasEmitVal()){
 					if(an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
 					sb.append("case "+an.getCasenumber()+":\n");
-					if(an.isBeforeTestNode())
-						sb.append("return "+an.getStmt()+";\n");
-					else{
-						sb.append(an.getStmt()+"\n");
-						sb.append("break;\n");
-					}
-					gen = true;
-					break;
-				case GROUPED_JAVA:
-					if(an.getCasenumber() < 0)
-						throw new RuntimeException("Unresolved Action Case");
-					sb.append("case "+an.getCasenumber()+":\n");
-					for(String stmt : an.getStmts()){
-						sb.append(stmt+"\n");
-					}
+					sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+					sb.append(an.getStmt()+"\n");
 					sb.append("break;\n");
 					gen = true;
-					break;
-				case EMIT:
-					if(an.hasEmitVal()){
-						if(an.getCasenumber() < 0)
-							throw new RuntimeException("Unresolved Action Case");
-						sb.append("case "+an.getCasenumber()+":\n");
-						sb.append(an.getStmt()+"\n");
-						sb.append("break;\n");
-						gen = true;
-					}
-					else
-						continue;
-					break;
-				default:
+				}
+				else
 					continue;
-				}
-				llsb.add(sb);
-				i++;
-				if(i > 100){
-					sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
-					lsb.add(llsb);
-					llsb = new ArrayList<StringBuilder>();
-					i = 0;
-				}
+				break;
+			default:
+				continue;
 			}
-			if(i <= 100)
+			llsb.add(sb);
+			i++;
+			if(i > 100){
+				sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
 				lsb.add(llsb);
-			
-			for(int j=0 ; j<lsb.size(); j++){
-				List<StringBuilder> ll = lsb.get(j);
-				pw.println("public static boolean MethodCall_"+j+"(int casen){");
-				pw.println("switch(casen){");
-				for(StringBuilder sb : ll){
-					pw.print(sb.toString());
-				}
-				if(j == lsb.size()-1){
-					pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
-				}
-				pw.println("}");
-				pw.println("return false;");
-				pw.println("}");
+				llsb = new ArrayList<StringBuilder>();
+				i = 0;
 			}
-			
-			
-			pw.println("}");
-			pw.flush();
-			pw.close();
 		}
-		
-		
+		if(i <= 100)
+			lsb.add(llsb);
+
+		for(int j=0 ; j<lsb.size(); j++){
+			List<StringBuilder> ll = lsb.get(j);
+			pw.println("public static boolean MethodCall_"+j+"(int casen, int[] dl){");
+			pw.println("switch(casen){");
+			for(StringBuilder sb : ll){
+				pw.print(sb.toString());
+			}
+			if(j == lsb.size()-1){
+				pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+			}
+			pw.println("}");
+			pw.println("return false;");
+			pw.println("}");
+		}
+
+
+		pw.println("}");
+		pw.flush();
+		pw.close();
+
 	}
 
 
 	private void printJavaJOPThread(File dir) throws FileNotFoundException{
-//		CommandLine cl = Helper.getSingleArgInstance();
-//		String jopnum = cl.getOptionValue("j");
-//		int numjop = 1;
-//		if(jopnum != null){
-//			numjop = Integer.valueOf(jopnum);
-//		}
-		
+
 		PrintWriter pw = new PrintWriter(new File(dir, "JOPThread.java"));
 		pw.println("package "+target+";");
 		pw.println("/* TODO: import necessary packages */");
@@ -469,19 +497,22 @@ public class UglyPrinter {
 		pw.println("public void run (){");
 		pw.println("int cd = 0;");
 		pw.println("int casen = 0;");
+		pw.println("int result = 0;");
+		pw.println("int[] dl = new int[1];");
 		pw.println("while(true){");
 		pw.println("\n/* TODO: Retrieve cd and case numbers and assign them to 'cd' and 'case', respectively */\n");
 		pw.println("switch(cd){");
 		
 		for(int i=0; i<nodes.size(); i++){
 			pw.println("case "+i+":");
-			pw.println("CD"+i+".MethodCall_0(casen);");
+			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
 			pw.println("break;");
 			
 		}
 		
 		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 		pw.println("}");
+		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl]\n");
 		pw.println("}");
 		pw.println("}");
 		pw.println("}");

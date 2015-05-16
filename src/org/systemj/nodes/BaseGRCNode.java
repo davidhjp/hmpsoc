@@ -26,6 +26,12 @@ public class BaseGRCNode {
 	
 	public String id;
 
+	public int getTopThreadNum(){
+		if(this.isTopLevel())
+			return this.getThnum();
+		
+		return this.getParent(0).getTopThreadNum();
+	}
 	
 	public boolean isVisited() {
 		return visited;
@@ -142,11 +148,11 @@ public class BaseGRCNode {
 	}
 	
 	
-	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode){
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi){
 		pw.println("; TODO: Override "+this.getClass().getSimpleName()+".weirdPrint(..) method");
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode);
+			child.weirdPrint(pw, mp, termcode, cdi);
 		}
 	}
 }

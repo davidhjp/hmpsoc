@@ -162,6 +162,7 @@ public class CompilationUnit {
 		
 		List<BaseGRCNode> glist = getGRC(l);
 		for(BaseGRCNode n : glist){
+			n.setTopLevel();
 			splitTestAction(n);
 			n.resetVisited();
 		}
