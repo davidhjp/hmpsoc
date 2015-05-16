@@ -224,12 +224,26 @@ public class UglyPrinter {
 				pw.println("  STR R0 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
 			}
 		}
-		
+		pw.println("  LDR R11 #0; Content of R11 is always ZERO");
 		for(int i=0; i<nodes.size(); i++){
 			SwitchNode topnode = (SwitchNode) nodes.get(i);
 			MemoryPointer mp = lmp.get(i);
-			pw.println("HOUSEKEEPING"+i+" NOOP");
-			pw.println("  LDR R11 #0; Content of R11 is already ZERO");
+			
+			pw.println("RUN"+i+" NOOP");
+			
+			for(long j=0; j<mp.getSizeTerminateCode(); j++)
+				pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
+			pw.println("  LDR R1 #$"+Long.toHexString(mp.getProgramCounterPointer())+"; Pointer to PC");
+			pw.println("  JMP DCHECK"+i+"; Jump to the last execution point");
+			pw.println("DCHECKCONT"+i+" ADD R1 R1 #1");
+			pw.println("  SUBV R0 R1 #"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
+			pw.println("  PRESENT R0 HOUSEKEEPING"+i);
+			pw.println("DCHECK"+i+" LDR R0 R1; Loading the PC");
+			pw.println("  PRESENT R0 DCHECKCONT"+i);
+			pw.println("  JMP R0");
+				
+			
+			pw.println("HOUSEKEEPING"+i+" CLFZ");
 			pw.println("  LER R0; Checking whether reactive-interface-JOP is ready");
 			pw.println("  PRESENT R0 HOUSEKEEPING"+i);
 			pw.println("  SEOT; JOP is ready!");
@@ -250,16 +264,13 @@ public class UglyPrinter {
 			}
 			pw.println("; TODO: Get ISig vals from JOP (I am expecting them to be stored in R0)");
 			pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
+			pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
 			pw.println("  LDR R0 #$8000");
 			pw.println("  DCALLNB R0; Sending casenumber 0 (housekeeing)");
-			pw.println("LOCK"+mp.getCount()+"CD"+i+" LDR R0 $"+mp.getDataLockPointer());
-			pw.println("  PRESENT R0 "+"LOCK"+mp.getCount()+"CD"+i+"; Blocking until housekeeping is done");
+			pw.println("LOCK"+mp.cc+"CD"+i+" LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
+			pw.println("  PRESENT R0 "+"LOCK"+(mp.cc++)+"CD"+i+"; Blocking until housekeeping is done");
 			pw.println("  CEOT; Clearing EOT register");
-			pw.println("RUN"+i+" NOOP");
-			for(long j=0; j<mp.getSizeTerminateCode(); j++)
-				pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
-			
-			
+
 			
 			topnode.weirdPrint(pw, mp, 1, i);
 			

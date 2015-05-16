@@ -23,11 +23,8 @@ public class MemoryPointer {
 	public Map<String, Integer> osignalMap = new HashMap<String, Integer>();
 	public Map<String, Integer> switchMap = new HashMap<String, Integer>();
 	
-	private long cc = 0;
+	public long cc = 0;
 	private int toplevelThnum = 0;
-	
-	public long getCount(){ return cc++; }
-	public void resetCount() { cc = 0; }
 	
 	
 	public int getToplevelThnum() {
