@@ -57,6 +57,7 @@ public class CompilationUnit {
 	}
 	
 	public CompilationUnit(InputStream is) throws JDOMException, IOException{
+		target = "hmpsoc";
 		this.is = is;
 		isis = true;
 		doc = builder.build(this.is);

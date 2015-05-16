@@ -4,10 +4,16 @@ else
 	S=\;
 endif
 
-all:
+all: clean
+	mkdir bin
+	javac -cp lib/\*$Ssrc/ src/HMPSoC.java -d bin
+
+compile:
+	java -cp bin\;lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/\;lib/\* HMPSoC -v
+
+jar: clean
 	javac -cp lib/\*$Ssrc/ src/HMPSoC.java
 	jar -cvfm hmpsoc.jar manifest/manifest -C src .
-	rm -rfv bin
 	mkdir bin
 	mv hmpsoc.jar bin
 	cp lib/jdom.jar lib/commons-cli-1.3.jar bin
