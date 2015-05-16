@@ -77,16 +77,16 @@ public class CompilationUnit {
 			for(Element e : (List<Element>)cdel.getChildren()){
 				switch(e.getName()){
 				case "iSignal":
-					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), DeclaredObjects.Mod.INPUT);
+					cdit.addSignal(e.getChild("Name").getText(),  e.getChildText("Type"), DeclaredObjects.Mod.INPUT);
 					break;
 				case "oSignal":
-					cdit.addSignal(e.getChild("Name").getText(), e.getChild("Type").getText(), DeclaredObjects.Mod.OUTPUT);
+					cdit.addSignal(e.getChild("Name").getText(), e.getChildText("Type"), DeclaredObjects.Mod.OUTPUT);
 					break;
 				case "iChannel":
-					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), DeclaredObjects.Mod.INPUT);
+					cdit.addChannel(e.getChild("Name").getText(),  e.getChildText("Type"), DeclaredObjects.Mod.INPUT);
 					break;
 				case "oChannel":
-					cdit.addChannel(e.getChild("Name").getText(), e.getChild("Type").getText(), DeclaredObjects.Mod.OUTPUT);
+					cdit.addChannel(e.getChild("Name").getText(),  e.getChildText("Type"), DeclaredObjects.Mod.OUTPUT);
 					break;
 				default:
 					break;
@@ -474,6 +474,9 @@ public class CompilationUnit {
 				String eval = cel.getChildText("Expr");
 				if(eval != null){
 					String type = co.getInternalSignalType(name);
+					if(type == null){
+						type = co.getOutputSignalType(name);
+					}
 					an.setSigType(co.getInternalSignalType(name));
 					an.setEmitVal(eval);
 					switch(type){

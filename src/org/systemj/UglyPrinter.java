@@ -230,6 +230,7 @@ public class UglyPrinter {
 			MemoryPointer mp = lmp.get(i);
 			
 			pw.println("RUN"+i+" NOOP");
+			pw.println("  LDR R7 #"+i+"; Current CD number");
 			
 			for(long j=0; j<mp.getSizeTerminateCode(); j++)
 				pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
@@ -252,11 +253,14 @@ public class UglyPrinter {
 			pw.println("; TODO: Send OSig vals (R0) to JOP");
 			pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
 			pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
+			pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()));
 			pw.println("  STR R0 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
 			pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()));
+			pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer()));
 			pw.println("  STR R0 $"+Long.toHexString(mp.getPreOutputSignalPointer())+"; Updating PreOSig");
 			for(long j=0; j<mp.getSizeInternalSignal(); j++){
 				pw.println("  LDR R0 $"+Long.toHexString((mp.getInternalSignalPointer()+j)));
+				pw.println("  STR R11 $"+Long.toHexString(mp.getInternalSignalPointer()+j));
 				pw.println("  STR R0 $"+Long.toHexString((mp.getPreInternalSignalPointer()+j))+"; Updating PreSig");
 			}
 			for(long j=0; j<mp.getSizeProgramCounter(); j++){
@@ -272,7 +276,7 @@ public class UglyPrinter {
 			pw.println("  CEOT; Clearing EOT register");
 
 			
-			topnode.weirdPrint(pw, mp, 1, i);
+			topnode.weirdPrint(pw, mp, 0, i);
 			
 			printJavaClockDomain(dir, mp, i);
 		}

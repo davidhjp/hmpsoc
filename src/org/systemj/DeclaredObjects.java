@@ -122,6 +122,14 @@ public class DeclaredObjects {
 		return null;
 	}
 	
+	public String getOutputSignalType(String n){
+		for(Signal s : osignals){
+			if(s.name.equals(n))
+				return s.type;
+		}
+		return null;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();

@@ -1,7 +1,10 @@
 package org.systemj.nodes;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.systemj.MemoryPointer;
 
 public class ActionNode extends BaseGRCNode {
 	public enum TYPE{
@@ -154,6 +157,62 @@ public class ActionNode extends BaseGRCNode {
 
 	public void setBeforeTestNode(boolean beforeTestNode) {
 		this.beforeTestNode = beforeTestNode;
+	}
+	
+
+	@Override
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
+			int cdi) {
+		switch(type){
+			case EMIT:
+				if(mp.osignalMap.containsKey(this.SigName)){
+					long c = mp.osignalMap.get(SigName);
+					long c2 = 1 << c;
+					pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()));
+					pw.println("  OR R0 R0 #$"+Long.toHexString(c2));
+					pw.println("  STR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Emitted OSig "+SigName);
+				}
+				else if(mp.signalMap.containsKey(this.SigName)){
+					int c = mp.signalMap.get(SigName);
+					long c1 = (c / mp.WORD_SIZE) + mp.getInternalSignalPointer();
+					long c2 = 1 << (c % mp.WORD_SIZE);
+					pw.println("  LDR R0 $"+Long.toHexString(c1));
+					pw.println("  OR R0 R0 #$"+Long.toHexString(c2));
+					pw.println("  STR R0 $"+Long.toHexString(c1)+"; Emitted IntSig "+SigName);
+				}
+				else throw new RuntimeException("Could not resolve the signal: "+SigName);
+
+				if(this.hasEmitVal()){
+					long dl_ptr = mp.getDataLockPointer();
+					long tnum = this.getThnum() - mp.getToplevelThnum();
+					dl_ptr += tnum;
+					long cn = this.casenumber + 32768;
+					pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
+					pw.println("  LDR R0 #$"+Long.toHexString(cn));
+					pw.println("  DCALLBL R0; Emit val casenumber "+casenumber);
+				}
+				
+				break;
+			case GROUPED_JAVA:
+			case JAVA:
+				long dl_ptr = mp.getDataLockPointer();
+				long tnum = this.getThnum() - mp.getToplevelThnum();
+				dl_ptr += tnum;
+				long cn = this.casenumber + 32768;
+				pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
+				pw.println("  LDR R0 #$"+Long.toHexString(cn));
+				pw.println("  DCALLBL R0; Java casenumber "+casenumber);
+				break;
+			case SIG_DECL:
+			case EXIT:
+				// Don't do anything
+				break;
+		}
+		
+		for(BaseGRCNode child : this.getChildren()){
+			child.weirdPrint(pw, mp, termcode, cdi);
+		}
+		
 	}
 	
 }

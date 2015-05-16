@@ -1,5 +1,9 @@
 package org.systemj.nodes;
 
+import java.io.PrintWriter;
+
+import org.systemj.MemoryPointer;
+
 public class EnterNode extends BaseGRCNode {
 	
 	private String statename;
@@ -35,6 +39,17 @@ public class EnterNode extends BaseGRCNode {
 		}
 		
 		return str;
+	}
+
+	@Override
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
+			int cdi) {
+		pw.println("  LDR R0 #"+statename.toLowerCase()+"@"+statecode);
+		pw.println("  STR R0 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(statename))+"; encoding "+statename);
+		
+		for(BaseGRCNode child : this.getChildren()){
+			child.weirdPrint(pw, mp, termcode, cdi);
+		}
 	}
 
 }

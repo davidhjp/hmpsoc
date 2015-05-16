@@ -41,8 +41,8 @@ public class SwitchNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi) {
-		pw.println("LDR R0 $"+Integer.toHexString(mp.switchMap.get(Statename)));
-		pw.println("JMP R0; Jump to this switch child");
+		pw.println("  LDR R0 $"+Integer.toHexString(mp.switchMap.get(Statename)));
+		pw.println("  JMP R0; Jump to this switch child");
 		
 		for(int i=0; i<children.size(); i++){
 			pw.print(Statename.toLowerCase()+"@"+i+" ");
