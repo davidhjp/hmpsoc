@@ -278,6 +278,11 @@ public class UglyPrinter {
 			
 			topnode.weirdPrint(pw, mp, 0, i);
 			
+			if(i == nodes.size()-1)
+				pw.println("AJOIN"+i+" JMP RUN0");
+			else
+				pw.println("AJOIN"+i+" JMP RUN"+(i+1));
+			
 			printJavaClockDomain(dir, mp, i);
 		}
 

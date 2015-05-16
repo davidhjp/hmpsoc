@@ -7,6 +7,7 @@ import org.systemj.MemoryPointer;
 public class TerminateNode extends BaseGRCNode {
 	
 	private int tcode;
+	public static final int MAX_TERM = 255;
 	
 	public TerminateNode(int t) { tcode = t; }
 	public TerminateNode() { }

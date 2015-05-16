@@ -45,7 +45,7 @@ public class SwitchNode extends BaseGRCNode {
 		pw.println("  JMP R0; Jump to this switch child");
 		
 		for(int i=0; i<children.size(); i++){
-			pw.print(Statename.toLowerCase()+"@"+i+" ");
+			pw.print(Statename.toLowerCase()+"@"+i);
 			this.getChild(i).weirdPrint(pw, mp, termcode, cdi);
 		}
 	}

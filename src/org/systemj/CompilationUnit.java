@@ -194,6 +194,10 @@ public class CompilationUnit {
 			n.resetVisited();
 		}
 		
+		for(BaseGRCNode n : glist){
+			connectForkJoin(n);
+		}
+		
 		
 		UglyPrinter printer = new UglyPrinter(glist);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
@@ -214,6 +218,18 @@ public class CompilationUnit {
 	}
 	
 	
+	private void connectForkJoin(BaseGRCNode n) {
+		if(n instanceof ForkNode){
+			if(((ForkNode)n).getJoin() == null)
+				((ForkNode)n).setMatchingJoin();
+		}
+
+		for(BaseGRCNode child : n.getChildren()){
+			connectForkJoin(child);
+		}
+	}
+
+
 	private void addTL(BaseGRCNode n){
 		if(n.getNumChildren() > 1) throw new RuntimeException("ActioNode has more than 1 child");
 		BaseGRCNode oc = n.getChild(0);
@@ -221,11 +237,12 @@ public class CompilationUnit {
 		oc.removeParent(n);
 		
 		TestLock tl = new TestLock();
+		tl.setThnum(n.getThnum());
 		BaseGRCNode.connectParentChild(n, tl);
 		
 		// Then :0, else : 1
 		tl.addChild(oc);
-		TerminateNode tn = new TerminateNode(Integer.MAX_VALUE);
+		TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
 		BaseGRCNode.connectParentChild(tl, tn);
 		
 		BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
@@ -557,6 +574,8 @@ public class CompilationUnit {
 			test.setExpr(e.getChildText("Expr"));
 			if(e.getChild("Java") != null)
 				test.setJavastmt(true);
+			if(e.getChild("Rev") != null)
+				test.setRev(true);
 			return test;
 		case BaseGRCNode.AFORK_NODE:
 			AforkNode afn = new AforkNode();

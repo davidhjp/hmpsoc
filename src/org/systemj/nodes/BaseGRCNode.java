@@ -155,4 +155,22 @@ public class BaseGRCNode {
 			child.weirdPrint(pw, mp, termcode, cdi);
 		}
 	}
+
+	protected JoinNode getMatchingJoinNow(int i) {
+		if(this instanceof JoinNode){
+			if(i == 0)
+				return (JoinNode)this;
+			else
+				i--;
+		}
+		else if(this instanceof ForkNode)
+			i++;
+		
+		for(BaseGRCNode child : getChildren()){
+			JoinNode r = child.getMatchingJoinNow(i);
+			if(r != null)
+				return r;
+		}
+		return null;
+	}
 }
