@@ -31,5 +31,4 @@ clean:
 	rm -rfv bin
 	rm -rfv jar
 	rm -rfv hmpsoc
-	find src/ -type f -iname '*.class' -delete
 
