@@ -4,24 +4,32 @@ else
 	S=\;
 endif
 
-all: clean
-	mkdir bin
-	javac -cp lib/\*$Ssrc/ src/HMPSoC.java -d bin
+.PHONY: bin jar
+
+all: bin
 
 compile:
 	java -cp bin\;lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/\;lib/\* HMPSoC -v
 
-jar: clean
-	javac -cp lib/\*$Ssrc/ src/HMPSoC.java
-	jar -cvfm hmpsoc.jar manifest/manifest -C src .
-	mkdir bin
-	mv hmpsoc.jar bin
-	cp lib/jdom.jar lib/commons-cli-1.3.jar bin
-	echo -e '#!/bin/bash\njava -jar $$(dirname $$0)/hmpsoc.jar $$@'> bin/hmpsoc
-	chmod u+x bin/hmpsoc
+bin:
+	if [[ ! -d bin ]]; then \
+		mkdir bin; \
+	fi
+	javac -cp lib/\*$Ssrc/ src/HMPSoC.java -d bin
+
+jar: bin
+	if [[ ! -d jar ]]; then \
+		mkdir jar; \
+	fi
+	jar -cvfm hmpsoc.jar manifest/manifest -C bin .
+	mv hmpsoc.jar jar
+	cp lib/jdom.jar lib/commons-cli-1.3.jar jar
+	echo -e '#!/bin/bash\njava -jar $$(dirname $$0)/hmpsoc.jar $$@'> jar/hmpsoc
+	chmod u+x jar/hmpsoc
 
 clean:
 	rm -rfv bin
+	rm -rfv jar
 	rm -rfv hmpsoc
 	find src/ -type f -iname '*.class' -delete
 
