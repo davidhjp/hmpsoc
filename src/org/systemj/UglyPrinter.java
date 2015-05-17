@@ -424,7 +424,15 @@ public class UglyPrinter {
 
 		List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
 		List<StringBuilder> llsb = new ArrayList<StringBuilder>();
-		int i = 0;
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("case 0:\n");
+			sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n");
+			sb.append("dl[0] = "+((l.get(0).getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+			sb.append("break;\n");
+			llsb.add(sb);
+		}
+		
 		for(ActionNode an : l){
 			StringBuilder sb = new StringBuilder();
 			boolean gen = false;
@@ -471,15 +479,13 @@ public class UglyPrinter {
 				continue;
 			}
 			llsb.add(sb);
-			i++;
-			if(i > 100){
+			if(llsb.size() > 100){
 				sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
 				lsb.add(llsb);
 				llsb = new ArrayList<StringBuilder>();
-				i = 0;
 			}
 		}
-		if(i <= 100)
+		if(llsb.size() > 0)
 			lsb.add(llsb);
 
 		for(int j=0 ; j<lsb.size(); j++){
