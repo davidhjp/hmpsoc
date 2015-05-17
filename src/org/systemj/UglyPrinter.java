@@ -538,7 +538,7 @@ public class UglyPrinter {
 		
 		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 		pw.println("}");
-		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl]\n");
+		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl] */\n");
 		pw.println("}");
 		pw.println("}");
 		pw.println("}");
