@@ -7,6 +7,7 @@ import org.systemj.MemoryPointer;
 public class SwitchNode extends BaseGRCNode {
 	private String CDName;
 	private String Statename;
+	private int CDid;
 
 	public String getStatename() {
 		return Statename;
@@ -49,6 +50,15 @@ public class SwitchNode extends BaseGRCNode {
 			this.getChild(i).weirdPrint(pw, mp, termcode, cdi);
 		}
 	}
+
+	public int getCDid() {
+		return CDid;
+	}
+
+	public void setCDid(int cDid) {
+		CDid = cDid;
+	}
+
 
 	
 }

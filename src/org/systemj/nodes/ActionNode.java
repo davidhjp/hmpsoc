@@ -189,7 +189,7 @@ public class ActionNode extends BaseGRCNode {
 					long cn = this.casenumber + 32768;
 					pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 					pw.println("  LDR R0 #$"+Long.toHexString(cn));
-					pw.println("  DCALLBL R0; Emit val casenumber "+casenumber);
+					pw.println("  DCALLNB R0; Emit val casenumber "+casenumber);
 				}
 				
 				break;
@@ -201,7 +201,7 @@ public class ActionNode extends BaseGRCNode {
 				long cn = this.casenumber + 32768;
 				pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 				pw.println("  LDR R0 #$"+Long.toHexString(cn));
-				pw.println("  DCALLBL R0; Java casenumber "+casenumber+" IMPORTANT TODO: now also need to send data-lock addr to JOP!!!");
+				pw.println("  DCALLNB R0; Java casenumber "+casenumber);
 				break;
 			case SIG_DECL:
 			case EXIT:

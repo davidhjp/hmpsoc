@@ -100,7 +100,7 @@ public class UglyPrinter {
 	private void printJavaClass(File dir) throws FileNotFoundException {
 
 		
-		printJavaClockDomain(dir);
+		
 		printJavaJOPThread(dir);
 		printJavaMain(dir);
 		
@@ -112,15 +112,15 @@ public class UglyPrinter {
 		if(nodelist.size() != declolist.size())
 			throw new RuntimeException("Internal Error: nodelist size != declolist size");
 		
+		// Allocates CDs
 		List<List<BaseGRCNode>> allocnodes = new ArrayList<List<BaseGRCNode>>();
-		List<List<DeclaredObjects>> allocdelco = new ArrayList<List<DeclaredObjects>>();
 		for(int i=0 ; i<Helper.pMap.nReCOP ; i++){
 			allocnodes.add(new ArrayList<BaseGRCNode>());
-			allocdelco.add(new ArrayList<DeclaredObjects>());
 		}
 		
 		for(int i=0;i<nodelist.size(); i++){
 			BaseGRCNode n = nodelist.get(i);
+			((SwitchNode)n).setCDid(i);
 			DeclaredObjects doo = declolist.get(i);
 			if(Helper.pMap.nReCOP > 1){
 				SwitchNode sw = (SwitchNode)n;
@@ -128,17 +128,16 @@ public class UglyPrinter {
 				if(id == null)
 					throw new RuntimeException("Could not find CD name: "+sw.getCDName());
 				allocnodes.get(id-1).add(sw);
-				allocdelco.get(id-1).add(doo);
 			}
 			else{
 				allocnodes.get(0).add(n);
-				allocdelco.get(0).add(doo);
 			}
 		}
+		
+		
 	
 		for(int o=0;o<allocnodes.size(); o++){
 			List<BaseGRCNode> nodes = allocnodes.get(o);
-			List<DeclaredObjects> declos = allocdelco.get(o);
 			if(nodes.isEmpty())
 				continue;
 			
@@ -150,7 +149,8 @@ public class UglyPrinter {
 			for(int i=0; i<nodes.size(); i++){
 				BaseGRCNode bcn = nodes.get(i);
 				String cdname = ((SwitchNode)bcn).getCDName();
-				DeclaredObjects doo = declos.get(i);
+				int cdid = ((SwitchNode)bcn).getCDid();
+				DeclaredObjects doo = declolist.get(cdid);
 				MemoryPointer mp = new MemoryPointer();
 				if(!bcn.isTopLevel())
 					throw new RuntimeException(""+bcn.getClass()+" must be top-level");
@@ -265,10 +265,11 @@ public class UglyPrinter {
 			pw.println("  LDR R11 #0; Content of R11 is always ZERO");
 			for(int i=0; i<nodes.size(); i++){
 				SwitchNode topnode = (SwitchNode) nodes.get(i);
+				int cdi = topnode.getCDid();
 				MemoryPointer mp = lmp.get(i);
 
 				pw.println("RUN"+i+" NOOP");
-				pw.println("  LDR R7 #"+i+"; Current CD number");
+				pw.println("  LDR R7 #"+cdi+"; Current CD number");
 
 				for(long j=0; j<mp.getSizeTerminateCode(); j++)
 					pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
@@ -309,17 +310,20 @@ public class UglyPrinter {
 				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
 				pw.println("  LDR R0 #$8000");
 				pw.println("  DCALLNB R0; Sending casenumber 0 (housekeeing)");
-				pw.println("LOCK"+mp.cc+"CD"+i+" LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
-				pw.println("  PRESENT R0 "+"LOCK"+(mp.cc++)+"CD"+i+"; Blocking until housekeeping is done");
+				pw.println("LOCK"+mp.cc+"ITER"+i+" LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
+				pw.println("  PRESENT R0 "+"LOCK"+(mp.cc++)+"ITER"+i+"; Blocking until housekeeping is done");
 				pw.println("  CEOT; Clearing EOT register");
 
 
-				topnode.weirdPrint(pw, mp, 0, i);
+				topnode.weirdPrint(pw, mp, 0, cdi);
 
 				if(i == nodes.size()-1)
-					pw.println("AJOIN"+i+" JMP RUN0");
+					pw.println("AJOIN"+cdi+" JMP RUN0");
 				else
-					pw.println("AJOIN"+i+" JMP RUN"+(i+1));
+					pw.println("AJOIN"+cdi+" JMP RUN"+(i+1));
+				
+				
+				printJavaClockDomain(dir, mp, cdi);
 
 			}
 
@@ -402,151 +406,148 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printJavaClockDomain(File dir) throws FileNotFoundException {
+	private void printJavaClockDomain(File dir, MemoryPointer mp, int k) throws FileNotFoundException {
 		if(acts.size() != declolist.size())
 			throw new RuntimeException("Error !");
-		for(int k=0; k<nodelist.size(); k++){
-			DeclaredObjects d = declolist.get(k);
-			String CDName = d.getCDName();
-			PrintWriter pw = new PrintWriter(new File(dir, "CD"+(k+1)+".java"));
+		DeclaredObjects d = declolist.get(k);
+		String CDName = d.getCDName();
+		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(k+1)+".java"));
+
+		pw.println("package "+target+";\n");
+		pw.println("public class CD"+(k+1)+"{");
+		pw.println("public static final String CDName = \""+CDName+"\";");
+		{
+			Iterator<Signal> iter = d.getInputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getOutputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getInternalSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getInputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getOutputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Var> iter = d.getVarDeclIterator();
+			while(iter.hasNext()){
+				Var s = iter.next();
+				pw.println("private static "+s.type+" "+s.name+";");
+			}
+		}
 
 
-			pw.println("package "+target+";\n");
-			pw.println("public class CD"+(k+1)+"{");
-			pw.println("public static final String CDName = \""+CDName+"\";");
-			{
-				Iterator<Signal> iter = d.getInputSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Signal> iter = d.getOutputSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Signal> iter = d.getInternalSignalIterator();
-				while(iter.hasNext()){
-					Signal s = iter.next();
-					pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Channel> iter = d.getInputChannelIterator();
-				while(iter.hasNext()){
-					Channel s = iter.next();
-					pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Channel> iter = d.getOutputChannelIterator();
-				while(iter.hasNext()){
-					Channel s = iter.next();
-					pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
-				}
-			}
-			{
-				Iterator<Var> iter = d.getVarDeclIterator();
-				while(iter.hasNext()){
-					Var s = iter.next();
-					pw.println("private static "+s.type+" "+s.name+";");
-				}
-			}
+		List<ActionNode> l = acts.get(k);
+		pw.println();
 
+		List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
+		List<StringBuilder> llsb = new ArrayList<StringBuilder>();
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("case 0:\n");
+			sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n");
+			sb.append("dl[0] = "+mp.getDataLockPointer()+";\n");
+			sb.append("break;\n");
+			llsb.add(sb);
+		}
 
-			List<ActionNode> l = acts.get(k);
-			pw.println();
-
-			List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
-			List<StringBuilder> llsb = new ArrayList<StringBuilder>();
-			{
-				StringBuilder sb = new StringBuilder();
-				sb.append("case 0:\n");
-				sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n");
-//			sb.append("dl[0] = "+mp.getDataLockPointer()+";\n");
-				sb.append("break;\n");
-				llsb.add(sb);
-			}
-
-			for(ActionNode an : l){
-				StringBuilder sb = new StringBuilder();
-				boolean gen = false;
-				switch(an.getActionType()){
-				case JAVA:
-					if(an.getCasenumber() < 0)
-						throw new RuntimeException("Unresolved Action Case");
+		for(ActionNode an : l){
+			StringBuilder sb = new StringBuilder();
+			boolean gen = false;
+			switch(an.getActionType()){
+			case JAVA:
+				if(an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
 //				System.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
-					sb.append("case "+an.getCasenumber()+":\n");
-//				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-					if(an.isBeforeTestNode())
-						sb.append("return "+an.getStmt()+";\n");
-					else{
-						sb.append(an.getStmt()+"\n");
-						sb.append("break;\n");
-					}
-					gen = true;
-					break;
-				case GROUPED_JAVA:
+				sb.append("case "+an.getCasenumber()+":\n");
+				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+				if(an.isBeforeTestNode())
+					sb.append("return "+an.getStmt()+";\n");
+				else{
+					sb.append(an.getStmt()+"\n");
+					sb.append("break;\n");
+				}
+				gen = true;
+				break;
+			case GROUPED_JAVA:
+				if(an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+				sb.append("case "+an.getCasenumber()+":\n");
+				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+				for(String stmt : an.getStmts()){
+					sb.append(stmt+"\n");
+				}
+				sb.append("break;\n");
+				gen = true;
+				break;
+			case EMIT:
+				if(an.hasEmitVal()){
 					if(an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
 					sb.append("case "+an.getCasenumber()+":\n");
-//				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-					for(String stmt : an.getStmts()){
-						sb.append(stmt+"\n");
-					}
+					sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
+					sb.append(an.getStmt()+"\n");
 					sb.append("break;\n");
 					gen = true;
-					break;
-				case EMIT:
-					if(an.hasEmitVal()){
-						if(an.getCasenumber() < 0)
-							throw new RuntimeException("Unresolved Action Case");
-						sb.append("case "+an.getCasenumber()+":\n");
-//					sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-						sb.append(an.getStmt()+"\n");
-						sb.append("break;\n");
-						gen = true;
-					}
-					else
-						continue;
-					break;
-				default:
+				}
+				else
 					continue;
-				}
-				llsb.add(sb);
-				if(llsb.size() > 100){
-					sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
-					lsb.add(llsb);
-					llsb = new ArrayList<StringBuilder>();
-				}
+				break;
+			default:
+				continue;
 			}
-			if(llsb.size() > 0)
+			llsb.add(sb);
+			if(llsb.size() > 100){
+				sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
 				lsb.add(llsb);
-
-			for(int j=0 ; j<lsb.size(); j++){
-				List<StringBuilder> ll = lsb.get(j);
-				pw.println("public static boolean MethodCall_"+j+"(int casen){");
-				pw.println("switch(casen){");
-				for(StringBuilder sb : ll){
-					pw.print(sb.toString());
-				}
-				if(j == lsb.size()-1){
-					pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
-				}
-				pw.println("}");
-				pw.println("return false;");
-				pw.println("}");
+				llsb = new ArrayList<StringBuilder>();
 			}
-
-
-			pw.println("}");
-			pw.flush();
-			pw.close();
 		}
+		if(llsb.size() > 0)
+			lsb.add(llsb);
+
+		for(int j=0 ; j<lsb.size(); j++){
+			List<StringBuilder> ll = lsb.get(j);
+			pw.println("public static boolean MethodCall_"+j+"(int casen, int[] dl){");
+			pw.println("switch(casen){");
+			for(StringBuilder sb : ll){
+				pw.print(sb.toString());
+			}
+			if(j == lsb.size()-1){
+				pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+			}
+			pw.println("}");
+			pw.println("return false;");
+			pw.println("}");
+		}
+
+
+		pw.println("}");
+		pw.flush();
+		pw.close();
 
 	}
 
@@ -564,14 +565,14 @@ public class UglyPrinter {
 		pw.println("int cd = 0;");
 		pw.println("int casen = 0;");
 		pw.println("int result = 0;");
-		pw.println("int dl = 0;");
+		pw.println("int[] dl = new int[]{0};");
 		pw.println("while(true){");
-		pw.println("\n/* TODO: Retrieve cd, case and dl numbers from ReCOP and assign them to 'cd', 'case' and 'dl', respectively */\n");
+		pw.println("\n/* TODO: Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n");
 		pw.println("switch(cd){");
 		
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
-			pw.println("result = CD"+i+".MethodCall_0(casen);");
+			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
 			pw.println("break;");
 			
 		}
