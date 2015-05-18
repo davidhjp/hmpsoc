@@ -1,7 +1,6 @@
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.FileReader;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -11,11 +10,12 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.jdom.JDOMException;
 import org.systemj.CompilationUnit;
 import org.systemj.CompilerPrintStream;
 
 import args.Helper;
+
+import com.google.gson.Gson;
 
 /**
  * HMPSoC main class
@@ -30,7 +30,7 @@ public class HMPSoC {
 		Options options = new Options();
 		options.addOption(Option.builder(Helper.VERBOSE_OPTION).longOpt(Helper.VERBOSE_LONG_OPTION).desc("Verbose mode").build());
 		options.addOption(Option.builder(Helper.D_OPTION).hasArg().argName("directory").desc("Generate files to this output directory").build());
-		options.addOption(Option.builder(Helper.JOP_NUM_OPTION).hasArg().argName("integer").desc("Number of JOPs available").build());
+		options.addOption(Option.builder(Helper.JOP_RECOP_NUM_OPTION).hasArg().argName("integer").desc("Number of JOPs available").build());
 		options.addOption(Option.builder(Helper.HELP_OPTION).longOpt(Helper.HELP_LONG_OPTION).desc("Print this help message").build());
 		return options;
 	}
@@ -79,18 +79,31 @@ public class HMPSoC {
 						CompilerPrintStream.setVerbose();
 						CompilerPrintStream.setDefaultVerbose();
 						break;
-					case Helper.JOP_NUM_OPTION:
-						if(o.getValue(Helper.JOP_NUM_OPTION).equals("0")){
-							throw new ParseException("JOP number should be greater than 0");
+					case Helper.JOP_RECOP_NUM_OPTION:
+						String fname = o.getValue(Helper.JOP_RECOP_NUM_OPTION);
+						Gson gs = new Gson();
+						Helper.pMap = gs.fromJson(new FileReader(fname), Helper.Mapping.class);
+						Iterator<Integer> i = (Iterator<Integer>) Helper.pMap.rAlloc.values().iterator();
+						while(i.hasNext()){
+							int nn = i.next();
+							if(Helper.pMap.nReCOP < nn)
+								throw new RuntimeException("ReCOP ID "+nn+" is greater than the max # of ReCOP: "+Helper.pMap.nReCOP);
+						}
+						if(Helper.pMap.nJOP == 0 || Helper.pMap.nReCOP == 0){
+							throw new ParseException("Numbers of JOP/ReCOP should be greater than 0");
 						}
 					default:
 						break;
 					}
 				}
 			}
-		} catch (ParseException e) {
+		} catch (Exception e) {
 			CompilerPrintStream.setVerbose();
-			System.err.println(e.getMessage());
+			if(cmd.hasOption(Helper.VERBOSE_OPTION))
+				e.printStackTrace();
+			else
+				System.err.println(e.getMessage());
+			
 			System.exit(1);
 		}
 

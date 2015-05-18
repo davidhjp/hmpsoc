@@ -175,8 +175,10 @@ public class CompilationUnit {
 			setCaseNumber(n, 1);
 		
 		int mjop = 1;
-		if(Helper.getSingleArgInstance().hasOption("j"))
-			mjop = Integer.valueOf(Helper.getSingleArgInstance().getOptionValue("j")) + 1;
+		if(Helper.getSingleArgInstance().hasOption("j")){
+			if(Helper.pMap.nJOP > 1)
+				mjop = Helper.pMap.nJOP + 1;
+		}
 		for(BaseGRCNode n : glist){
 			setActionTag(n, mjop);
 			n.resetVisited();
