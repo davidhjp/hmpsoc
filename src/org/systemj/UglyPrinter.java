@@ -87,7 +87,7 @@ public class UglyPrinter {
 			f.mkdir();
 		}
 		
-		printJavaClass(f);
+		printFiles(f);
 		
 		
 //		pw = new PrintWriter(f);
@@ -97,13 +97,10 @@ public class UglyPrinter {
 		
 	}
 
-	private void printJavaClass(File dir) throws FileNotFoundException {
+	private void printFiles(File dir) throws FileNotFoundException {
 
-		
-		
 		printJavaJOPThread(dir);
 		printJavaMain(dir);
-		
 		printASM(dir);
 		
 	}
@@ -120,7 +117,6 @@ public class UglyPrinter {
 		
 		for(int i=0;i<nodelist.size(); i++){
 			BaseGRCNode n = nodelist.get(i);
-			((SwitchNode)n).setCDid(i);
 			DeclaredObjects doo = declolist.get(i);
 			if(Helper.pMap.nReCOP > 1){
 				SwitchNode sw = (SwitchNode)n;
@@ -406,15 +402,15 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printJavaClockDomain(File dir, MemoryPointer mp, int k) throws FileNotFoundException {
+	private void printJavaClockDomain(File dir, MemoryPointer mp, int cdi) throws FileNotFoundException {
 		if(acts.size() != declolist.size())
 			throw new RuntimeException("Error !");
-		DeclaredObjects d = declolist.get(k);
+		DeclaredObjects d = declolist.get(cdi);
 		String CDName = d.getCDName();
-		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(k+1)+".java"));
+		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(cdi+1)+".java"));
 
 		pw.println("package "+target+";\n");
-		pw.println("public class CD"+(k+1)+"{");
+		pw.println("public class CD"+(cdi+1)+"{");
 		pw.println("public static final String CDName = \""+CDName+"\";");
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
@@ -460,7 +456,7 @@ public class UglyPrinter {
 		}
 
 
-		List<ActionNode> l = acts.get(k);
+		List<ActionNode> l = acts.get(cdi);
 		pw.println();
 
 		List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();

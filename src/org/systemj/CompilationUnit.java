@@ -162,6 +162,9 @@ public class CompilationUnit {
 		// ----- 
 		
 		List<BaseGRCNode> glist = getGRC(l);
+		for(int i=0;i<glist.size(); i++){
+			((SwitchNode)glist.get(i)).setCDid(i);
+		}
 		for(BaseGRCNode n : glist){
 			n.setTopLevel();
 			splitTestAction(n);
@@ -520,6 +523,9 @@ public class CompilationUnit {
 						break;
 					case "double":
 						eval = name+".setValue(new Double("+eval+"));";
+						break;
+					default:
+						eval = name+".setValue("+eval+");";
 						break;
 					}
 					an.setStmt(eval);
