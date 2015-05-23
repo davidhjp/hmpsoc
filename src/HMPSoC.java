@@ -30,7 +30,7 @@ public class HMPSoC {
 		Options options = new Options();
 		options.addOption(Option.builder(Helper.VERBOSE_OPTION).longOpt(Helper.VERBOSE_LONG_OPTION).desc("Verbose mode").build());
 		options.addOption(Option.builder(Helper.D_OPTION).hasArg().argName("directory").desc("Generate files to this output directory").build());
-		options.addOption(Option.builder(Helper.JOP_RECOP_NUM_OPTION).hasArg().argName("integer").desc("Number of JOPs available").build());
+		options.addOption(Option.builder(Helper.JOP_RECOP_NUM_OPTION).hasArg().argName("alloc").desc("Specify JOP/ReCOP configuration").build());
 		options.addOption(Option.builder(Helper.HELP_OPTION).longOpt(Helper.HELP_LONG_OPTION).desc("Print this help message").build());
 		return options;
 	}
