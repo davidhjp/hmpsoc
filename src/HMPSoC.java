@@ -83,6 +83,8 @@ public class HMPSoC {
 						String fname = o.getValue(Helper.JOP_RECOP_NUM_OPTION);
 						Gson gs = new Gson();
 						Helper.pMap = gs.fromJson(new FileReader(fname), Helper.Mapping.class);
+						if(Helper.pMap.rAlloc == null)
+							throw new RuntimeException("Required data in "+fname+" : rAlloc");
 						Iterator<Integer> i = (Iterator<Integer>) Helper.pMap.rAlloc.values().iterator();
 						while(i.hasNext()){
 							int nn = i.next();
