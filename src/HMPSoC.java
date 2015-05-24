@@ -63,7 +63,7 @@ public class HMPSoC {
 
 		CommandLineParser parser = new DefaultParser();
 		CommandLine cmd = null;
-		
+
 		try {
 			cmd = parser.parse(options, args);
 			Helper.setSingleArgInstance(cmd);
@@ -89,7 +89,7 @@ public class HMPSoC {
 							if(Helper.pMap.nReCOP < nn)
 								throw new RuntimeException("ReCOP ID "+nn+" is greater than the max # of ReCOP: "+Helper.pMap.nReCOP);
 						}
-						if(Helper.pMap.nJOP == 0 || Helper.pMap.nReCOP == 0){
+						if(Helper.pMap.nJOP < 0 || Helper.pMap.nReCOP < 0){
 							throw new ParseException("Numbers of JOP/ReCOP should be greater than 0");
 						}
 					default:
@@ -97,18 +97,8 @@ public class HMPSoC {
 					}
 				}
 			}
-		} catch (Exception e) {
-			CompilerPrintStream.setVerbose();
-			if(cmd.hasOption(Helper.VERBOSE_OPTION))
-				e.printStackTrace();
-			else
-				System.err.println(e.getMessage());
-			
-			System.exit(1);
-		}
 
-		List<String> arglists = cmd.getArgList();
-		try{
+			List<String> arglists = cmd.getArgList();
 			if(!arglists.isEmpty()){
 				for(String f : arglists){
 					CompilationUnit cu = new CompilationUnit(f);
@@ -125,7 +115,11 @@ public class HMPSoC {
 				e.printStackTrace();
 			else
 				System.err.println(e.getMessage());
-			
+
+			System.exit(1);
+		} catch (Error e){
+			CompilerPrintStream.setVerbose();
+			e.printStackTrace();
 			System.exit(1);
 		}
 	}
