@@ -9,13 +9,13 @@ endif
 all: bin
 
 compile:
-	java -cp bin\;lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/\;lib/\* HMPSoC -v
+	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/$(S)lib/\* HMPSoC -v
 
 bin:
 	if [[ ! -d bin ]]; then \
 		mkdir bin; \
 	fi
-	javac -cp lib/\*$Ssrc/ src/HMPSoC.java -d bin
+	javac -cp lib/\*$(S)src/ src/HMPSoC.java -d bin
 
 jar: bin
 	if [[ ! -d jar ]]; then \
