@@ -149,7 +149,7 @@ public class BaseGRCNode {
 	
 	
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi){
-		pw.println("; TODO: Override "+this.getClass().getSimpleName()+".weirdPrint(..) method");
+		pw.println("; TODO: Override "+this.getClass().getSimpleName()+".weirdPrint(..) method"); // TODO
 		
 		for(BaseGRCNode child : this.getChildren()){
 			child.weirdPrint(pw, mp, termcode, cdi);

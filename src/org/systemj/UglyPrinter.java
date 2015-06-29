@@ -285,7 +285,7 @@ public class UglyPrinter {
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
-				pw.println("; TODO: Send OSig vals (R0) to JOP");
+				pw.println("; TODO: Send OSig vals (R0) to JOP"); // TODO
 				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()));
@@ -301,7 +301,7 @@ public class UglyPrinter {
 				for(long j=0; j<mp.getSizeProgramCounter(); j++){
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
-				pw.println("; TODO: Get ISig vals from JOP (I am expecting them to be stored in R0)");
+				pw.println("; TODO: Get ISig vals from JOP (I am expecting them to be stored in R0)"); // TODO
 				pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
 				pw.println("  LDR R0 #$8000");
@@ -390,10 +390,10 @@ public class UglyPrinter {
 		pw.println("}");
 		pw.println("sys.signal = 1;");
 		
-		pw.println("\n/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */\n");
+		pw.println("\n/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */\n"); // TODO
 		
 		pw.println("while(true){");
-		pw.println("\n/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */\n");
+		pw.println("\n/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */\n"); // TODO
 		pw.println("}");
 		
 		pw.println("}");
@@ -464,7 +464,7 @@ public class UglyPrinter {
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.append("case 0:\n");
-			sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n");
+			sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n"); // TODO
 			sb.append("dl[0] = "+mp.getDataLockPointer()+";\n");
 			sb.append("break;\n");
 			llsb.add(sb);
@@ -552,7 +552,7 @@ public class UglyPrinter {
 
 		PrintWriter pw = new PrintWriter(new File(dir, "JOPThread.java"));
 		pw.println("package "+target+";");
-		pw.println("/* TODO: import necessary packages */");
+		pw.println("/* TODO: import necessary packages */"); // TODO
 		pw.println();
 		pw.println("public class JOPThread implements java.lang.Runnable {");
 		pw.println("public static int JOP_NUM = "+nodelist.size());
@@ -563,7 +563,7 @@ public class UglyPrinter {
 		pw.println("int result = 0;");
 		pw.println("int[] dl = new int[]{0};");
 		pw.println("while(true){");
-		pw.println("\n/* TODO: Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n");
+		pw.println("\n/* TODO: Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n"); // TODO
 		pw.println("switch(cd){");
 		
 		for(int i=0; i<nodelist.size(); i++){
@@ -575,7 +575,7 @@ public class UglyPrinter {
 		
 		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 		pw.println("}");
-		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl] */\n");
+		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl] */\n"); // TODO
 		pw.println("}");
 		pw.println("}");
 		pw.println("}");
