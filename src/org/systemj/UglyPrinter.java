@@ -123,7 +123,7 @@ public class UglyPrinter {
 				Integer id = Helper.pMap.rAlloc.get(sw.getCDName());
 				if(id == null)
 					throw new RuntimeException("Could not find CD name: "+sw.getCDName());
-				allocnodes.get(id-1).add(sw);
+				allocnodes.get(id).add(sw);
 			}
 			else{
 				allocnodes.get(0).add(n);
@@ -407,11 +407,15 @@ public class UglyPrinter {
 			throw new RuntimeException("Error !");
 		DeclaredObjects d = declolist.get(cdi);
 		String CDName = d.getCDName();
+		Integer recopId = Helper.pMap.rAlloc.get(CDName);
+		if (recopId == null)
+			throw new RuntimeException("Could not find CD name: "+CDName);
 		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(cdi+1)+".java"));
 
 		pw.println("package "+target+";\n");
 		pw.println("public class CD"+(cdi+1)+"{");
 		pw.println("public static final String CDName = \""+CDName+"\";");
+		pw.println("public static final int recopId = "+recopId+";");
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
@@ -558,24 +562,37 @@ public class UglyPrinter {
 		pw.println("public static int JOP_NUM = "+nodelist.size());
 		pw.println();
 		pw.println("public void run (){");
+		pw.println("int dpcr = 0;");
 		pw.println("int cd = 0;");
 		pw.println("int casen = 0;");
 		pw.println("int result = 0;");
 		pw.println("int[] dl = new int[]{0};");
 		pw.println("while(true){");
-		pw.println("\n/* TODO: Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n"); // TODO
+		pw.println("\n/* Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n");
+
+		// TODO Note getDatacall() is native method from Bjoern's project, need to add import
+		pw.println("dpcr = getDatacall(); // Note getDatacall() is native method from Bjoern's project, need to add import");
+		pw.println("if ((dpcr >> 31) == 0) continue;");
+		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
+		pw.println("casen = dpcr & 0xFFFF; // dpcr(15 downto 0)");
+
 		pw.println("switch(cd){");
 		
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
 			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
+			pw.println("result |= CD\"+i+\".recopId << 24; // Set recop id");
 			pw.println("break;");
 			
 		}
 		
 		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 		pw.println("}");
-		pw.println("\n/* TODO: Store result back to ReCOP_Mem[dl] */\n"); // TODO
+		pw.println("\n/* Store result back to ReCOP_Mem[dl] */\n"); // TODO
+		// Set writeback address
+		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address // TODO Rethink result format"); // TODO Rethink result format
+		// TODO Note setDatacallResult(int) is native method from Bjoern's project, need to add import
+		pw.println("setDatacallResult(result);// Note setDatacallResult(int) is native method from Bjoern's project, need to add import");
 		pw.println("}");
 		pw.println("}");
 		pw.println("}");

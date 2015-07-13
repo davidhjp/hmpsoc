@@ -88,8 +88,8 @@ public class HMPSoC {
 						Iterator<Integer> i = (Iterator<Integer>) Helper.pMap.rAlloc.values().iterator();
 						while(i.hasNext()){
 							int nn = i.next();
-							if(Helper.pMap.nReCOP < nn)
-								throw new RuntimeException("ReCOP ID "+nn+" is greater than the max # of ReCOP: "+Helper.pMap.nReCOP);
+							if(Helper.pMap.nReCOP <= nn)
+								throw new RuntimeException("ReCOP ID "+nn+" is outside the range of valid ID's. Valid ID's are 0 to " + (Helper.pMap.nReCOP-1));
 						}
 						if(Helper.pMap.nJOP < 0 || Helper.pMap.nReCOP < 0){
 							throw new ParseException("Numbers of JOP/ReCOP should be greater than 0");
