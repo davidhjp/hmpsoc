@@ -581,7 +581,8 @@ public class UglyPrinter {
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
 			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
-			pw.println("result |= CD\"+i+\".recopId << 24; // Set recop id");
+			pw.println("result |= CD\"+i+\".recopId << 28; // Set recop id");
+			pw.println("result |= 0x80000000; // Set valid bit");
 			pw.println("break;");
 			
 		}
@@ -592,6 +593,7 @@ public class UglyPrinter {
 		// Set writeback address
 		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address // TODO Rethink result format"); // TODO Rethink result format
 		// TODO Note setDatacallResult(int) is native method from Bjoern's project, need to add import
+		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
 		pw.println("setDatacallResult(result);// Note setDatacallResult(int) is native method from Bjoern's project, need to add import");
 		pw.println("}");
 		pw.println("}");
