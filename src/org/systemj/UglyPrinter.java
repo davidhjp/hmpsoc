@@ -407,7 +407,7 @@ public class UglyPrinter {
 			throw new RuntimeException("Error !");
 		DeclaredObjects d = declolist.get(cdi);
 		String CDName = d.getCDName();
-		Integer recopId = Helper.pMap.rAlloc.get(CDName);
+		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(CDName) : 0;
 		if (recopId == null)
 			throw new RuntimeException("Could not find CD name: "+CDName);
 		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(cdi+1)+".java"));

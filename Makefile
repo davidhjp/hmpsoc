@@ -4,12 +4,18 @@ else
 	S=\;
 endif
 
+ifeq ($(ALLOC),)
+	ALLOC_PARAM=
+else
+	ALLOC_PARAM=-j $(ALLOC)
+endif
+
 .PHONY: bin jar
 
 all: bin
 
 compile:
-	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/$(S)lib/\* HMPSoC -v
+	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM)
 
 bin:
 	if [[ ! -d bin ]]; then \
