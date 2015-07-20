@@ -499,6 +499,7 @@ public class CompilationUnit {
 					String type = co.getInternalSignalType(name);
 					if(type == null){
 						type = co.getOutputSignalType(name);
+						if (type == null) type = "null";
 					}
 					an.setSigType(co.getInternalSignalType(name));
 					an.setEmitVal(eval);
