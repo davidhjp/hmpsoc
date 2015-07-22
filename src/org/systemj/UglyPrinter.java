@@ -383,10 +383,20 @@ public class UglyPrinter {
 		pw.println("import com.jopdesign.io.SysDevice;");
 		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println();
+		for (int i = 1; i <= nodelist.size(); i++) {
+			pw.println("import static hmpsoc.CD" + i + ".*;");
+		}
+		pw.println();
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
 		pw.println("public static void main(String[] arg){");
 		pw.incrementIndent();
+
+		pw.println();
+		pw.println("/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */"); // TODO
+		pw.println();
+		pw.println("init_all();");
+
 		pw.println("SysDevice sys = IOFactory.getFactory().getSysDevice();");
 		pw.println("for(int i=0; i < sys.nrCpu-1; i++){");
 		pw.incrementIndent();
@@ -396,15 +406,38 @@ public class UglyPrinter {
 		pw.println("}");
 		pw.println("sys.signal = 1;");
 
-		pw.println();
-		pw.println("/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */"); // TODO
-		pw.println();
-		
 		pw.println("while(true){");
 		pw.incrementIndent();
 		pw.println("/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */"); // TODO
 		pw.decrementIndent();
 		pw.println("}");
+
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.println();
+
+		pw.println("public static void init_all() {");
+		pw.incrementIndent();
+
+		for (int i = 1; i <= nodelist.size(); i++) {
+			pw.println("CD" + i + ".init();");
+		}
+
+		for (DeclaredObjects d : declolist) {
+			pw.println("// Init for " + d.getCDName());
+			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+				Channel c = it.next();
+				pw.println(c.name + "_in.set_partner(" + c.name + "_o);");
+			}
+			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+				Channel c = it.next();
+				pw.println(c.name + "_o.set_partner(" + c.name + "_in);");
+			}
+		}
+
+		// TODO Set up CAN/PCOMM interfaces
+		pw.println("// TODO Set up CAN/PCOMM interfaces");
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -480,8 +513,25 @@ public class UglyPrinter {
 
 		pw.println("public static void init() {");
 		pw.incrementIndent();
-		{
-			pw.println("// Testing");
+		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
+			Signal s = it.next();
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+		}
+		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
+			Signal s = it.next();
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+		}
+		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
+			Signal s = it.next();
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+		}
+		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + "_in = new " + Java.CLASS_I_CHANNEL + "();");
+		}
+		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "();");
 		}
 		pw.decrementIndent();
 		pw.println("}");
