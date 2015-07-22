@@ -20,6 +20,7 @@ import org.systemj.nodes.JoinNode;
 import org.systemj.nodes.SwitchNode;
 
 import args.Helper;
+import org.systemj.util.IndentPrinter;
 
 public class UglyPrinter {
 
@@ -376,28 +377,38 @@ public class UglyPrinter {
 	}
 
 	private void printJavaMain(File dir) throws FileNotFoundException {
-		PrintWriter pw = new PrintWriter(new File(dir, "RTSMain.java"));
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain.java")));
 		pw.println("package "+target+";");
 		pw.println("import com.jopdesign.io.IOFactory;");
 		pw.println("import com.jopdesign.io.SysDevice;");
 		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println();
 		pw.println("public class RTSMain {");
+		pw.incrementIndent();
 		pw.println("public static void main(String[] arg){");
+		pw.incrementIndent();
 		pw.println("SysDevice sys = IOFactory.getFactory().getSysDevice();");
 		pw.println("for(int i=0; i < sys.nrCpu-1; i++){");
+		pw.incrementIndent();
 		pw.println("Runnable r = new JOPThread();");
 		pw.println("Startup.setRunnable(r, i);");
+		pw.decrementIndent();
 		pw.println("}");
 		pw.println("sys.signal = 1;");
-		
-		pw.println("\n/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */\n"); // TODO
+
+		pw.println();
+		pw.println("/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */"); // TODO
+		pw.println();
 		
 		pw.println("while(true){");
-		pw.println("\n/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */\n"); // TODO
+		pw.incrementIndent();
+		pw.println("/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */"); // TODO
+		pw.decrementIndent();
 		pw.println("}");
-		
+
+		pw.decrementIndent();
 		pw.println("}");
+		pw.decrementIndent();
 		pw.println("}");
 		pw.flush();
 		pw.close();
@@ -411,12 +422,17 @@ public class UglyPrinter {
 		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(CDName) : 0;
 		if (recopId == null)
 			throw new RuntimeException("Could not find CD name: "+CDName);
-		PrintWriter pw = new PrintWriter(new File(dir, "CD"+(cdi+1)+".java"));
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "CD"+(cdi+1)+".java")));
 
 		pw.println("package "+target+";\n");
 		pw.println("public class CD"+(cdi+1)+"{");
-		pw.println("public static final String CDName = \""+CDName+"\";");
-		pw.println("public static final int recopId = "+recopId+";");
+
+		pw.incrementIndent();
+
+		{
+			pw.println("public static final String CDName = \"" + CDName + "\";");
+			pw.println("public static final int recopId = " + recopId + ";");
+		}
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
@@ -460,92 +476,118 @@ public class UglyPrinter {
 			}
 		}
 
+		pw.println();
+
+		pw.println("public static void init() {");
+		pw.incrementIndent();
+		{
+			pw.println("// Testing");
+		}
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.println();
+
 
 		List<ActionNode> l = acts.get(cdi);
 		pw.println();
 
-		List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
-		List<StringBuilder> llsb = new ArrayList<StringBuilder>();
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.append("case 0:\n");
-			sb.append("// TODO: Part-4 students, somethings need to be done here (HOUSEKEEING)\n"); // TODO
-			sb.append("dl[0] = "+mp.getDataLockPointer()+";\n");
-			sb.append("break;\n");
-			llsb.add(sb);
-		}
+		//List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
+		//List<StringBuilder> llsb = new ArrayList<StringBuilder>();
 
-		for(ActionNode an : l){
-			StringBuilder sb = new StringBuilder();
-			boolean gen = false;
-			switch(an.getActionType()){
-			case JAVA:
-				if(an.getCasenumber() < 0)
-					throw new RuntimeException("Unresolved Action Case");
+		pw.println("public static boolean MethodCall_0(int casen) {");
+		pw.incrementIndent();
+		pw.println("switch (casen) {");
+		pw.incrementIndent();
+
+		Iterator<ActionNode> nodeIterator = l.iterator();
+		boolean caseGen = false;
+		int numCasesGened = 0;
+		while (nodeIterator.hasNext()) {
+			ActionNode an = nodeIterator.next();
+			int methodNum = numCasesGened / 100;
+			boolean genMethod = caseGen && numCasesGened % 100 == 0;
+
+			if (genMethod) {
+				pw.println("default: return MethodCall_" + (methodNum+1) + "(casen);");
+				pw.println("}"); // Switch end
+				pw.decrementIndent();
+				pw.println("}"); // Method end
+				pw.decrementIndent();
+				pw.println();
+
+				pw.println("public static boolean MethodCall_" + methodNum + "(int casen) {");
+				pw.incrementIndent();
+				pw.println("switch (casen) {");
+				pw.incrementIndent();
+			}
+
+			switch(an.getActionType()) {
+				case JAVA:
+					if (an.getCasenumber() < 0)
+						throw new RuntimeException("Unresolved Action Case");
 //				System.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
-				sb.append("case "+an.getCasenumber()+":\n");
-				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-				if(an.isBeforeTestNode())
-					sb.append("return "+an.getStmt()+";\n");
-				else{
-					sb.append(an.getStmt()+"\n");
-					sb.append("break;\n");
-				}
-				gen = true;
-				break;
-			case GROUPED_JAVA:
-				if(an.getCasenumber() < 0)
-					throw new RuntimeException("Unresolved Action Case");
-				sb.append("case "+an.getCasenumber()+":\n");
-				sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-				for(String stmt : an.getStmts()){
-					sb.append(stmt+"\n");
-				}
-				sb.append("break;\n");
-				gen = true;
-				break;
-			case EMIT:
-				if(an.hasEmitVal()){
+					pw.println("case " + an.getCasenumber() + ": ");
+					pw.incrementIndent();
+					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+					if (an.isBeforeTestNode()) {
+						pw.println("return " + an.getStmt() + ";");
+						pw.decrementIndent();
+					} else {
+						pw.println(an.getStmt() + "");
+						pw.println("break;");
+						pw.decrementIndent();
+					}
+					numCasesGened++;
+					caseGen = true;
+					break;
+				case GROUPED_JAVA:
 					if(an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
-					sb.append("case "+an.getCasenumber()+":\n");
-					sb.append("dl[0] = "+((an.getThnum()-mp.getToplevelThnum())+mp.getDataLockPointer())+";\n");
-					sb.append(an.getStmt()+"\n");
-					sb.append("break;\n");
-					gen = true;
-				}
-				else
+					pw.println("case " + an.getCasenumber() + ":");
+					pw.incrementIndent();
+					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+					for(String stmt : an.getStmts()){
+						pw.println(stmt);
+					}
+					pw.println("break;");
+					pw.decrementIndent();
+					numCasesGened++;
+					caseGen = true;
+					break;
+				case EMIT:
+					if(an.hasEmitVal()){
+						if(an.getCasenumber() < 0)
+							throw new RuntimeException("Unresolved Action Case");
+						pw.println("case " + an.getCasenumber()+":");
+						pw.incrementIndent();
+						pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer())+";");
+						pw.println(an.getStmt()+"");
+						pw.println("break;");
+						pw.decrementIndent();
+						numCasesGened++;
+						caseGen = true;
+					}
+					else {
+						caseGen = false;
+						continue;
+					}
+					break;
+				default:
+					caseGen = false;
 					continue;
-				break;
-			default:
-				continue;
-			}
-			llsb.add(sb);
-			if(llsb.size() > 100){
-				sb.append("default: return MethodCall_"+(lsb.size()+1)+"(casen);\n");
-				lsb.add(llsb);
-				llsb = new ArrayList<StringBuilder>();
 			}
 		}
-		if(llsb.size() > 0)
-			lsb.add(llsb);
 
-		for(int j=0 ; j<lsb.size(); j++){
-			List<StringBuilder> ll = lsb.get(j);
-			pw.println("public static boolean MethodCall_"+j+"(int casen, int[] dl){");
-			pw.println("switch(casen){");
-			for(StringBuilder sb : ll){
-				pw.print(sb.toString());
-			}
-			if(j == lsb.size()-1){
-				pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
-			}
-			pw.println("}");
-			pw.println("return false;");
-			pw.println("}");
-		}
+		pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+		pw.println("}"); // Switch end
+		pw.decrementIndent();
+		pw.println("}"); // Method end
+		pw.decrementIndent();
+		pw.println();
 
 
+		pw.decrementIndent();
 		pw.println("}");
 		pw.flush();
 		pw.close();
@@ -555,21 +597,27 @@ public class UglyPrinter {
 
 	private void printJavaJOPThread(File dir) throws FileNotFoundException{
 
-		PrintWriter pw = new PrintWriter(new File(dir, "JOPThread.java"));
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "JOPThread.java")));
 		pw.println("package "+target+";");
 		pw.println("/* TODO: import necessary packages */"); // TODO
 		pw.println();
 		pw.println("public class JOPThread implements java.lang.Runnable {");
+		pw.incrementIndent();
 		pw.println("public static int JOP_NUM = "+nodelist.size());
 		pw.println();
 		pw.println("public void run (){");
+		pw.incrementIndent();
 		pw.println("int dpcr = 0;");
 		pw.println("int cd = 0;");
 		pw.println("int casen = 0;");
 		pw.println("int result = 0;");
 		pw.println("int[] dl = new int[]{0};");
 		pw.println("while(true){");
-		pw.println("\n/* Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */\n");
+		pw.incrementIndent();
+
+		pw.println();
+		pw.println("/* Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */");
+		pw.println();
 
 		// TODO Note getDatacall() is native method from Bjoern's project, need to add import
 		pw.println("dpcr = getDatacall(); // Note getDatacall() is native method from Bjoern's project, need to add import");
@@ -581,23 +629,30 @@ public class UglyPrinter {
 		
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
+			pw.incrementIndent();
 			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
 			pw.println("result |= CD\"+i+\".recopId << 28; // Set recop id");
 			pw.println("result |= 0x80000000; // Set valid bit");
 			pw.println("break;");
-			
+			pw.decrementIndent();
 		}
 		
 		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+		pw.decrementIndent();
 		pw.println("}");
-		pw.println("\n/* Store result back to ReCOP_Mem[dl] */\n"); // TODO
+		pw.println();
+		pw.println("/* Store result back to ReCOP_Mem[dl] */"); // TODO
+		pw.println();
 		// Set writeback address
 		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address // TODO Rethink result format"); // TODO Rethink result format
 		// TODO Note setDatacallResult(int) is native method from Bjoern's project, need to add import
 		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
 		pw.println("setDatacallResult(result);// Note setDatacallResult(int) is native method from Bjoern's project, need to add import");
+		pw.decrementIndent();
 		pw.println("}");
+		pw.decrementIndent();
 		pw.println("}");
+		pw.decrementIndent();
 		pw.println("}");
 		
 		pw.flush();
