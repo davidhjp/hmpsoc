@@ -421,42 +421,42 @@ public class UglyPrinter {
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
-				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
 			}
 		}
 		{
 			Iterator<Signal> iter = d.getOutputSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
-				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
 			}
 		}
 		{
 			Iterator<Signal> iter = d.getInternalSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
-				pw.println("private static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
 			}
 		}
 		{
 			Iterator<Channel> iter = d.getInputChannelIterator();
 			while(iter.hasNext()){
 				Channel s = iter.next();
-				pw.println("private static "+Java.CLASS_I_CHANNEL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_I_CHANNEL+" "+s.name+"_in;");
 			}
 		}
 		{
 			Iterator<Channel> iter = d.getOutputChannelIterator();
 			while(iter.hasNext()){
 				Channel s = iter.next();
-				pw.println("private static "+Java.CLASS_O_CHANNEL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_O_CHANNEL+" "+s.name+"_o;");
 			}
 		}
 		{
 			Iterator<Var> iter = d.getVarDeclIterator();
 			while(iter.hasNext()){
 				Var s = iter.next();
-				pw.println("private static "+s.type+" "+s.name+";");
+				pw.println("public static "+s.type+" "+s.name+";");
 			}
 		}
 
