@@ -484,6 +484,8 @@ public class UglyPrinter {
 			Iterator<Signal> iter = d.getInternalSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
+				// TODO Check if internal pure signals are actually required to be created jop side
+				if (s.type == null) pw.print("//");
 				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
 			}
 		}
@@ -523,6 +525,8 @@ public class UglyPrinter {
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
+			// TODO Check if internal pure signals are actually required to be created jop side
+			if (s.type == null) pw.print("//");
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 		}
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
@@ -615,6 +619,7 @@ public class UglyPrinter {
 						pw.println(an.getStmt()+"");
 						pw.println("break;");
 						pw.decrementIndent();
+
 						numCasesGened++;
 						caseGen = true;
 					}
@@ -630,10 +635,10 @@ public class UglyPrinter {
 		}
 
 		pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+		pw.decrementIndent();
 		pw.println("}"); // Switch end
 		pw.decrementIndent();
 		pw.println("}"); // Method end
-		pw.decrementIndent();
 		pw.println();
 
 
