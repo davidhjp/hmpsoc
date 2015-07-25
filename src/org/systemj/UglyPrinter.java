@@ -73,6 +73,7 @@ public class UglyPrinter {
 		public static final String CLASS_SIGNAL = "systemj.lib.emb.Signal";
 		public static final String CLASS_I_CHANNEL = "systemj.lib.emb.input_Channel";
 		public static final String CLASS_O_CHANNEL = "systemj.lib.emb.output_Channel";
+		public static final String CLASS_INTERFACE_MANAGER = "systemj.common.InterfaceManager";
 	
 	}
 
@@ -382,6 +383,7 @@ public class UglyPrinter {
 		pw.println("import com.jopdesign.io.IOFactory;");
 		pw.println("import com.jopdesign.io.SysDevice;");
 		pw.println("import com.jopdesign.sys.Startup;");
+		pw.println("import com.jopdesign.sys.Native;");
 		pw.println();
 		for (int i = 1; i <= nodelist.size(); i++) {
 			pw.println("import static hmpsoc.CD" + i + ".*;");
@@ -398,6 +400,7 @@ public class UglyPrinter {
 		pw.println("init_all();");
 
 		pw.println("SysDevice sys = IOFactory.getFactory().getSysDevice();");
+		pw.println("// TODO Check it is okay to never finish in main"); // TODO Check it is okay to never finish in main
 		pw.println("for(int i=0; i < sys.nrCpu-1; i++){");
 		pw.incrementIndent();
 		pw.println("Runnable r = new JOPThread();");
@@ -406,9 +409,46 @@ public class UglyPrinter {
 		pw.println("}");
 		pw.println("sys.signal = 1;");
 
+
+		pw.println("int dpcr = 0;");
+		pw.println("int cd = 0;");
+		pw.println("int osigs = 0;");
+		pw.println("int isigs = 0;");
+		pw.println("int[] dl = new int[]{0};");
+		pw.println("int recopId = 0");
+		pw.println("int result = 0;");
+		pw.println();
 		pw.println("while(true){");
 		pw.incrementIndent();
+
 		pw.println("/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */"); // TODO
+		pw.println("dpcr = getDatacall();");
+		pw.println("if ((dpcr >> 31) == 0) continue;");
+		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
+		pw.println("osigs = dpcr & 0xFFFF; // dpcr(15 downto 0)");
+
+		pw.println("switch (cd) {");
+		pw.incrementIndent();
+
+		for (int i = 0; i < nodelist.size(); i++) {
+			pw.println("case " + i + ":");
+			pw.incrementIndent();
+
+			pw.println("isigs = CD" + i + ".housekeeping(osigs, dl);");
+			pw.println("recopId = CD" + i + ".recopId;");
+
+			pw.println("break;");
+			pw.decrementIndent();
+		}
+
+		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.println("result = 0x80000000 | ((recopId & 0x7) << 28) | ((dl[0] & 0xFFF) << 16) | (isigs & 0xFFFF)");
+		pw.println("setDatacallResult(result);");
+
 		pw.decrementIndent();
 		pw.println("}");
 
@@ -455,29 +495,29 @@ public class UglyPrinter {
 		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(CDName) : 0;
 		if (recopId == null)
 			throw new RuntimeException("Could not find CD name: "+CDName);
-		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "CD"+(cdi+1)+".java")));
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "CD"+cdi+".java")));
 
 		pw.println("package "+target+";\n");
-		pw.println("public class CD"+(cdi+1)+"{");
+		pw.println("public class CD"+cdi+"{");
 
 		pw.incrementIndent();
 
-		{
-			pw.println("public static final String CDName = \"" + CDName + "\";");
-			pw.println("public static final int recopId = " + recopId + ";");
-		}
+		pw.println("public static final String CDName = \"" + CDName + "\";");
+		pw.println("public static final int recopId = " + recopId + ";");
+		pw.println("private static java.util.Vector currentSignals;");
+		pw.println("private static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // TODO Configure InterfaceManager"); // TODO configure InterfaceManager
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
-				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // isig");
 			}
 		}
 		{
 			Iterator<Signal> iter = d.getOutputSignalIterator();
 			while(iter.hasNext()){
 				Signal s = iter.next();
-				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // osig");
 			}
 		}
 		{
@@ -542,6 +582,84 @@ public class UglyPrinter {
 
 		pw.println();
 
+		pw.println("public static int housekeeping(int osigs, int[] dl) {");
+		pw.incrementIndent();
+
+		pw.println("// Set output signal statuses");
+		Iterator<Signal> osigIt = d.getOutputSignalIterator();
+		if (!osigIt.hasNext()) pw.println("// Note: No output signals for " + CDName);
+		for (int i = 0; osigIt.hasNext(); i++) {
+			Signal s = osigIt.next();
+			pw.println("if ((osigs & " + (1 << i) + ") > 0) " + s.name + ".setPresent(); else " + s.name + ".setClear();");
+		}
+
+		pw.println();
+
+		// START - Set preVal for internal valued signals which have been emitted this tick
+		pw.println("// Set preval for valued signals which have been emitted this tick");
+		pw.println("for (int i = 0; i < currentSignals.size(); i++) {");
+		pw.incrementIndent();
+
+		pw.println(Java.CLASS_SIGNAL + "sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
+		pw.println("sig.getStatus() ? sig.setprepresent() : sig.setpreclear()");
+		pw.println("sig.setpreval(sig.getValue()");
+		pw.println("sig.sethook()");
+
+		pw.decrementIndent();
+		pw.println("}");
+		pw.println("currentSignals.removeAllElements()");
+		pw.println();
+		// START - GetHook for all input signals
+		pw.println("// Update signals");
+		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
+			Signal s = it.next();
+			pw.println(s.name + ".gethook()");
+		}
+		pw.println();
+		// START - Update channels
+		pw.println("// Update Channels");
+		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + ".update_r_s();");
+		}
+		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + ".update_w_r();");
+		}
+		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + ".gethook();");
+			pw.println(c.name + ".sethook();");
+		}
+		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+			Channel c = it.next();
+			pw.println(c.name + ".gethook();");
+			pw.println(c.name + ".sethook();");
+		}
+		pw.println();
+		pw.println("// Run interface manager");
+		pw.println("if (im != null) im.run();");
+
+		pw.println();
+
+		pw.println("// Get input signal statues");
+		pw.println("int isigs = 0;");
+		Iterator<Signal> isigIt = d.getInputSignalIterator();
+		if (!isigIt.hasNext()) pw.println("// Note: No input signals for " + CDName);
+		for (int i = 0; isigIt.hasNext(); i++) {
+			Signal s = isigIt.next();
+			pw.println("if (" + s.name + ".getStatus()) isigs |= " + (1 << i));
+		}
+		pw.println();
+		pw.println("// Write to isigs to preIsigs");
+		pw.println("dl[0] = " + mp.getPreInputSignalPointer() + ";");
+
+		pw.println("return isigs;");
+
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.println();
 
 		List<ActionNode> l = acts.get(cdi);
 		pw.println();
@@ -617,6 +735,7 @@ public class UglyPrinter {
 						pw.incrementIndent();
 						pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer())+";");
 						pw.println(an.getStmt()+"");
+						pw.println("currentSignals.addElement(" + an.getSigName() + ");");
 						pw.println("break;");
 						pw.decrementIndent();
 
@@ -654,11 +773,13 @@ public class UglyPrinter {
 
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "JOPThread.java")));
 		pw.println("package "+target+";");
+		pw.println();
+		pw.println("import com.jopdesign.sys.Native;");
 		pw.println("/* TODO: import necessary packages */"); // TODO
 		pw.println();
 		pw.println("public class JOPThread implements java.lang.Runnable {");
 		pw.incrementIndent();
-		pw.println("public static int JOP_NUM = "+nodelist.size());
+		//pw.println("// public static int JOP_NUM = "+nodelist.size()); // TODO What is this for?
 		pw.println();
 		pw.println("public void run (){");
 		pw.incrementIndent();
@@ -674,19 +795,19 @@ public class UglyPrinter {
 		pw.println("/* Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */");
 		pw.println();
 
-		// TODO Note getDatacall() is native method from Bjoern's project, need to add import
 		pw.println("dpcr = getDatacall(); // Note getDatacall() is native method from Bjoern's project, need to add import");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
 		pw.println("casen = dpcr & 0xFFFF; // dpcr(15 downto 0)");
 
 		pw.println("switch(cd){");
-		
+		pw.incrementIndent();
+
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
 			pw.incrementIndent();
 			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
-			pw.println("result |= CD\"+i+\".recopId << 28; // Set recop id");
+			pw.println("result |= CD"+i+".recopId << 28; // Set recop id");
 			pw.println("result |= 0x80000000; // Set valid bit");
 			pw.println("break;");
 			pw.decrementIndent();
@@ -699,10 +820,9 @@ public class UglyPrinter {
 		pw.println("/* Store result back to ReCOP_Mem[dl] */"); // TODO
 		pw.println();
 		// Set writeback address
-		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address // TODO Rethink result format"); // TODO Rethink result format
-		// TODO Note setDatacallResult(int) is native method from Bjoern's project, need to add import
+		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address");
 		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
-		pw.println("setDatacallResult(result);// Note setDatacallResult(int) is native method from Bjoern's project, need to add import");
+		pw.println("setDatacallResult(result);");
 		pw.decrementIndent();
 		pw.println("}");
 		pw.decrementIndent();
