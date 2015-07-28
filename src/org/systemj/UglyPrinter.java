@@ -430,7 +430,7 @@ public class UglyPrinter {
 		pw.println("switch (cd) {");
 		pw.incrementIndent();
 
-		for (int i = 0; i < nodelist.size(); i++) {
+		for (int i = 1; i <= nodelist.size(); i++) {
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
 
