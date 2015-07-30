@@ -385,10 +385,6 @@ public class UglyPrinter {
 		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println("import com.jopdesign.sys.Native;");
 		pw.println();
-		for (int i = 1; i <= nodelist.size(); i++) {
-			pw.println("import static hmpsoc.CD" + i + ".*;");
-		}
-		pw.println();
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
 		pw.println("public static void main(String[] arg){");
@@ -430,12 +426,14 @@ public class UglyPrinter {
 		pw.println("switch (cd) {");
 		pw.incrementIndent();
 
-		for (int i = 0; i < nodelist.size(); i++) {
+		for (int i = 0; i < declolist.size(); i++) {
+			String cdName = declolist.get(i).getCDName();
+
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
 
-			pw.println("isigs = CD" + i + ".housekeeping(osigs, dl);");
-			pw.println("recopId = CD" + i + ".recopId;");
+			pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			pw.println("recopId = " + cdName + ".recopId;");
 
 			pw.println("break;");
 			pw.decrementIndent();
@@ -465,19 +463,23 @@ public class UglyPrinter {
 		pw.println("public static void init_all() {");
 		pw.incrementIndent();
 
-		for (int i = 0; i < nodelist.size(); i++) {
-			pw.println("CD" + i + ".init();");
+		for (int i = 0; i < declolist.size(); i++) {
+			pw.println(declolist.get(i).getCDName() + ".init();");
 		}
 
-		for (DeclaredObjects d : declolist) {
-			pw.println("// Init for " + d.getCDName());
+		// TODO - Get channel partner information from config
+		for (int i = 0; i < declolist.size(); i++) {
+			DeclaredObjects d = declolist.get(i);
+			String cdName = d.getCDName();
+
+			pw.println("// Init for " + cdName);
 			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				pw.println(c.name + "_in.set_partner(" + c.name + "_o);");
+				// TODO pw.println(cdName+ "." + c.name + "_in.set_partner(" + partnerCdName + "." + c.name + "_o);");
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				pw.println(c.name + "_o.set_partner(" + c.name + "_in);");
+				// TODO pw.println(cdName + "." + c.name + "_o.set_partner(" + partnerCdName + "." + c.name + "_in);");
 			}
 		}
 
@@ -500,10 +502,10 @@ public class UglyPrinter {
 		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(CDName) : 0;
 		if (recopId == null)
 			throw new RuntimeException("Could not find CD name: "+CDName);
-		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "CD"+cdi+".java")));
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, CDName+".java")));
 
 		pw.println("package "+target+";\n");
-		pw.println("public class CD"+cdi+"{");
+		pw.println("public class "+CDName+"{");
 
 		pw.incrementIndent();
 
@@ -811,11 +813,12 @@ public class UglyPrinter {
 		pw.println("switch(cd){");
 		pw.incrementIndent();
 
-		for(int i=0; i<nodelist.size(); i++){
+		for(int i=0; i<declolist.size(); i++){
+			String cdName = declolist.get(i).getCDName();
 			pw.println("case "+i+":");
 			pw.incrementIndent();
-			pw.println("status = CD"+i+".MethodCall_0(casen, dl);");
-			pw.println("recopId = CD"+i+".recopId; // Set recop id");
+			pw.println("status = "+cdName+".MethodCall_0(casen, dl);");
+			pw.println("recopId = "+cdName+".recopId; // Set recop id");
 			pw.println("break;");
 			pw.decrementIndent();
 		}
