@@ -446,7 +446,12 @@ public class UglyPrinter {
 		pw.decrementIndent();
 		pw.println("}");
 
-		pw.println("result = 0x80000000 | ((recopId & 0x7) << 28) | ((dl[0] & 0xFFF) << 16) | (isigs & 0xFFFF)");
+		pw.println("result = 0x80000000 | ((recopId & 0x7) << 28) | ((dl[0] & 0xFFF) << 16) | 0x8000 | (isigs & 0x7FFF)");
+		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
+				"| ((recopId & 0x7) << 28) /*RecopId*/ " +
+				"| ((dl[0] & 0xFFF) << 16) /*WritebackAddress*/ " +
+				"| 0x8000 /*Valid Result Bit*/ " +
+				"| (isigs & 0x7FFF); /*Input Signals*/");
 		pw.println("setDatacallResult(result);");
 
 		pw.decrementIndent();
@@ -787,6 +792,9 @@ public class UglyPrinter {
 		pw.println("int cd = 0;");
 		pw.println("int casen = 0;");
 		pw.println("int result = 0;");
+		// Response variables
+		pw.println("int status = 0;");
+		pw.println("int recopId = 0;");
 		pw.println("int[] dl = new int[]{0};");
 		pw.println("while(true){");
 		pw.incrementIndent();
@@ -806,9 +814,8 @@ public class UglyPrinter {
 		for(int i=0; i<nodelist.size(); i++){
 			pw.println("case "+i+":");
 			pw.incrementIndent();
-			pw.println("result = CD"+i+".MethodCall_0(casen, dl);");
-			pw.println("result |= CD"+i+".recopId << 28; // Set recop id");
-			pw.println("result |= 0x80000000; // Set valid bit");
+			pw.println("status = CD"+i+".MethodCall_0(casen, dl);");
+			pw.println("recopId = CD"+i+".recopId; // Set recop id");
 			pw.println("break;");
 			pw.decrementIndent();
 		}
@@ -817,10 +824,11 @@ public class UglyPrinter {
 		pw.decrementIndent();
 		pw.println("}");
 		pw.println();
-		pw.println("/* Store result back to ReCOP_Mem[dl] */"); // TODO
-		pw.println();
-		// Set writeback address
-		pw.println("result |= (dl[0] & 0xFFF) << 16;// Set writeback address");
+		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
+				"| ((recopId & 0x7) << 28) /*RecopId*/ " +
+				"| ((dl[0] & 0xFFF) << 16) /*WritebackAddress*/ " +
+				"| 0x8000 /*Valid Result Bit*/ " +
+				"| (status & 0x7FFF); /*Status*/");
 		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
 		pw.println("setDatacallResult(result);");
 		pw.decrementIndent();
