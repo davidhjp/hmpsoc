@@ -288,7 +288,7 @@ public class UglyPrinter {
 				pw.println("  CER");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; TODO: Send OSig vals (R0) to JOP"); // TODO
-				pw.println("  DCALLNB R0 #" + (0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()));
@@ -430,7 +430,7 @@ public class UglyPrinter {
 		pw.println("switch (cd) {");
 		pw.incrementIndent();
 
-		for (int i = 1; i <= nodelist.size(); i++) {
+		for (int i = 0; i < nodelist.size(); i++) {
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
 
@@ -465,7 +465,7 @@ public class UglyPrinter {
 		pw.println("public static void init_all() {");
 		pw.incrementIndent();
 
-		for (int i = 1; i <= nodelist.size(); i++) {
+		for (int i = 0; i < nodelist.size(); i++) {
 			pw.println("CD" + i + ".init();");
 		}
 
