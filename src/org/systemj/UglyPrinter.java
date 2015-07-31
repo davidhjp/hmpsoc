@@ -139,7 +139,7 @@ public class UglyPrinter {
 			if(nodes.isEmpty())
 				continue;
 			
-			PrintWriter pw = new PrintWriter(new File(dir, target+"_R"+(o+1)+".asm"));
+			PrintWriter pw = new PrintWriter(new File(dir, target+"_R"+o+".asm"));
 			long c = 0;
 			List<MemoryPointer> lmp = new ArrayList<MemoryPointer>();
 			
