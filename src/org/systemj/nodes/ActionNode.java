@@ -4,12 +4,25 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import args.Helper;
 import org.systemj.MemoryPointer;
 
 public class ActionNode extends BaseGRCNode {
 	public enum TYPE{
 		GROUPED_JAVA, JAVA, EMIT, SIG_DECL, EXIT
 	}
+
+	private static int nextJopId = 1;
+	private static synchronized int getNextJopId() {
+		int numJops = Helper.pMap.nJOP;
+		if (numJops <= 1) return 0;
+		int jopId = nextJopId;
+		nextJopId = (nextJopId+1) % numJops;
+		if (nextJopId == 0) nextJopId = 1;
+		return jopId;
+	}
+
+
 	private TYPE type = TYPE.JAVA;
 
 	private String stmt;
@@ -185,11 +198,11 @@ public class ActionNode extends BaseGRCNode {
 				if(this.hasEmitVal()){
 					long dl_ptr = mp.getDataLockPointer();
 					long tnum = this.getThnum() - mp.getToplevelThnum();
+					int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 					dl_ptr += tnum;
-					long cn = this.casenumber + 32768;
 					pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-					pw.println("  LDR R0 #$"+Long.toHexString(cn));
-					pw.println("  DCALLNB R0; Emit val casenumber "+casenumber);
+					pw.println("  LDR R0 #" + casenumber);
+					pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
 				}
 				
 				break;
@@ -197,11 +210,11 @@ public class ActionNode extends BaseGRCNode {
 			case JAVA:
 				long dl_ptr = mp.getDataLockPointer();
 				long tnum = this.getThnum() - mp.getToplevelThnum();
+				int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 				dl_ptr += tnum;
-				long cn = this.casenumber + 32768;
 				pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-				pw.println("  LDR R0 #$"+Long.toHexString(cn));
-				pw.println("  DCALLNB R0; Java casenumber "+casenumber);
+				pw.println("  LDR R0 #"+casenumber);
+				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
 				break;
 			case SIG_DECL:
 			case EXIT:
