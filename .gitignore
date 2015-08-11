@@ -2,3 +2,5 @@ lib/*.jar
 bin/
 hmpsoc/
 jar/
+.idea
+*.iml
