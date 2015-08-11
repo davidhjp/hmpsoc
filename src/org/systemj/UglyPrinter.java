@@ -287,7 +287,7 @@ public class UglyPrinter {
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
-				pw.println("; TODO: Send OSig vals (R0) to JOP"); // TODO
+				pw.println("; Send OSig vals (R0) to JOP");
 				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
@@ -304,13 +304,12 @@ public class UglyPrinter {
 				for(long j=0; j<mp.getSizeProgramCounter(); j++){
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
-				pw.println("; TODO: Get ISig vals from JOP (I am expecting them to be stored in R0)"); // TODO
-				pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
-				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
-				pw.println("  LDR R0 #$8000");
-				pw.println("  DCALLNB R0; Sending casenumber 0 (housekeeing)");
+				pw.println("; Wait for ISig vals from JOP"); // TODO
 				pw.println("LOCK"+mp.cc+"ITER"+i+" LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
 				pw.println("  PRESENT R0 "+"LOCK"+(mp.cc++)+"ITER"+i+"; Blocking until housekeeping is done");
+
+				pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
+				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
 				pw.println("  CEOT; Clearing EOT register");
 
 
