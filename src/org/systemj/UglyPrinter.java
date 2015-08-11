@@ -289,12 +289,12 @@ public class UglyPrinter {
 				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; Send OSig vals (R0) to JOP");
 				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
-				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
-				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()));
-				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()));
+				//pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
+				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
+				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Reset ISig");
 				pw.println("  STR R0 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
-				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()));
-				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer()));
+				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()) + "; Backup OSig");
+				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer()) + "; Reset OSig");
 				pw.println("  STR R0 $"+Long.toHexString(mp.getPreOutputSignalPointer())+"; Updating PreOSig");
 				for(long j=0; j<mp.getSizeInternalSignal(); j++){
 					pw.println("  LDR R0 $"+Long.toHexString((mp.getInternalSignalPointer()+j)));
