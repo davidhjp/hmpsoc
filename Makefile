@@ -14,8 +14,11 @@ endif
 
 all: bin
 
+compileagrc:
+	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
+
 compile:
-	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM)
+	make compileagrc -s T=$(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM)
 
 bin:
 	if [[ ! -d bin ]]; then \
