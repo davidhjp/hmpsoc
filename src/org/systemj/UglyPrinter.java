@@ -13,6 +13,8 @@ import java.util.Set;
 import org.systemj.DeclaredObjects.Channel;
 import org.systemj.DeclaredObjects.Signal;
 import org.systemj.DeclaredObjects.Var;
+import org.systemj.config.ClockDomainConfig;
+import org.systemj.config.SystemConfig;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
 import org.systemj.nodes.ForkNode;
@@ -29,18 +31,21 @@ public class UglyPrinter {
 	private List<DeclaredObjects> declolist;
 	private List<List<ActionNode>> acts;
 	private String topdir;
+	private SystemConfig systemConfig;
 
 	public UglyPrinter () {}
 
-	public UglyPrinter(List<BaseGRCNode> nodes) {
+	public UglyPrinter(List<BaseGRCNode> nodes, SystemConfig systemConfig) {
 		super();
 		this.nodelist = nodes;
+		this.systemConfig = systemConfig;
 	}
 
-	public UglyPrinter(List<BaseGRCNode> nodes, String dir) {
+	public UglyPrinter(List<BaseGRCNode> nodes, String dir, SystemConfig systemConfig) {
 		super();
 		this.topdir = dir;
 		this.nodelist = nodes;
+		this.systemConfig = systemConfig;
 	}
 
 	public List<DeclaredObjects> getDelcaredObjects() {
@@ -120,6 +125,16 @@ public class UglyPrinter {
 		for(int i=0;i<nodelist.size(); i++){
 			BaseGRCNode n = nodelist.get(i);
 			DeclaredObjects doo = declolist.get(i);
+
+			String cdName = doo.getCDName();
+
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+
 			if(Helper.pMap.nReCOP > 1){
 				SwitchNode sw = (SwitchNode)n;
 				Integer id = Helper.pMap.rAlloc.get(sw.getCDName());
@@ -431,6 +446,13 @@ public class UglyPrinter {
 		for (int i = 0; i < declolist.size(); i++) {
 			String cdName = declolist.get(i).getCDName();
 
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
 
@@ -466,22 +488,48 @@ public class UglyPrinter {
 		pw.incrementIndent();
 
 		for (int i = 0; i < declolist.size(); i++) {
-			pw.println(declolist.get(i).getCDName() + ".init();");
-		}
+			String cdName = declolist.get(i).getCDName();
 
-		// TODO - Get channel partner information from config
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+
+			pw.println(cdName + ".init();");
+		}
+		
+		if (systemConfig == null) {
+			pw.println("// ERROR - No System configuration specified");
+			pw.println("// Complete init code can not be generated");
+		}
 		for (int i = 0; i < declolist.size(); i++) {
+			if (systemConfig == null) break;
+
 			DeclaredObjects d = declolist.get(i);
 			String cdName = d.getCDName();
 
+			if (!systemConfig.isLocalClockDomain(cdName)) {
+				// This clock domain does not run on this device
+				continue;
+			}
+
+			ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
+
 			pw.println("// Init for " + cdName);
+
 			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				// TODO pw.println(cdName+ "." + c.name + "_in.set_partner(" + partnerCdName + "." + c.name + "_o);");
+				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
+				String channelPartner = cdConfig.channelPartners.get(c.name);
+				pw.println("cdName"+"." + c.name + "_in.set_partner(" + channelPartner + "_o);");
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				// TODO pw.println(cdName + "." + c.name + "_o.set_partner(" + partnerCdName + "." + c.name + "_in);");
+				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
+				String channelPartner = cdConfig.channelPartners.get(c.name);
+				pw.println("cdName"+"." + c.name + "_o.set_partner(" + channelPartner + "_in);");
 			}
 		}
 
@@ -500,18 +548,26 @@ public class UglyPrinter {
 		if(acts.size() != declolist.size())
 			throw new RuntimeException("Error !");
 		DeclaredObjects d = declolist.get(cdi);
-		String CDName = d.getCDName();
-		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(CDName) : 0;
+		String cdName = d.getCDName();
+
+		if (systemConfig != null) {
+			if (!systemConfig.isLocalClockDomain(cdName)) {
+				// This clock domain does not run on this device
+				return;
+			}
+		}
+
+		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
 		if (recopId == null)
-			throw new RuntimeException("Could not find CD name: "+CDName);
-		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, CDName+".java")));
+			throw new RuntimeException("Could not find CD name: "+cdName);
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
 
 		pw.println("package "+target+";\n");
-		pw.println("public class "+CDName+"{");
+		pw.println("public class "+cdName+"{");
 
 		pw.incrementIndent();
 
-		pw.println("public static final String CDName = \"" + CDName + "\";");
+		pw.println("public static final String CDName = \"" + cdName + "\";");
 		pw.println("public static final int recopId = " + recopId + ";");
 		pw.println("private static java.util.Vector currentSignals;");
 		pw.println("private static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // TODO Configure InterfaceManager"); // TODO configure InterfaceManager
@@ -596,7 +652,7 @@ public class UglyPrinter {
 
 		pw.println("// Set output signal statuses");
 		Iterator<Signal> osigIt = d.getOutputSignalIterator();
-		if (!osigIt.hasNext()) pw.println("// Note: No output signals for " + CDName);
+		if (!osigIt.hasNext()) pw.println("// Note: No output signals for " + cdName);
 		for (int i = 0; osigIt.hasNext(); i++) {
 			Signal s = osigIt.next();
 			pw.println("if ((osigs & " + (1 << i) + ") > 0) " + s.name + ".setPresent(); else " + s.name + ".setClear();");
@@ -654,7 +710,7 @@ public class UglyPrinter {
 		pw.println("// Get input signal statues");
 		pw.println("int isigs = 0;");
 		Iterator<Signal> isigIt = d.getInputSignalIterator();
-		if (!isigIt.hasNext()) pw.println("// Note: No input signals for " + CDName);
+		if (!isigIt.hasNext()) pw.println("// Note: No input signals for " + cdName);
 		for (int i = 0; isigIt.hasNext(); i++) {
 			Signal s = isigIt.next();
 			pw.println("if (" + s.name + ".getStatus()) isigs |= " + (1 << i));
@@ -817,6 +873,14 @@ public class UglyPrinter {
 
 		for(int i=0; i<declolist.size(); i++){
 			String cdName = declolist.get(i).getCDName();
+
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+
 			pw.println("case "+i+":");
 			pw.incrementIndent();
 			pw.println("status = "+cdName+".MethodCall_0(casen, dl);");

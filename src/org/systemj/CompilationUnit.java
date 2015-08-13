@@ -11,11 +11,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.jdom.Attribute;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.filter.ElementFilter;
 import org.jdom.input.SAXBuilder;
+import org.systemj.config.*;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.AforkNode;
 import org.systemj.nodes.AjoinNode;
@@ -35,6 +37,7 @@ public class CompilationUnit {
 	private InputStream is;
 	private SAXBuilder builder = new SAXBuilder();
 	private Document doc;
+	private Document configDoc;
 	private boolean isis = false;
 	
 	private final static List<String> nodenames = Arrays.asList(new String[]{
@@ -51,17 +54,20 @@ public class CompilationUnit {
 	
 	public CompilationUnit(){}
 	
-	public CompilationUnit(String file) throws JDOMException, IOException{
+	public CompilationUnit(String file, String systemJConfig) throws JDOMException, IOException{
 		target = file;
 		doc = builder.build(new File(file));
+		if (systemJConfig != null)
+			configDoc = builder.build(new File(systemJConfig));
 	}
 	
-	public CompilationUnit(InputStream is) throws JDOMException, IOException{
+	public CompilationUnit(InputStream is, String systemJConfig) throws JDOMException, IOException{
 		target = "hmpsoc";
 		this.is = is;
 		isis = true;
 		doc = builder.build(this.is);
-
+		if (systemJConfig != null)
+			configDoc = builder.build(new File(systemJConfig));
 	}
 	
 	private List<DeclaredObjects> getDeclaredObjects(){
@@ -129,6 +135,93 @@ public class CompilationUnit {
 		
 		return l;
 	}
+
+	private SystemConfig getSystemConfig() {
+		if (configDoc == null) return null;
+
+		Element systemConfigRoot = configDoc.getRootElement();
+
+		List<LinkConfig> links = new ArrayList<>();
+
+		// Load links
+		for (Object l : systemConfigRoot.getChild("Interconnection").getChildren("Link")) {
+			Element link = (Element) l;
+			String type = link.getAttributeValue("Type");
+
+			// Load interfaces
+			List<InterfaceConfig> interfaces = new ArrayList<>();
+
+			for (Object i : link.getChildren("Interface")) {
+				Element intf = (Element) i;
+				String subsystem = intf.getAttributeValue("SubSystem");
+				String interfaceClass = intf.getAttributeValue("Class");
+				String interfaceType = intf.getAttributeValue("Interface");
+				interfaces.add(new InterfaceConfig(subsystem, interfaceClass, interfaceType));
+			}
+
+			links.add(new LinkConfig(type, interfaces));
+		}
+
+		// Load SubSystems
+		List<SubSystemConfig> subsystems = new ArrayList<>();
+
+		for (Object ss : systemConfigRoot.getChildren("SubSystem")) {
+			Element subsystem = (Element) ss;
+
+			String name = subsystem.getAttributeValue("Name");
+			String localStr = subsystem.getAttributeValue("Local");
+			boolean local = localStr != null ? Boolean.valueOf(localStr) : false;
+			String deviceType = subsystem.getAttributeValue("Device");
+
+			// Load ClockDomains
+			List<ClockDomainConfig> clockDomains = new ArrayList<>();
+
+			for (Object cd : subsystem.getChildren("ClockDomain")) {
+				Element clockDomain = (Element) cd;
+
+				String cdname = clockDomain.getAttributeValue("Name");
+				String className = clockDomain.getAttributeValue("Class");
+
+				Map<String, Integer> isignalIndexes = new HashMap<>();
+				Map<String, Integer> osignalIndexes = new HashMap<>();
+				Map<String, String> channelPartners = new HashMap<>();
+
+				for (Object e : clockDomain.getChildren()) {
+					// If the clock domain is not local we don't care about contents of the clock domain
+					if (!local) break;
+
+					Element element = (Element) e;
+					String oname = element.getAttributeValue("Name");
+
+					switch (element.getName()) {
+						case "oChannel":
+							channelPartners.put(oname, element.getAttributeValue("To"));
+							break;
+						case "iChannel":
+							channelPartners.put(oname, element.getAttributeValue("From"));
+							break;
+						case "iSignal":
+							isignalIndexes.put(oname, Integer.valueOf(element.getAttributeValue("Index")));
+							break;
+						case "oSignal":
+							osignalIndexes.put(oname, Integer.valueOf(element.getAttributeValue("Index")));
+							break;
+						default:
+							break;
+					}
+				}
+
+				clockDomains.add(new ClockDomainConfig(cdname, className, isignalIndexes, osignalIndexes, channelPartners));
+			}
+
+			subsystems.add(new SubSystemConfig(name, local, deviceType, clockDomains));
+		}
+
+		SystemConfig config = new SystemConfig(links, subsystems);
+		config.validate();
+
+		return config;
+	}
 	
 	private List<Element> getInternalSignalDecls(Element e){
 		ArrayList<Element> l = new ArrayList<Element>();
@@ -152,13 +245,14 @@ public class CompilationUnit {
 	 * @throws FileNotFoundException 
 	 */
 	public void process() throws Exception {
+		SystemConfig systemConfig = getSystemConfig();
 		List<DeclaredObjects> l = getDeclaredObjects();
 //		resetVisitTagAGRC((Element)doc.getRootElement().getDescendants(new ElementFilter("AGRC")).next());
 		
 		// ---- Debug
 //		XMLOutputter xmlo = new XMLOutputter();
 //		xmlo.setFormat(Format.getPrettyFormat());
-//		System.out.println(xmlo.outputString(doc.getRootElement()));
+//		SystemConfig.out.println(xmlo.outputString(doc.getRootElement()));
 		// ----- 
 		
 		List<BaseGRCNode> glist = getGRC(l);
@@ -205,7 +299,7 @@ public class CompilationUnit {
 		}
 		
 		
-		UglyPrinter printer = new UglyPrinter(glist);
+		UglyPrinter printer = new UglyPrinter(glist, systemConfig);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
 			printer.setDir(Helper.getSingleArgInstance().getOptionValue(Helper.D_OPTION));
 		}
@@ -217,8 +311,8 @@ public class CompilationUnit {
 		// Debug
 //		if(Helper.getSingleArgInstance().hasOption(Helper.VERBOSE_OPTION)){
 //			for(BaseGRCNode gg : glist){
-//				System.out.println("====== "+((SwitchNode)gg).getCDName()+" graph =====");
-//				System.out.println(gg.dump(0));
+//				SystemConfig.out.println("====== "+((SwitchNode)gg).getCDName()+" graph =====");
+//				SystemConfig.out.println(gg.dump(0));
 //			}
 //		}
 	}

@@ -32,6 +32,7 @@ public class HMPSoC {
 		options.addOption(Option.builder(Helper.D_OPTION).hasArg().argName("directory").desc("Generate files to this output directory").build());
 		options.addOption(Option.builder(Helper.JOP_RECOP_NUM_OPTION).hasArg().argName("alloc").desc("Specify JOP/ReCOP configuration").build());
 		options.addOption(Option.builder(Helper.HELP_OPTION).longOpt(Helper.HELP_LONG_OPTION).desc("Print this help message").build());
+		options.addOption(Option.builder(Helper.CONFIG_OPTION).longOpt(Helper.CONFIG_LONG_OPTION).hasArg().argName("file").desc("Specify SystemJ Configuration").build());
 		return options;
 	}
 
@@ -65,6 +66,7 @@ public class HMPSoC {
 		CommandLine cmd = null;
 
 		try {
+			String systemJConfig = null;
 			cmd = parser.parse(options, args);
 			Helper.setSingleArgInstance(cmd);
 
@@ -94,6 +96,10 @@ public class HMPSoC {
 						if(Helper.pMap.nJOP < 0 || Helper.pMap.nReCOP < 0){
 							throw new ParseException("Numbers of JOP/ReCOP should be greater than 0");
 						}
+					case Helper.CONFIG_OPTION:
+					case Helper.CONFIG_LONG_OPTION:
+						systemJConfig = o.getValue(0);
+						break;
 					default:
 						break;
 					}
@@ -103,12 +109,12 @@ public class HMPSoC {
 			List<String> arglists = cmd.getArgList();
 			if(!arglists.isEmpty()){
 				for(String f : arglists){
-					CompilationUnit cu = new CompilationUnit(f);
+					CompilationUnit cu = new CompilationUnit(f, systemJConfig);
 					cu.process();
 				}
 			}
 			else{
-				CompilationUnit cu = new CompilationUnit(System.in);
+				CompilationUnit cu = new CompilationUnit(System.in, systemJConfig);
 				cu.process();
 			}
 		} catch (Exception e){

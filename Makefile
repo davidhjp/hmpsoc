@@ -10,6 +10,13 @@ else
 	ALLOC_PARAM=-j $(ALLOC)
 endif
 
+ifeq ($(CFG),)
+	hmpsoc_cfg=
+else
+	hmpsoc_cfg=-c $(CFG)
+endif
+
+
 .PHONY: bin jar
 
 all: bin
@@ -18,7 +25,7 @@ compileagrc:
 	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
 
 compile:
-	make compileagrc -s T=$(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM)
+	make compileagrc -s T=$(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM) $(hmpsoc_cfg)
 
 bin:
 	if [[ ! -d bin ]]; then \
