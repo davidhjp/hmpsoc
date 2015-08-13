@@ -304,9 +304,12 @@ public class UglyPrinter {
 				for(long j=0; j<mp.getSizeProgramCounter(); j++){
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
-				pw.println("; Wait for ISig vals from JOP"); // TODO
-				pw.println("LOCK"+mp.cc+"ITER"+i+" LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
-				pw.println("  PRESENT R0 "+"LOCK"+(mp.cc++)+"ITER"+i+"; Blocking until housekeeping is done");
+				pw.println("; Wait for ISig vals from JOP");
+				pw.println("  LDR R0 #HOUSEKEEPING@JOPLOCK ; Save state in housekeeping");
+				pw.println("  STR R0 $" + Long.toHexString(mp.getProgramCounterPointer()));
+				pw.println("HOUSEKEEPING@JOPLOCK  LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
+				pw.println("  PRESENT R0 AJOIN"+cdi+"; Check for updated ISigs");
+				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 
 				pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
