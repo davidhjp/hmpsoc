@@ -3,17 +3,13 @@ package org.systemj;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.systemj.DeclaredObjects.Channel;
 import org.systemj.DeclaredObjects.Signal;
 import org.systemj.DeclaredObjects.Var;
 import org.systemj.config.ClockDomainConfig;
+import org.systemj.config.SignalConfig;
 import org.systemj.config.SystemConfig;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
@@ -499,7 +495,7 @@ public class UglyPrinter {
 
 			pw.println(cdName + ".init();");
 		}
-		
+
 		if (systemConfig == null) {
 			pw.println("// ERROR - No System configuration specified");
 			pw.println("// Complete init code can not be generated");
@@ -620,13 +616,45 @@ public class UglyPrinter {
 
 		pw.println("public static void init() {");
 		pw.incrementIndent();
+
+		pw.println("HastTable ht = null;");
+		pw.println("GenericSignalReceiver sigReceiver = null;");
+		pw.println("GenericSignalSender sigSender = null;");
+
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+
+			if (systemConfig != null) {
+				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+				SignalConfig sigCfg = cdCfg.isignals.get(s.name);
+
+				if (sigCfg == null) throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
+				pw.println("sigReceiver = new" + sigCfg.clazz + "();");
+				pw.println("ht = new HashTable()");
+				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+				pw.println("sigReceiver.configure(ht);");
+				pw.println(s.name + ".setServer(sigReceiver);");
+			}
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+
+
+			if (systemConfig != null) {
+				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+				SignalConfig sigCfg = cdCfg.osignals.get(s.name);
+
+				if (sigCfg == null) throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
+				pw.println("sigSender = new" + sigCfg.clazz + "();");
+				pw.println("ht = new HashTable()");
+				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+				pw.println("sigSender.configure(ht);");
+				pw.println(s.name + ".setServer(sigSender);");
+			}
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
@@ -655,7 +683,7 @@ public class UglyPrinter {
 		if (!osigIt.hasNext()) pw.println("// Note: No output signals for " + cdName);
 		for (int i = 0; osigIt.hasNext(); i++) {
 			Signal s = osigIt.next();
-			pw.println("if ((osigs & " + (1 << i) + ") > 0) " + s.name + ".setPresent(); else " + s.name + ".setClear();");
+			pw.println("if ((osigs & " + (1 << i) + ") == 0) " + s.name + ".setClear(); else " + s.name + ".setPresent();");
 		}
 
 		pw.println();
@@ -666,9 +694,9 @@ public class UglyPrinter {
 		pw.incrementIndent();
 
 		pw.println(Java.CLASS_SIGNAL + "sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
-		pw.println("sig.getStatus() ? sig.setprepresent() : sig.setpreclear()");
-		pw.println("sig.setpreval(sig.getValue()");
-		pw.println("sig.sethook()");
+		pw.println("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();");
+		pw.println("sig.setpreval(sig.getValue());");
+		pw.println("sig.sethook();");
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -679,6 +707,10 @@ public class UglyPrinter {
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			pw.println(s.name + ".gethook()");
+		}
+		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
+			Signal s = it.next();
+			pw.println(s.name + ".sethook()");
 		}
 		pw.println();
 		// START - Update channels
@@ -716,8 +748,8 @@ public class UglyPrinter {
 			pw.println("if (" + s.name + ".getStatus()) isigs |= " + (1 << i));
 		}
 		pw.println();
-		pw.println("// Write to isigs to preIsigs");
-		pw.println("dl[0] = " + mp.getPreInputSignalPointer() + ";");
+		pw.println("// Write to isigs memory address");
+		pw.println("dl[0] = " + mp.getDataLockPointer() + ";");
 
 		pw.println("return isigs;");
 
@@ -763,7 +795,7 @@ public class UglyPrinter {
 				case JAVA:
 					if (an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
-//				System.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
+//				SystemConfig.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
 					pw.println("case " + an.getCasenumber() + ": ");
 					pw.incrementIndent();
 					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");

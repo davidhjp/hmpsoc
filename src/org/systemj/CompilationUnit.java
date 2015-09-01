@@ -182,8 +182,8 @@ public class CompilationUnit {
 				String cdname = clockDomain.getAttributeValue("Name");
 				String className = clockDomain.getAttributeValue("Class");
 
-				Map<String, Integer> isignalIndexes = new HashMap<>();
-				Map<String, Integer> osignalIndexes = new HashMap<>();
+				Map<String, SignalConfig> isignals = new HashMap<>();
+				Map<String, SignalConfig> osignals = new HashMap<>();
 				Map<String, String> channelPartners = new HashMap<>();
 
 				for (Object e : clockDomain.getChildren()) {
@@ -192,6 +192,16 @@ public class CompilationUnit {
 
 					Element element = (Element) e;
 					String oname = element.getAttributeValue("Name");
+					String signalClass = element.getAttributeValue("Class");
+					Map<String, String> signalCfg = new HashMap<>();
+					for (Attribute attribute : (List<Attribute>) element.getAttributes()) {
+						switch (attribute.getName()) {
+							case "Name":case "Class":
+								break;
+							default:
+								signalCfg.put(attribute.getName(), attribute.getValue());
+						}
+					}
 
 					switch (element.getName()) {
 						case "oChannel":
@@ -201,17 +211,17 @@ public class CompilationUnit {
 							channelPartners.put(oname, element.getAttributeValue("From"));
 							break;
 						case "iSignal":
-							isignalIndexes.put(oname, Integer.valueOf(element.getAttributeValue("Index")));
+							isignals.put(oname, new SignalConfig(oname, signalClass, signalCfg));
 							break;
 						case "oSignal":
-							osignalIndexes.put(oname, Integer.valueOf(element.getAttributeValue("Index")));
+							osignals.put(oname, new SignalConfig(oname, signalClass, signalCfg));
 							break;
 						default:
 							break;
 					}
 				}
 
-				clockDomains.add(new ClockDomainConfig(cdname, className, isignalIndexes, osignalIndexes, channelPartners));
+				clockDomains.add(new ClockDomainConfig(cdname, className, isignals, osignals, channelPartners));
 			}
 
 			subsystems.add(new SubSystemConfig(name, local, deviceType, clockDomains));

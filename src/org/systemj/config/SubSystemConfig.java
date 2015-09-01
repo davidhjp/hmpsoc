@@ -42,19 +42,19 @@ public class SubSystemConfig {
             // We don't really care if the config is invalid for a non-local subsystem
             return;
 
-        Set<Integer> usedISignalIndexes = new HashSet<>();
-        Set<Integer> usedOSignalIndexes = new HashSet<>();
+//        Set<Integer> usedISignalIndexes = new HashSet<>();
+//        Set<Integer> usedOSignalIndexes = new HashSet<>();
         for (ClockDomainConfig cd : clockDomains.values()) {
             cd.validate();
-            validateSignalIndexes(usedISignalIndexes, cd.isignalIndexes, cd.name);
-            validateSignalIndexes(usedOSignalIndexes, cd.osignalIndexes, cd.name);
+//            validateSignalIndexes(usedISignalIndexes, cd.isignalIndexes, cd.name);
+//            validateSignalIndexes(usedOSignalIndexes, cd.osignalIndexes, cd.name);
         }
     }
 
-    private void validateSignalIndexes(Set<Integer> usedSignalIndexes, Map<String, Integer> signalIndexes, String cdName) {
-        for (Map.Entry<String, Integer> e : signalIndexes.entrySet()) {
-            if (!usedSignalIndexes.add(e.getValue()))
-                throw new RuntimeException("Signal " + e.getKey() + "s index is used by another signal outside of ClockDomain " + cdName);
-        }
-    }
+//    private void validateSignalIndexes(Set<Integer> usedSignalIndexes, Map<String, Integer> signalIndexes, String cdName) {
+//        for (Map.Entry<String, Integer> e : signalIndexes.entrySet()) {
+//            if (!usedSignalIndexes.add(e.getValue()))
+//                throw new RuntimeException("Signal " + e.getKey() + "s index is used by another signal outside of ClockDomain " + cdName);
+//        }
+//    }
 }
