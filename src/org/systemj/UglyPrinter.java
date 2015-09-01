@@ -653,7 +653,7 @@ public class UglyPrinter {
 				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigSender.configure(ht);");
-				pw.println(s.name + ".setServer(sigSender);");
+				pw.println(s.name + ".setClient(sigSender);");
 			}
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
