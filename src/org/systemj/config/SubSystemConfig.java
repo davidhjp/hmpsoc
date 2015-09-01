@@ -18,7 +18,7 @@ public class SubSystemConfig {
         this.local = local;
         this.device = device;
 
-        Map<String, ClockDomainConfig> mapClockDomains = new HashMap<>();
+        Map<String, ClockDomainConfig> mapClockDomains = new LinkedHashMap<>();
         for (ClockDomainConfig cd : clockDomains) {
             mapClockDomains.put(cd.className, cd);
         }

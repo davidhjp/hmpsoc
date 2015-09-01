@@ -155,8 +155,15 @@ public class CompilationUnit {
 				Element intf = (Element) i;
 				String subsystem = intf.getAttributeValue("SubSystem");
 				String interfaceClass = intf.getAttributeValue("Class");
-				String interfaceType = intf.getAttributeValue("Interface");
-				interfaces.add(new InterfaceConfig(subsystem, interfaceClass, interfaceType));
+				Map<String, String> cfg = new HashMap<>();
+				for (Attribute attribute : (List<Attribute>) intf.getAttributes()) {
+					switch (attribute.getName()) {
+						case "SubSystem":case "Class": break;
+						default:
+							cfg.put(attribute.getName(), attribute.getValue());
+					}
+				}
+				interfaces.add(new InterfaceConfig(subsystem, interfaceClass, cfg));
 			}
 
 			links.add(new LinkConfig(type, interfaces));

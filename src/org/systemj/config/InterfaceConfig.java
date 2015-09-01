@@ -1,14 +1,17 @@
 package org.systemj.config;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class InterfaceConfig {
     public final String subSystem;
     public final String interfaceClass;
-    public final String interfaceType;
+    public final Map<String, String> cfg;
 
-    public InterfaceConfig(String subSystem, String interfaceClass, String interfaceType) {
+    public InterfaceConfig(String subSystem, String interfaceClass, Map<String, String> cfg) {
         this.subSystem = subSystem;
         this.interfaceClass = interfaceClass;
-        this.interfaceType = interfaceType;
+        this.cfg = Collections.unmodifiableMap(cfg);
     }
 
 }

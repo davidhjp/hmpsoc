@@ -8,9 +8,7 @@ import java.util.*;
 import org.systemj.DeclaredObjects.Channel;
 import org.systemj.DeclaredObjects.Signal;
 import org.systemj.DeclaredObjects.Var;
-import org.systemj.config.ClockDomainConfig;
-import org.systemj.config.SignalConfig;
-import org.systemj.config.SystemConfig;
+import org.systemj.config.*;
 import org.systemj.nodes.ActionNode;
 import org.systemj.nodes.BaseGRCNode;
 import org.systemj.nodes.ForkNode;
@@ -75,6 +73,9 @@ public class UglyPrinter {
 		public static final String CLASS_I_CHANNEL = "systemj.lib.emb.input_Channel";
 		public static final String CLASS_O_CHANNEL = "systemj.lib.emb.output_Channel";
 		public static final String CLASS_INTERFACE_MANAGER = "systemj.common.InterfaceManager";
+		public static final String CLASS_INTERCONNECTION = "systemj.common.Interconnection";
+		public static final String CLASS_INTERCONNECTION_LINK = "systemj.common.Interconnection.Link";
+		public static final String CLASS_GENERIC_INTERFACE = "systemj.interfaces.GenericInterface";
 	
 	}
 
@@ -500,6 +501,48 @@ public class UglyPrinter {
 			pw.println("// ERROR - No System configuration specified");
 			pw.println("// Complete init code can not be generated");
 		}
+
+		pw.println();
+		pw.println("// Interface init");
+		pw.println(Java.CLASS_INTERFACE_MANAGER + " im = new " + Java.CLASS_INTERFACE_MANAGER + "();");
+		pw.println(Java.CLASS_INTERCONNECTION + " ic = new " + Java.CLASS_INTERCONNECTION + "();");
+		pw.println(Java.CLASS_INTERCONNECTION_LINK + " link = null;");
+		pw.println(Java.CLASS_GENERIC_INTERFACE + " gif = null;");
+		pw.println("Hashtable ht = null;");
+		pw.println();
+
+		for (LinkConfig link : systemConfig.links) {
+			pw.println("// Create link");
+			pw.println("link = new " + Java.CLASS_INTERCONNECTION_LINK + "();");
+			pw.println();
+			for (InterfaceConfig ifCfg : link.interfaces) {
+				pw.println("gif = new " + ifCfg.interfaceClass + "();");
+				pw.println("ht = new Hashtable();");
+				for (Map.Entry<String, String> e : ifCfg.cfg.entrySet())
+					pw.println("ht.put(\"" + e.getKey() + "\", \"" + e.getValue() + "\");");
+				pw.println("gif.configure(ht);");
+				pw.println("link.addInterface(\"" + ifCfg.subSystem + "\", gif);");
+				pw.println();
+			}
+			pw.println("ic.addLink(link, false);");
+			pw.println();
+			pw.println();
+		}
+		pw.println("im.setInterconnection(ic);");
+		pw.println("ic.printInterconnection(); // Debug");
+		String localSs = null;
+		for (SubSystemConfig sscfg : systemConfig.subSystems) {
+			if (sscfg.local) {
+				if (localSs != null) throw new RuntimeException("More than one local SubSystem found including " + localSs + " and " + sscfg.name);
+				localSs = sscfg.name;
+			}
+			for (ClockDomainConfig cdcfg : sscfg.clockDomains.values()) {
+				pw.println("im.addCDLocation(\"" + sscfg.name + "\", \"" + cdcfg.name + "\");");
+			}
+		}
+		pw.println("im.setLocalInterface(\"" + localSs + "\");");
+		pw.println();
+
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
 
@@ -514,11 +557,12 @@ public class UglyPrinter {
 			ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
 
 			pw.println("// Init for " + cdName);
-
+			// TODO Configure channels which connect via interfaces
 			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
 				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
 				String channelPartner = cdConfig.channelPartners.get(c.name);
+
 				pw.println(cdName+"." + c.name + "_in.set_partner(" + channelPartner + "_o);");
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
@@ -566,7 +610,7 @@ public class UglyPrinter {
 		pw.println("public static final String CDName = \"" + cdName + "\";");
 		pw.println("public static final int recopId = " + recopId + ";");
 		pw.println("private static java.util.Vector currentSignals;");
-		pw.println("private static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // TODO Configure InterfaceManager"); // TODO configure InterfaceManager
+		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
