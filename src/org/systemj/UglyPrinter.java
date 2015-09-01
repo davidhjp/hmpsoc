@@ -519,13 +519,13 @@ public class UglyPrinter {
 				Channel c = it.next();
 				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
 				String channelPartner = cdConfig.channelPartners.get(c.name);
-				pw.println("cdName"+"." + c.name + "_in.set_partner(" + channelPartner + "_o);");
+				pw.println(cdName+"." + c.name + "_in.set_partner(" + channelPartner + "_o);");
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
 				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
 				String channelPartner = cdConfig.channelPartners.get(c.name);
-				pw.println("cdName"+"." + c.name + "_o.set_partner(" + channelPartner + "_in);");
+				pw.println(cdName+"." + c.name + "_o.set_partner(" + channelPartner + "_in);");
 			}
 		}
 
