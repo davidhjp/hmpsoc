@@ -620,6 +620,7 @@ public class UglyPrinter {
 		pw.println("HastTable ht = null;");
 		pw.println("GenericSignalReceiver sigReceiver = null;");
 		pw.println("GenericSignalSender sigSender = null;");
+		pw.println();
 
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
@@ -636,6 +637,7 @@ public class UglyPrinter {
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigReceiver.configure(ht);");
 				pw.println(s.name + ".setServer(sigReceiver);");
+				pw.println();
 			}
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
@@ -654,6 +656,7 @@ public class UglyPrinter {
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigSender.configure(ht);");
 				pw.println(s.name + ".setClient(sigSender);");
+				pw.println();
 			}
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
