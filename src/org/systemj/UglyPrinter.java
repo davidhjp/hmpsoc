@@ -405,7 +405,6 @@ public class UglyPrinter {
 		pw.incrementIndent();
 
 		pw.println();
-		pw.println("/* TODO: Parse the LCF(.xml file) and configure RTS (See Ding's work) */"); // TODO
 		pw.println();
 		pw.println("init_all();");
 
@@ -431,7 +430,6 @@ public class UglyPrinter {
 		pw.println("while(true){");
 		pw.incrementIndent();
 
-		pw.println("/* TODO: Check ER reg from ReCOP and perform corresponding housekeeping operations */"); // TODO
 		pw.println("dpcr = getDatacall();");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
