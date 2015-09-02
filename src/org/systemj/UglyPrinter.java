@@ -543,6 +543,8 @@ public class UglyPrinter {
 		pw.println("im.setLocalInterface(\"" + localSs + "\");");
 		pw.println();
 
+		pw.println("Hashtable channels = new Hashtable();");
+
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
 
@@ -557,13 +559,22 @@ public class UglyPrinter {
 			ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
 
 			pw.println("// Init for " + cdName);
-			// TODO Configure channels which connect via interfaces
 			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
-				String channelPartner = cdConfig.channelPartners.get(c.name);
+				String channel = cdName+"."+c.name + "_in";
+				String channelPartner = cdConfig.channelPartners.get(c.name) + "_o";
 
-				pw.println(cdName+"." + c.name + "_in.set_partner(" + channelPartner + "_o);");
+				if (cdConfig.isChannelPartnerLocal(c.name)) {
+					pw.println(channel + ".Name = \"" + channel + "\";");
+					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+					pw.println(channel + ".setDistributed();");
+					pw.println(channel + ".setInterfaceManager(im);");
+					pw.println(channel + ".setInit();");
+					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+				} else {
+					pw.println(cdName+"." + c.name + "_in.set_partner(" + channelPartner + ");");
+				}
+				pw.println();
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
@@ -573,8 +584,13 @@ public class UglyPrinter {
 			}
 		}
 
-		// TODO Set up CAN/PCOMM interfaces
-		pw.println("// TODO Set up CAN/PCOMM interfaces");
+		pw.println();
+		pw.println("// InterfaceManager init");
+		pw.println("im.setChannelInstances(channels);");
+		pw.println("im.init();");
+		pw.println("im.printLocalInterface();");
+		pw.println("System.out.println(\"\\nConstructed clock-domain map : \");");
+		pw.println("System.out.println(im.getcdmap());");
 
 		pw.decrementIndent();
 		pw.println("}");
