@@ -317,9 +317,9 @@ public class UglyPrinter {
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
 				pw.println("; Wait for ISig vals from JOP");
-				pw.println("  LDR R0 #HOUSEKEEPING"+i+"@JOPLOCK ; Save state in housekeeping");
+				pw.println("  LDR R0 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
 				pw.println("  STR R0 $" + Long.toHexString(mp.getProgramCounterPointer()));
-				pw.println("HOUSEKEEPING"+i+"@JOPLOCK  LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
+				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
 				pw.println("  PRESENT R0 AJOIN"+cdi+"; Check for updated ISigs");
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 
