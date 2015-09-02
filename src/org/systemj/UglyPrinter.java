@@ -565,22 +565,35 @@ public class UglyPrinter {
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_o";
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
+					pw.println(channel + ".set_partner(" + channelPartner + ");");
+				} else {
 					pw.println(channel + ".Name = \"" + channel + "\";");
 					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 					pw.println(channel + ".setDistributed();");
 					pw.println(channel + ".setInterfaceManager(im);");
 					pw.println(channel + ".setInit();");
 					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
-				} else {
-					pw.println(cdName+"." + c.name + "_in.set_partner(" + channelPartner + ");");
 				}
 				pw.println();
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				if (!cdConfig.isChannelPartnerLocal(c.name)) continue;
-				String channelPartner = cdConfig.channelPartners.get(c.name);
-				pw.println(cdName+"." + c.name + "_o.set_partner(" + channelPartner + "_in);");
+
+				String channel = cdName+"."+c.name+"_o";
+				String channelPartner = cdConfig.channelPartners.get(c.name) + "_in";
+
+
+				if (cdConfig.isChannelPartnerLocal(c.name)) {
+					pw.println(channel + ".set_partner(" + channelPartner + ");");
+				} else {
+					pw.println(channel + ".Name = \"" + channel + "\";");
+					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+					pw.println(channel + ".setDistributed();");
+					pw.println(channel + ".setInterfaceManager(im);");
+					pw.println(channel + ".setInit();");
+					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+				}
+				pw.println();
 			}
 		}
 
