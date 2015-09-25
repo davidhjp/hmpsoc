@@ -1,9 +1,8 @@
 <System>
-<!-- LCF.xml for the TPJOP (real-time) deployment of the BottlingStation on an MCEP -->
 <Interconnection>
 </Interconnection>
 
-<SubSystem Name="HMPSoC" Local="true" Device="hmpsoc">
+<SubSystem Name="HMPSoC" Local="true">
 	<ClockDomain Name="CD1" Class="CD1" CD="CD1"> <!-- HubCD -->
 	</ClockDomain>
 </SubSystem>
