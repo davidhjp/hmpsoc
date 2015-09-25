@@ -270,8 +270,8 @@ public class UglyPrinter {
 				while(iter.hasNext()){
 					String swname = iter.next();
 					String label = swname.toLowerCase()+"@1";
-					pw.println("  LDR R0 #"+label);
-					pw.println("  STR R0 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
+					pw.println("  LDR R10 #"+label);
+					pw.println("  STR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
 				}
 			}
 			pw.println("  LDR R11 #0; Content of R11 is always ZERO");
@@ -288,44 +288,44 @@ public class UglyPrinter {
 				pw.println("  LDR R1 #$"+Long.toHexString(mp.getProgramCounterPointer())+"; Pointer to PC");
 				pw.println("  JMP DCHECK"+i+"; Jump to the last execution point");
 				pw.println("DCHECKCONT"+i+" ADD R1 R1 #1");
-				pw.println("  SUBV R0 R1 #"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
-				pw.println("  PRESENT R0 HOUSEKEEPING"+i);
-				pw.println("DCHECK"+i+" LDR R0 R1; Loading the PC");
-				pw.println("  PRESENT R0 DCHECKCONT"+i);
-				pw.println("  JMP R0");
+				pw.println("  SUBV R10 R1 #"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
+				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
+				pw.println("DCHECK"+i+" LDR R10 R1; Loading the PC");
+				pw.println("  PRESENT R10 DCHECKCONT"+i);
+				pw.println("  JMP R10");
 
 
 				pw.println("HOUSEKEEPING"+i+" CLFZ");
-				pw.println("  LER R0; Checking whether reactive-interface-JOP is ready");
-				pw.println("  PRESENT R0 HOUSEKEEPING"+i);
+				pw.println("  LER R10; Checking whether reactive-interface-JOP is ready");
+				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
-				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
-				pw.println("; Send OSig vals (R0) to JOP");
-				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
+				pw.println("; Send OSig vals (R10) to JOP");
+				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				//pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
-				pw.println("  LDR R0 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
+				pw.println("  LDR R10 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Reset ISig");
-				pw.println("  STR R0 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
-				pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()) + "; Backup OSig");
+				pw.println("  STR R10 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
+				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer()) + "; Backup OSig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer()) + "; Reset OSig");
-				pw.println("  STR R0 $"+Long.toHexString(mp.getPreOutputSignalPointer())+"; Updating PreOSig");
+				pw.println("  STR R10 $"+Long.toHexString(mp.getPreOutputSignalPointer())+"; Updating PreOSig");
 				for(long j=0; j<mp.getSizeInternalSignal(); j++){
-					pw.println("  LDR R0 $"+Long.toHexString((mp.getInternalSignalPointer()+j)));
+					pw.println("  LDR R10 $"+Long.toHexString((mp.getInternalSignalPointer()+j)));
 					pw.println("  STR R11 $"+Long.toHexString(mp.getInternalSignalPointer()+j));
-					pw.println("  STR R0 $"+Long.toHexString((mp.getPreInternalSignalPointer()+j))+"; Updating PreSig");
+					pw.println("  STR R10 $"+Long.toHexString((mp.getPreInternalSignalPointer()+j))+"; Updating PreSig");
 				}
 				for(long j=0; j<mp.getSizeProgramCounter(); j++){
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
 				pw.println("; Wait for ISig vals from JOP");
-				pw.println("  LDR R0 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
-				pw.println("  STR R0 $" + Long.toHexString(mp.getProgramCounterPointer()));
-				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R0 $"+Long.toHexString(mp.getDataLockPointer()));
-				pw.println("  PRESENT R0 AJOIN"+cdi+"; Check for updated ISigs");
+				pw.println("  LDR R10 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
+				pw.println("  STR R10 $" + Long.toHexString(mp.getProgramCounterPointer()));
+				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
+				pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 
-				pw.println("  STR R0 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
+				pw.println("  STR R10 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
 				pw.println("  CEOT; Clearing EOT register");
 

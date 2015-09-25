@@ -83,17 +83,17 @@ public class TestNode extends BaseGRCNode {
 			if(st == null)
 				throw new RuntimeException("Currently only single signal testing is allowed: "+this.expr);
 			
-			pw.println("  LDR R0 $"+Long.toHexString(c1)+"; loading "+st);
-			pw.println("  AND R0 R0 #$"+Long.toHexString(c2)+"; negating other signals to get "+this.expr);
-			pw.println("  PRESENT R0 "+lbl);
+			pw.println("  LDR R10 $"+Long.toHexString(c1)+"; loading "+st);
+			pw.println("  AND R10 R10 #$"+Long.toHexString(c2)+"; negating other signals to get "+this.expr);
+			pw.println("  PRESENT R10 "+lbl);
 		}
 		else{
 			long dl_ptr = mp.getDataLockPointer();
 			long ttnum = this.thnum - mp.getToplevelThnum();
 			dl_ptr += ttnum;
-			pw.println("  LDR R0 $"+Long.toHexString(dl_ptr));
-			pw.println("  AND R0 R0 #$0001 ; checking Java-if result");
-			pw.println("  PRESENT R0 "+lbl);
+			pw.println("  LDR R10 $"+Long.toHexString(dl_ptr));
+			pw.println("  AND R10 R10 #$0001 ; checking Java-if result");
+			pw.println("  PRESENT R10 "+lbl);
 		}
 		
 		if(this.isRev()){

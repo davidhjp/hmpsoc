@@ -181,17 +181,17 @@ public class ActionNode extends BaseGRCNode {
 				if(mp.osignalMap.containsKey(this.SigName)){
 					long c = mp.osignalMap.get(SigName);
 					long c2 = 1 << c;
-					pw.println("  LDR R0 $"+Long.toHexString(mp.getOutputSignalPointer()));
-					pw.println("  OR R0 R0 #$"+Long.toHexString(c2));
-					pw.println("  STR R0 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Emitted OSig "+SigName);
+					pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer()));
+					pw.println("  OR R10 R10 #$"+Long.toHexString(c2));
+					pw.println("  STR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Emitted OSig "+SigName);
 				}
 				else if(mp.signalMap.containsKey(this.SigName)){
 					int c = mp.signalMap.get(SigName);
 					long c1 = (c / mp.WORD_SIZE) + mp.getInternalSignalPointer();
 					long c2 = 1 << (c % mp.WORD_SIZE);
-					pw.println("  LDR R0 $"+Long.toHexString(c1));
-					pw.println("  OR R0 R0 #$"+Long.toHexString(c2));
-					pw.println("  STR R0 $"+Long.toHexString(c1)+"; Emitted IntSig "+SigName);
+					pw.println("  LDR R10 $"+Long.toHexString(c1));
+					pw.println("  OR R10 R10 #$"+Long.toHexString(c2));
+					pw.println("  STR R10 $"+Long.toHexString(c1)+"; Emitted IntSig "+SigName);
 				}
 				else throw new RuntimeException("Could not resolve the signal: "+SigName);
 
@@ -201,8 +201,8 @@ public class ActionNode extends BaseGRCNode {
 					int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 					dl_ptr += tnum;
 					pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-					pw.println("  LDR R0 #" + casenumber);
-					pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
+					pw.println("  LDR R10 #" + casenumber);
+					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
 				}
 				
 				break;
@@ -213,8 +213,8 @@ public class ActionNode extends BaseGRCNode {
 				int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 				dl_ptr += tnum;
 				pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-				pw.println("  LDR R0 #"+casenumber);
-				pw.println("  DCALLNB R0 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
+				pw.println("  LDR R10 #"+casenumber);
+				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
 				break;
 			case SIG_DECL:
 			case EXIT:

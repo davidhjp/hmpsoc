@@ -38,7 +38,7 @@ public class ForkNode extends BaseGRCNode {
 		for(BaseGRCNode parent : jn.getParents()){
 			TerminateNode tn = (TerminateNode) parent;
 			if(tn.getTermcode() == TerminateNode.MAX_TERM){
-				pw.println("  SUBV R1 R0 #$"+Integer.toHexString(TerminateNode.MAX_TERM));
+				pw.println("  SUBV R1 R10 #$"+Integer.toHexString(TerminateNode.MAX_TERM));
 				pw.println("  PRESENT R1 AJOIN"+cdi+"; Pausing cd");
 				break;
 			}
@@ -58,7 +58,7 @@ public class ForkNode extends BaseGRCNode {
 				tncode = 0;
 				label = "JOIN"+cc+"CD"+cdi+"CODE"+tncode;
 			}
-			pw.println("  SUBV R1 R0 #"+tncode);
+			pw.println("  SUBV R1 R10 #"+tncode);
 			pw.println("  PRESENT R1 "+label+"; joinchild");
 			lbs.put(tncode, label);
 		}
