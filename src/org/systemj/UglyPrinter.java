@@ -269,7 +269,7 @@ public class UglyPrinter {
 				Iterator<String> iter = mp.switchMap.keySet().iterator();
 				while(iter.hasNext()){
 					String swname = iter.next();
-					String label = swname.toLowerCase()+"@1";
+					String label = swname.toLowerCase()+"_1";
 					pw.println("  LDR R10 #"+label);
 					pw.println("  STR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
 				}
