@@ -3,7 +3,13 @@
 </Interconnection>
 
 <SubSystem Name="HMPSoC" Local="true">
-	<ClockDomain Name="CD1" Class="CD1" CD="CD1"> <!-- HubCD -->
+	<ClockDomain Name="CD01" Class="CD01" CD="CD01">
+		<iChannel Name="CH01" From="CD02.CH01" />
+
+		<iSignal Name="in" Class="systemj.signals.op.SignalGPIOIn" Index="1"/>
+		<oSignal Name="out" Class="systemj.signals.op.SignalGPIOOutTP" Index="1"/>
+	</ClockDomain>
+	<ClockDomain Name="CD02" Class="CD02" CD="CD02">
 	</ClockDomain>
 </SubSystem>
 

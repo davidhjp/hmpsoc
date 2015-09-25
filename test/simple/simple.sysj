@@ -1,3 +1,17 @@
-CD1	->{
-	System.out.println("Started"); // Note: System.out.println only works on JOP 0
+CD01(
+	input signal in;
+	output signal out;
+
+	input Object channel CH01;
+)->{
+	await(in);
+	emit out;
+
+	receive inChan;
+}
+
+CD02(
+	output Object channel CH01;
+)->{
+	send outChan("test");
 }

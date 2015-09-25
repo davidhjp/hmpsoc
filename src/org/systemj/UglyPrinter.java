@@ -324,6 +324,7 @@ public class UglyPrinter {
 				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
 				pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
+				pw.println("  AND R10 R10 #$0FFF ; Keep only ISigs");
 
 				pw.println("  STR R10 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
@@ -470,8 +471,7 @@ public class UglyPrinter {
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
 				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
 				"| ((dl[0] & 0xFFF) << 12) /*WritebackAddress*/ " +
-				"| 0x800 /*Valid Result Bit*/ " +
-				"| (isigs & 0x7FF); /*Input Signals*/");
+				"| (isigs & 0xFFF); /*Input Signals*/");
 		pw.println("Native.setDatacallResult(result);");
 
 		pw.decrementIndent();
@@ -1010,9 +1010,8 @@ public class UglyPrinter {
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
 				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
 				"| ((dl[0] & 0xFFF) << 12) /*WritebackAddress*/ " +
-				"| 0x800 /*Valid Result Bit*/ " +
-				"| (status & 0x7FF); /*Status*/");
-		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
+				"| (status & 0xFFF); /*Status*/");
+		// NOTE Results = 1|ReCOP_id(7)|WritebackAddress(12)|Result(12)
 		pw.println("Native.setDatacallResult(result);");
 		pw.decrementIndent();
 		pw.println("}");
