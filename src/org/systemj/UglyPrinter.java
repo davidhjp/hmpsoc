@@ -69,14 +69,16 @@ public class UglyPrinter {
 	}
 
 	static class Java {
-		public static final String CLASS_SIGNAL = "systemj.lib.emb.Signal";
-		public static final String CLASS_I_CHANNEL = "systemj.lib.emb.input_Channel";
-		public static final String CLASS_O_CHANNEL = "systemj.lib.emb.output_Channel";
+		public static final String CLASS_SIGNAL = "systemj.lib.Signal";//"systemj.lib.emb.Signal";
+		public static final String CLASS_I_CHANNEL = "systemj.lib.input_Channel";//"systemj.lib.emb.input_Channel";
+		public static final String CLASS_O_CHANNEL = "systemj.lib.output_Channel";//"systemj.lib.emb.output_Channel";
 		public static final String CLASS_INTERFACE_MANAGER = "systemj.common.InterfaceManager";
 		public static final String CLASS_INTERCONNECTION = "systemj.common.Interconnection";
 		public static final String CLASS_INTERCONNECTION_LINK = "systemj.common.Interconnection.Link";
 		public static final String CLASS_GENERIC_INTERFACE = "systemj.interfaces.GenericInterface";
-	
+		public static final String CLASS_GENERIC_SIGNAL_RECIEVER = "systemj.interfaces.GenericSignalReciever";
+		public static final String CLASS_GENERIC_SIGNAL_SENDER = "systemj.interfaces.GenericSignalSender";
+
 	}
 
 	public void uglyprint() throws FileNotFoundException {
@@ -394,10 +396,13 @@ public class UglyPrinter {
 	private void printJavaMain(File dir) throws FileNotFoundException {
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain.java")));
 		pw.println("package "+target+";");
+		pw.println();
 		pw.println("import com.jopdesign.io.IOFactory;");
 		pw.println("import com.jopdesign.io.SysDevice;");
 		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println("import com.jopdesign.sys.Native;");
+		pw.println();
+		pw.println("import java.util.Hashtable;");
 		pw.println();
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
@@ -409,7 +414,6 @@ public class UglyPrinter {
 		pw.println("init_all();");
 
 		pw.println("SysDevice sys = IOFactory.getFactory().getSysDevice();");
-		pw.println("// TODO Check it is okay to never finish in main"); // TODO Check it is okay to never finish in main
 		pw.println("for(int i=0; i < sys.nrCpu-1; i++){");
 		pw.incrementIndent();
 		pw.println("Runnable r = new JOPThread();");
@@ -424,13 +428,13 @@ public class UglyPrinter {
 		pw.println("int osigs = 0;");
 		pw.println("int isigs = 0;");
 		pw.println("int[] dl = new int[]{0};");
-		pw.println("int recopId = 0");
+		pw.println("int recopId = 0;");
 		pw.println("int result = 0;");
 		pw.println();
 		pw.println("while(true){");
 		pw.incrementIndent();
 
-		pw.println("dpcr = getDatacall();");
+		pw.println("dpcr = Native.getDatacall();");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
 		pw.println("osigs = dpcr & 0xFFFF; // dpcr(15 downto 0)");
@@ -463,13 +467,12 @@ public class UglyPrinter {
 		pw.decrementIndent();
 		pw.println("}");
 
-		pw.println("result = 0x80000000 | ((recopId & 0x7) << 28) | ((dl[0] & 0xFFF) << 16) | 0x8000 | (isigs & 0x7FFF)");
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
-				"| ((recopId & 0x7) << 28) /*RecopId*/ " +
-				"| ((dl[0] & 0xFFF) << 16) /*WritebackAddress*/ " +
-				"| 0x8000 /*Valid Result Bit*/ " +
-				"| (isigs & 0x7FFF); /*Input Signals*/");
-		pw.println("setDatacallResult(result);");
+				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
+				"| ((dl[0] & 0xFFF) << 12) /*WritebackAddress*/ " +
+				"| 0x800 /*Valid Result Bit*/ " +
+				"| (isigs & 0x7FF); /*Input Signals*/");
+		pw.println("Native.setDatacallResult(result);");
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -630,6 +633,9 @@ public class UglyPrinter {
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
 
 		pw.println("package "+target+";\n");
+		pw.println();
+		pw.println("import java.util.Hashtable;");
+		pw.println();
 		pw.println("public class "+cdName+"{");
 
 		pw.incrementIndent();
@@ -688,9 +694,10 @@ public class UglyPrinter {
 		pw.println("public static void init() {");
 		pw.incrementIndent();
 
-		pw.println("HastTable ht = null;");
-		pw.println("GenericSignalReceiver sigReceiver = null;");
-		pw.println("GenericSignalSender sigSender = null;");
+		pw.println("Hashtable ht = null;");
+		pw.println(Java.CLASS_GENERIC_SIGNAL_RECIEVER + " sigReceiver = null;");
+		pw.println(Java.CLASS_GENERIC_SIGNAL_SENDER + " sigSender = null;");
+		pw.println("currentSignals = new java.util.Vector();");
 		pw.println();
 
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
@@ -703,7 +710,7 @@ public class UglyPrinter {
 
 				if (sigCfg == null) throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
 				pw.println("sigReceiver = new" + sigCfg.clazz + "();");
-				pw.println("ht = new HashTable()");
+				pw.println("ht = new Hashtable()");
 				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigReceiver.configure(ht);");
@@ -722,7 +729,7 @@ public class UglyPrinter {
 
 				if (sigCfg == null) throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
 				pw.println("sigSender = new" + sigCfg.clazz + "();");
-				pw.println("ht = new HashTable()");
+				pw.println("ht = new Hashtable()");
 				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigSender.configure(ht);");
@@ -767,14 +774,14 @@ public class UglyPrinter {
 		pw.println("for (int i = 0; i < currentSignals.size(); i++) {");
 		pw.incrementIndent();
 
-		pw.println(Java.CLASS_SIGNAL + "sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
+		pw.println(Java.CLASS_SIGNAL + " sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
 		pw.println("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();");
 		pw.println("sig.setpreval(sig.getValue());");
 		pw.println("sig.sethook();");
 
 		pw.decrementIndent();
 		pw.println("}");
-		pw.println("currentSignals.removeAllElements()");
+		pw.println("currentSignals.removeAllElements();");
 		pw.println();
 		// START - GetHook for all input signals
 		pw.println("// Update signals");
@@ -838,7 +845,7 @@ public class UglyPrinter {
 		//List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
 		//List<StringBuilder> llsb = new ArrayList<StringBuilder>();
 
-		pw.println("public static boolean MethodCall_0(int casen) {");
+		pw.println("public static boolean MethodCall_0(int casen, int[] dl) {");
 		pw.incrementIndent();
 		pw.println("switch (casen) {");
 		pw.incrementIndent();
@@ -928,6 +935,7 @@ public class UglyPrinter {
 		pw.decrementIndent();
 		pw.println("}"); // Switch end
 		pw.decrementIndent();
+		pw.println("return false;");
 		pw.println("}"); // Method end
 		pw.println();
 
@@ -969,7 +977,7 @@ public class UglyPrinter {
 		pw.println("/* Retrieve cd and case numbers from ReCOP and assign them to 'cd' and 'case', respectively */");
 		pw.println();
 
-		pw.println("dpcr = getDatacall(); // Note getDatacall() is native method from Bjoern's project, need to add import");
+		pw.println("dpcr = Native.getDatacall(); // Note getDatacall() is native method from Bjoern's project, need to add import");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
 		pw.println("casen = dpcr & 0xFFFF; // dpcr(15 downto 0)");
@@ -989,7 +997,7 @@ public class UglyPrinter {
 
 			pw.println("case "+i+":");
 			pw.incrementIndent();
-			pw.println("status = "+cdName+".MethodCall_0(casen, dl);");
+			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 1 : 0;");
 			pw.println("recopId = "+cdName+".recopId; // Set recop id");
 			pw.println("break;");
 			pw.decrementIndent();
@@ -1000,12 +1008,12 @@ public class UglyPrinter {
 		pw.println("}");
 		pw.println();
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
-				"| ((recopId & 0x7) << 28) /*RecopId*/ " +
-				"| ((dl[0] & 0xFFF) << 16) /*WritebackAddress*/ " +
-				"| 0x8000 /*Valid Result Bit*/ " +
-				"| (status & 0x7FFF); /*Status*/");
+				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
+				"| ((dl[0] & 0xFFF) << 12) /*WritebackAddress*/ " +
+				"| 0x800 /*Valid Result Bit*/ " +
+				"| (status & 0x7FF); /*Status*/");
 		// NOTE Results = 1|ReCOP_id(3)|WritebackAddress(12)|Result(16)
-		pw.println("setDatacallResult(result);");
+		pw.println("Native.setDatacallResult(result);");
 		pw.decrementIndent();
 		pw.println("}");
 		pw.decrementIndent();
