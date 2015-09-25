@@ -7,11 +7,11 @@ CD01(
 	await(in);
 	emit out;
 
-	receive inChan;
+	receive CH01;
 }
 
 CD02(
 	output Object channel CH01;
 )->{
-	send outChan("test");
+	send CH01("test");
 }

@@ -47,7 +47,6 @@ public class SwitchNode extends BaseGRCNode {
 		
 		for(int i=0; i<children.size(); i++){
 			pw.print(Statename.toLowerCase()+"_"+i);
-			System.out.println(getChild(i).getClass().getName());
 			this.getChild(i).weirdPrint(pw, mp, termcode, cdi);
 		}
 	}

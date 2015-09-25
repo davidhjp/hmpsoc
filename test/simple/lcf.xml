@@ -10,6 +10,7 @@
 		<oSignal Name="out" Class="systemj.signals.op.SignalGPIOOutTP" Index="1"/>
 	</ClockDomain>
 	<ClockDomain Name="CD02" Class="CD02" CD="CD02">
+		<oChannel Name="CH01" To="CD01.CH01" />
 	</ClockDomain>
 </SubSystem>
 
