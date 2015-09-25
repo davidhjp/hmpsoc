@@ -219,7 +219,7 @@ public class UglyPrinter {
 					mp.setSwitchNodePointer(c);
 					Set<String> sws = getSwitchSet(bcn);
 					Iterator<String> iii = sws.iterator();
-					counter = 0;
+					counter = (int) mp.getSwitchNodePointer();
 					while(iii.hasNext()){
 						mp.switchMap.put(iii.next(), counter++);
 					}
