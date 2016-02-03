@@ -1,13 +1,11 @@
-<System>
-<Interconnection>
-</Interconnection>
+<System xmlns="http://systemjtechnology.com">
 
 <SubSystem Name="HMPSoC" Local="true">
 	<ClockDomain Name="CD01" Class="CD01" CD="CD01">
 		<iChannel Name="CH01" From="CD02.CH01" />
 
-		<iSignal Name="in" Class="systemj.signals.op.SignalGPIOIn" Index="1"/>
-		<oSignal Name="out" Class="systemj.signals.op.SignalGPIOOutTP" Index="1"/>
+		<iSignal Name="in" Class="com.systemjx.jop.SignalSW" Index="1"/>
+		<oSignal Name="out" Class="com.systemjx.jop.SignalLED" Index="1"/>
 	</ClockDomain>
 	<ClockDomain Name="CD02" Class="CD02" CD="CD02">
 		<oChannel Name="CH01" To="CD01.CH01" />

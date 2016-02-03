@@ -4,10 +4,13 @@ CD01(
 
 	input Object channel CH01;
 )->{
+	System.out.println("started systemj");
 	await(in);
 	emit out;
 
 	receive CH01;
+	pause;
+	System.out.println("received + "+#CH01);
 }
 
 CD02(

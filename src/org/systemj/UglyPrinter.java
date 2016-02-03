@@ -69,15 +69,16 @@ public class UglyPrinter {
 	}
 
 	static class Java {
-		public static final String CLASS_SIGNAL = "systemj.lib.Signal";//"systemj.lib.emb.Signal";
-		public static final String CLASS_I_CHANNEL = "systemj.lib.input_Channel";//"systemj.lib.emb.input_Channel";
-		public static final String CLASS_O_CHANNEL = "systemj.lib.output_Channel";//"systemj.lib.emb.output_Channel";
-		public static final String CLASS_INTERFACE_MANAGER = "systemj.common.InterfaceManager";
-		public static final String CLASS_INTERCONNECTION = "systemj.common.Interconnection";
-		public static final String CLASS_INTERCONNECTION_LINK = "systemj.common.Interconnection.Link";
-		public static final String CLASS_GENERIC_INTERFACE = "systemj.interfaces.GenericInterface";
-		public static final String CLASS_GENERIC_SIGNAL_RECIEVER = "systemj.interfaces.GenericSignalReciever";
-		public static final String CLASS_GENERIC_SIGNAL_SENDER = "systemj.interfaces.GenericSignalSender";
+		public static final String CLASS_SIGNAL = "com.systemj.Signal";//"systemj.lib.emb.Signal";
+		public static final String CLASS_I_CHANNEL = "com.systemj.input_Channel";//"systemj.lib.emb.input_Channel";
+		public static final String CLASS_O_CHANNEL = "com.systemj.output_Channel";//"systemj.lib.emb.output_Channel";
+		public static final String CLASS_INTERFACE_MANAGER = "com.systemj.InterfaceManager";
+		public static final String CLASS_INTERCONNECTION = "com.systemj.Interconnection";
+		public static final String CLASS_INTERCONNECTION_LINK = "com.systemj.Interconnection.Link";
+		public static final String CLASS_GENERIC_INTERFACE = "com.systemj.ipc.GenericInterface";
+		public static final String CLASS_GENERIC_SIGNAL_RECIEVER = "com.systemj.ipc.GenericSignalReceiver";
+		public static final String CLASS_GENERIC_SIGNAL_SENDER = "com.systemj.ipc.GenericSignalSender";
+		public static final String CLASS_GENERIC_CHANNEL = "com.systemj.GenericChannel";
 
 	}
 
@@ -505,46 +506,46 @@ public class UglyPrinter {
 
 		pw.println();
 		pw.println("// Interface init");
-		pw.println(Java.CLASS_INTERFACE_MANAGER + " im = new " + Java.CLASS_INTERFACE_MANAGER + "();");
-		pw.println(Java.CLASS_INTERCONNECTION + " ic = new " + Java.CLASS_INTERCONNECTION + "();");
-		pw.println(Java.CLASS_INTERCONNECTION_LINK + " link = null;");
+//		pw.println(Java.CLASS_INTERFACE_MANAGER + " im = new " + Java.CLASS_INTERFACE_MANAGER + "();");
+//		pw.println(Java.CLASS_INTERCONNECTION + " ic = new " + Java.CLASS_INTERCONNECTION + "();");
+//		pw.println(Java.CLASS_INTERCONNECTION_LINK + " link = null;");
 		pw.println(Java.CLASS_GENERIC_INTERFACE + " gif = null;");
 		pw.println("Hashtable ht = null;");
 		pw.println();
 
-		for (LinkConfig link : systemConfig.links) {
-			pw.println("// Create link");
-			pw.println("link = new " + Java.CLASS_INTERCONNECTION_LINK + "();");
-			pw.println();
-			for (InterfaceConfig ifCfg : link.interfaces) {
-				pw.println("gif = new " + ifCfg.interfaceClass + "();");
-				pw.println("ht = new Hashtable();");
-				for (Map.Entry<String, String> e : ifCfg.cfg.entrySet())
-					pw.println("ht.put(\"" + e.getKey() + "\", \"" + e.getValue() + "\");");
-				pw.println("gif.configure(ht);");
-				pw.println("link.addInterface(\"" + ifCfg.subSystem + "\", gif);");
-				pw.println();
-			}
-			pw.println("ic.addLink(link, false);");
-			pw.println();
-			pw.println();
-		}
-		pw.println("im.setInterconnection(ic);");
-		pw.println("ic.printInterconnection(); // Debug");
-		String localSs = null;
-		for (SubSystemConfig sscfg : systemConfig.subSystems) {
-			if (sscfg.local) {
-				if (localSs != null) throw new RuntimeException("More than one local SubSystem found including " + localSs + " and " + sscfg.name);
-				localSs = sscfg.name;
-			}
-			for (ClockDomainConfig cdcfg : sscfg.clockDomains.values()) {
-				pw.println("im.addCDLocation(\"" + sscfg.name + "\", \"" + cdcfg.name + "\");");
-			}
-		}
-		pw.println("im.setLocalInterface(\"" + localSs + "\");");
-		pw.println();
-
-		pw.println("Hashtable channels = new Hashtable();");
+//		for (LinkConfig link : systemConfig.links) {
+//			pw.println("// Create link");
+//			pw.println("link = new " + Java.CLASS_INTERCONNECTION_LINK + "();");
+//			pw.println();
+//			for (InterfaceConfig ifCfg : link.interfaces) {
+//				pw.println("gif = new " + ifCfg.interfaceClass + "();");
+//				pw.println("ht = new Hashtable();");
+//				for (Map.Entry<String, String> e : ifCfg.cfg.entrySet())
+//					pw.println("ht.put(\"" + e.getKey() + "\", \"" + e.getValue() + "\");");
+//				pw.println("gif.configure(ht);");
+//				pw.println("link.addInterface(\"" + ifCfg.subSystem + "\", gif);");
+//				pw.println();
+//			}
+//			pw.println("ic.addLink(link, false);");
+//			pw.println();
+//			pw.println();
+//		}
+//		pw.println("im.setInterconnection(ic);");
+//		pw.println("ic.printInterconnection(); // Debug");
+//		String localSs = null;
+//		for (SubSystemConfig sscfg : systemConfig.subSystems) {
+//			if (sscfg.local) {
+//				if (localSs != null) throw new RuntimeException("More than one local SubSystem found including " + localSs + " and " + sscfg.name);
+//				localSs = sscfg.name;
+//			}
+//			for (ClockDomainConfig cdcfg : sscfg.clockDomains.values()) {
+//				pw.println("im.addCDLocation(\"" + sscfg.name + "\", \"" + cdcfg.name + "\");");
+//			}
+//		}
+//		pw.println("im.setLocalInterface(\"" + localSs + "\");");
+//		pw.println();
+//
+//		pw.println("Hashtable channels = new Hashtable();");
 
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
@@ -564,16 +565,16 @@ public class UglyPrinter {
 				Channel c = it.next();
 				String channel = cdName+"."+c.name + "_in";
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_o";
-
+				pw.println(channel + ".Name = \"" + channel + "\";");
+				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+				
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					pw.println(channel + ".set_partner(" + channelPartner + ");");
+					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channel+", "+ channelPartner + ");");
 				} else {
-					pw.println(channel + ".Name = \"" + channel + "\";");
-					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
-					pw.println(channel + ".setDistributed();");
-					pw.println(channel + ".setInterfaceManager(im);");
-					pw.println(channel + ".setInit();");
-					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+//					pw.println(channel + ".setDistributed();");
+//					pw.println(channel + ".setInterfaceManager(im);");
+//					pw.println(channel + ".setInit();");
+//					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
 				}
 				pw.println();
 			}
@@ -582,29 +583,28 @@ public class UglyPrinter {
 
 				String channel = cdName+"."+c.name+"_o";
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_in";
-
-
+				pw.println(channel + ".Name = \"" + channel + "\";");
+				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+				
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					pw.println(channel + ".set_partner(" + channelPartner + ");");
+					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channelPartner+", "+ channel + ");");
 				} else {
-					pw.println(channel + ".Name = \"" + channel + "\";");
-					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
-					pw.println(channel + ".setDistributed();");
-					pw.println(channel + ".setInterfaceManager(im);");
-					pw.println(channel + ".setInit();");
-					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+//					pw.println(channel + ".setDistributed();");
+//					pw.println(channel + ".setInterfaceManager(im);");
+//					pw.println(channel + ".setInit();");
+//					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
 				}
 				pw.println();
 			}
 		}
 
-		pw.println();
-		pw.println("// InterfaceManager init");
-		pw.println("im.setChannelInstances(channels);");
-		pw.println("im.init();");
-		pw.println("im.printLocalInterface();");
-		pw.println("System.out.println(\"\\nConstructed clock-domain map : \");");
-		pw.println("System.out.println(im.getcdmap());");
+//		pw.println();
+//		pw.println("// InterfaceManager init");
+//		pw.println("im.setChannelInstances(channels);");
+//		pw.println("im.init();");
+//		pw.println("im.printLocalInterface();");
+//		pw.println("System.out.println(\"\\nConstructed clock-domain map : \");");
+//		pw.println("System.out.println(im.getcdmap());");
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -643,7 +643,7 @@ public class UglyPrinter {
 		pw.println("public static final String CDName = \"" + cdName + "\";");
 		pw.println("public static final int recopId = " + recopId + ";");
 		pw.println("private static java.util.Vector currentSignals;");
-		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
+//		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
 			while(iter.hasNext()){
@@ -708,9 +708,10 @@ public class UglyPrinter {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
 				SignalConfig sigCfg = cdCfg.isignals.get(s.name);
 
-				if (sigCfg == null) throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
-				pw.println("sigReceiver = new" + sigCfg.clazz + "();");
-				pw.println("ht = new Hashtable()");
+				if (sigCfg == null)
+					throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
+				pw.println("sigReceiver = new " + sigCfg.clazz + "();");
+				pw.println("ht = new Hashtable();");
 				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigReceiver.configure(ht);");
@@ -722,14 +723,14 @@ public class UglyPrinter {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 
-
 			if (systemConfig != null) {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
 				SignalConfig sigCfg = cdCfg.osignals.get(s.name);
 
-				if (sigCfg == null) throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
-				pw.println("sigSender = new" + sigCfg.clazz + "();");
-				pw.println("ht = new Hashtable()");
+				if (sigCfg == null)
+					throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
+				pw.println("sigSender = new " + sigCfg.clazz + "();");
+				pw.println("ht = new Hashtable();");
 				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigSender.configure(ht);");
@@ -787,36 +788,36 @@ public class UglyPrinter {
 		pw.println("// Update signals");
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + ".gethook()");
+			pw.println(s.name + ".gethook();");
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + ".sethook()");
+			pw.println(s.name + ".sethook();");
 		}
 		pw.println();
 		// START - Update channels
 		pw.println("// Update Channels");
+//		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+//			Channel c = it.next();
+//			pw.println(c.name + ".update_r_s();");
+//		}
+//		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+//			Channel c = it.next();
+//			pw.println(c.name + ".update_w_r();");
+//		}
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + ".update_r_s();");
+			pw.println(c.name + "_in.gethook();");
+			pw.println(c.name + "_in.sethook();");
 		}
 		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + ".update_w_r();");
+			pw.println(c.name + "_o.gethook();");
+			pw.println(c.name + "_o.sethook();");
 		}
-		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
-			Channel c = it.next();
-			pw.println(c.name + ".gethook();");
-			pw.println(c.name + ".sethook();");
-		}
-		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
-			Channel c = it.next();
-			pw.println(c.name + ".gethook();");
-			pw.println(c.name + ".sethook();");
-		}
-		pw.println();
-		pw.println("// Run interface manager");
-		pw.println("if (im != null) im.run();");
+//		pw.println();
+//		pw.println("// Run interface manager");
+//		pw.println("if (im != null) im.run();");
 
 		pw.println();
 
@@ -826,7 +827,7 @@ public class UglyPrinter {
 		if (!isigIt.hasNext()) pw.println("// Note: No input signals for " + cdName);
 		for (int i = 0; isigIt.hasNext(); i++) {
 			Signal s = isigIt.next();
-			pw.println("if (" + s.name + ".getStatus()) isigs |= " + (1 << i));
+			pw.println("if (" + s.name + ".getStatus()) isigs |= " + (1 << i)+";");
 		}
 		pw.println();
 		pw.println("// Write to isigs memory address");

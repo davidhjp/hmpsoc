@@ -15,6 +15,7 @@ import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
+import org.jdom2.Namespace;
 import org.jdom2.filter.ElementFilter;
 import org.jdom2.input.SAXBuilder;
 import org.systemj.config.ClockDomainConfig;
@@ -44,6 +45,7 @@ public class CompilationUnit {
 	private Document doc;
 	private Document configDoc;
 	private boolean isis = false;
+	public static final Namespace NAME_SPACE = Namespace.getNamespace("http://systemjtechnology.com");
 	
 	private final static List<String> nodenames = Arrays.asList(new String[]{
 			BaseGRCNode.ACTION_NODE,
@@ -149,37 +151,39 @@ public class CompilationUnit {
 		List<LinkConfig> links = new ArrayList<>();
 
 		// Load links
-		for (Object l : systemConfigRoot.getChild("Interconnection").getChildren("Link")) {
-			Element link = (Element) l;
-			String type = link.getAttributeValue("Type");
+		if (systemConfigRoot.getChild("Interconnection", NAME_SPACE) != null) {
+			for (Object l : systemConfigRoot.getChild("Interconnection", NAME_SPACE).getChildren("Link")) {
+				Element link = (Element) l;
+				String type = link.getAttributeValue("Type");
 
-			// Load interfaces
-			List<InterfaceConfig> interfaces = new ArrayList<>();
+				// Load interfaces
+				List<InterfaceConfig> interfaces = new ArrayList<>();
 
-			for (Object i : link.getChildren("Interface")) {
-				Element intf = (Element) i;
-				String subsystem = intf.getAttributeValue("SubSystem");
-				String interfaceClass = intf.getAttributeValue("Class");
-				Map<String, String> cfg = new HashMap<>();
-				for (Attribute attribute : (List<Attribute>) intf.getAttributes()) {
-					switch (attribute.getName()) {
-						case "SubSystem":case "Class": break;
+				for (Object i : link.getChildren("Interface")) {
+					Element intf = (Element) i;
+					String subsystem = intf.getAttributeValue("SubSystem");
+					String interfaceClass = intf.getAttributeValue("Class");
+					Map<String, String> cfg = new HashMap<>();
+					for (Attribute attribute : (List<Attribute>) intf.getAttributes()) {
+						switch (attribute.getName()) {
+						case "SubSystem":
+						case "Class":
+							break;
 						default:
 							cfg.put(attribute.getName(), attribute.getValue());
+						}
 					}
+					interfaces.add(new InterfaceConfig(subsystem, interfaceClass, cfg));
 				}
-				interfaces.add(new InterfaceConfig(subsystem, interfaceClass, cfg));
-			}
 
-			links.add(new LinkConfig(type, interfaces));
+				links.add(new LinkConfig(type, interfaces));
+			}
 		}
 
 		// Load SubSystems
 		List<SubSystemConfig> subsystems = new ArrayList<>();
 
-		for (Object ss : systemConfigRoot.getChildren("SubSystem")) {
-			Element subsystem = (Element) ss;
-
+		for (Element subsystem : systemConfigRoot.getChildren("SubSystem", NAME_SPACE)) {
 			String name = subsystem.getAttributeValue("Name");
 			String localStr = subsystem.getAttributeValue("Local");
 			boolean local = localStr != null ? Boolean.valueOf(localStr) : false;
@@ -188,7 +192,7 @@ public class CompilationUnit {
 			// Load ClockDomains
 			List<ClockDomainConfig> clockDomains = new ArrayList<>();
 
-			for (Object cd : subsystem.getChildren("ClockDomain")) {
+			for (Object cd : subsystem.getChildren("ClockDomain", NAME_SPACE)) {
 				Element clockDomain = (Element) cd;
 
 				String cdname = clockDomain.getAttributeValue("Name");
@@ -200,7 +204,8 @@ public class CompilationUnit {
 
 				for (Object e : clockDomain.getChildren()) {
 					// If the clock domain is not local we don't care about contents of the clock domain
-					if (!local) break;
+					if (!local)
+						break;
 
 					Element element = (Element) e;
 					String oname = element.getAttributeValue("Name");
