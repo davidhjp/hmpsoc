@@ -200,7 +200,7 @@ public class ActionNode extends BaseGRCNode {
 					long tnum = this.getThnum() - mp.getToplevelThnum();
 					int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 					dl_ptr += tnum;
-					pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
+					pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 					pw.println("  LDR R10 #" + casenumber);
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
 				}
@@ -212,7 +212,7 @@ public class ActionNode extends BaseGRCNode {
 				long tnum = this.getThnum() - mp.getToplevelThnum();
 				int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
 				dl_ptr += tnum;
-				pw.println("  LDR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
+				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 				pw.println("  LDR R10 #"+casenumber);
 				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
 				break;

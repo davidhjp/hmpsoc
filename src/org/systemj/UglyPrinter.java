@@ -998,7 +998,7 @@ public class UglyPrinter {
 
 			pw.println("case "+i+":");
 			pw.incrementIndent();
-			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 1 : 0;");
+			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 3 : 2;");
 			pw.println("recopId = "+cdName+".recopId; // Set recop id");
 			pw.println("break;");
 			pw.decrementIndent();

@@ -18,7 +18,7 @@ public class TestLock extends BaseGRCNode {
 		pw.println("  LDR R10 $"+Long.toHexString(dl_ptr)+"; Loading datalock");
 		String label = "DCPENDING"+(mp.cc++)+"CD"+cdi;
 		pw.println("  PRESENT R10 "+label+"; checking result");
-		pw.println("  LDR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
+		pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
 		this.getChild(0).weirdPrint(pw, mp, termcode, cdi);
 		pw.print(label);
 		this.getChild(1).weirdPrint(pw, mp, termcode, cdi);
