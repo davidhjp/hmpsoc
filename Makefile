@@ -22,7 +22,8 @@ endif
 all: bin
 
 compileagrc:
-	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
+	sjc --ir $(T)
+	# java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
 
 compile:
 	make compileagrc -s T=$(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM) $(hmpsoc_cfg)
@@ -39,7 +40,7 @@ jar: bin
 	fi
 	jar -cvfm hmpsoc.jar manifest/manifest -C bin .
 	mv hmpsoc.jar jar
-	cp lib/jdom.jar lib/commons-cli-1.3.jar lib/gson-2.3.1.jar jar
+	cp lib/jdom*.jar lib/commons-cli-1.3.jar lib/gson-2.3.1.jar jar
 	echo -e '#!/bin/bash\njava -jar $$(dirname $$0)/hmpsoc.jar $$@'> jar/hmpsoc
 	chmod u+x jar/hmpsoc
 
