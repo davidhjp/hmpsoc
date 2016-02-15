@@ -420,7 +420,7 @@ public class UglyPrinter {
 		pw.incrementIndent();
 		pw.println("synchronized(RTSMain.class){");
 		pw.incrementIndent();
-		pw.println("sb.append(b);");
+		pw.println("sb.append((char)b);");
 		pw.decrementIndent();
 		pw.println("}");
 		pw.decrementIndent();
@@ -434,7 +434,7 @@ public class UglyPrinter {
 		pw.incrementIndent();
 		pw.println("synchronized(RTSMain.class) {");
 		pw.incrementIndent();
-		pw.println("System.out.println(sb.toString());");
+		pw.println("System.out.print(sb.toString());");
 		pw.println("sb.delete(0, sb.length());");
 		pw.decrementIndent();
 		pw.println("}");
@@ -896,7 +896,7 @@ public class UglyPrinter {
 		pw.println();
 
 		pw.println("// Get input signal statues");
-		pw.println("int isigs = 0;");
+		pw.println("int isigs = 0x800;");
 		Iterator<Signal> isigIt = d.getInputSignalIterator();
 		if (!isigIt.hasNext()) pw.println("// Note: No input signals for " + cdName);
 		for (int i = 0; isigIt.hasNext(); i++) {
