@@ -152,14 +152,14 @@ public class CompilationUnit {
 
 		// Load links
 		if (systemConfigRoot.getChild("Interconnection", NAME_SPACE) != null) {
-			for (Object l : systemConfigRoot.getChild("Interconnection", NAME_SPACE).getChildren("Link")) {
+			for (Object l : systemConfigRoot.getChild("Interconnection", NAME_SPACE).getChildren("Link", NAME_SPACE)) {
 				Element link = (Element) l;
 				String type = link.getAttributeValue("Type");
 
 				// Load interfaces
 				List<InterfaceConfig> interfaces = new ArrayList<>();
 
-				for (Object i : link.getChildren("Interface")) {
+				for (Object i : link.getChildren("Interface", NAME_SPACE)) {
 					Element intf = (Element) i;
 					String subsystem = intf.getAttributeValue("SubSystem");
 					String interfaceClass = intf.getAttributeValue("Class");
@@ -204,8 +204,8 @@ public class CompilationUnit {
 
 				for (Object e : clockDomain.getChildren()) {
 					// If the clock domain is not local we don't care about contents of the clock domain
-					if (!local)
-						break;
+//					if (!local)
+//						break;
 
 					Element element = (Element) e;
 					String oname = element.getAttributeValue("Name");

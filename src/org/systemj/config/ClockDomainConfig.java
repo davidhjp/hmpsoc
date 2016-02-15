@@ -45,10 +45,6 @@ public class ClockDomainConfig {
         String[] channelPartnerInfo = channelPartner.split("\\.");
         String cdName = channelPartnerInfo[0];
 
-        try {
-            return systemConfig.isLocalClockDomain(cdName);
-        } catch (RuntimeException e) {
-            throw new RuntimeException("The channel " + name + " in ClockDomain " + this.name + " has a partner with an non-existing ClockDomain " + cdName, e);
-        }
+        return systemConfig.isLocalClockDomain(cdName);
     }
 }

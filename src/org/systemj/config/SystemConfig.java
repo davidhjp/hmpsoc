@@ -32,6 +32,6 @@ public class SystemConfig {
             ClockDomainConfig cd = ss.clockDomains.get(cdName);
             if (cd != null) return ss.local;
         }
-        throw new RuntimeException("No configuration for ClockDomain " + cdName);
+        return false;
     }
 }

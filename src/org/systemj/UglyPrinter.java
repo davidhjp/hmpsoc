@@ -569,13 +569,26 @@ public class UglyPrinter {
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 				
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channel+", "+ channelPartner + ");");
+					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 				} else {
-//					pw.println(channel + ".setDistributed();");
-//					pw.println(channel + ".setInterfaceManager(im);");
-//					pw.println(channel + ".setInit();");
-//					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+					systemConfig.subSystems.stream().forEach(SSC -> {
+						SSC.clockDomains.forEach((K, V) -> {
+							if (V.isChannelPartnerLocal(c.name)) {
+								System.out.println(systemConfig.links.size());
+								Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
+								if (o.isPresent()){
+									InterfaceConfig ic = o.get();
+									pw.println("gif = new "+ic.interfaceClass+"();");
+									pw.println("ht = new Hashtable();");
+									ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+									pw.println("gif.configure(ht);");
+									pw.println(channel + ".setLink(gif);");
+								}
+							}
+						});
+					});
 				}
+				pw.println(channel+".setInit();");
 				pw.println();
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
@@ -589,11 +602,23 @@ public class UglyPrinter {
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
 					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channelPartner+", "+ channel + ");");
 				} else {
-//					pw.println(channel + ".setDistributed();");
-//					pw.println(channel + ".setInterfaceManager(im);");
-//					pw.println(channel + ".setInit();");
-//					pw.println("channels.put(\"" + channel + "\", " + channel + ");");
+					systemConfig.subSystems.stream().forEach(SSC -> {
+						SSC.clockDomains.forEach((K, V) -> {
+							if (V.isChannelPartnerLocal(c.name)) {
+								Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
+								if (o.isPresent()){
+									InterfaceConfig ic = o.get();
+									pw.println("gif = new "+ic.interfaceClass+"();");
+									pw.println("ht = new Hashtable();");
+									ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+									pw.println("gif.configure(ht);");
+									pw.println(channel + ".setLink(gif);");
+								}
+							}
+						});
+					});
 				}
+				pw.println(channel+".setInit();");
 				pw.println();
 			}
 		}
