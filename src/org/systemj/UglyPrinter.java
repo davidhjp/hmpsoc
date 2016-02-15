@@ -2,6 +2,9 @@ package org.systemj;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.*;
 
@@ -16,6 +19,7 @@ import org.systemj.nodes.JoinNode;
 import org.systemj.nodes.SwitchNode;
 
 import args.Helper;
+
 import org.systemj.util.IndentPrinter;
 
 public class UglyPrinter {
@@ -408,8 +412,40 @@ public class UglyPrinter {
 		pw.println();
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
+		
+		pw.println("private static final StringBuffer sb = new StringBuffer();");
+		pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
+		pw.incrementIndent();
+		pw.println("public void write(int b) throws java.io.IOException {");
+		pw.incrementIndent();
+		pw.println("synchronized(RTSMain.class){");
+		pw.incrementIndent();
+		pw.println("sb.append(b);");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("});");
+		
+		pw.println("private static final void printStdOut() {");
+		pw.incrementIndent();
+		pw.println("if(sb.length() > 0) {");
+		pw.incrementIndent();
+		pw.println("synchronized(RTSMain.class) {");
+		pw.incrementIndent();
+		pw.println("System.out.println(sb.toString());");
+		pw.println("sb.delete(0, sb.length());");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		
 		pw.println("public static void main(String[] arg){");
 		pw.incrementIndent();
+		
 
 		pw.println();
 		pw.println();
@@ -433,9 +469,12 @@ public class UglyPrinter {
 		pw.println("int recopId = 0;");
 		pw.println("int result = 0;");
 		pw.println();
+		pw.println("try{");
+		pw.incrementIndent();
 		pw.println("while(true){");
 		pw.incrementIndent();
 
+		pw.println("printStdOut();");
 		pw.println("dpcr = Native.getDatacall();");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
@@ -456,9 +495,10 @@ public class UglyPrinter {
 
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
-
-			pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			
 			pw.println("recopId = " + cdName + ".recopId;");
+			pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			
 
 			pw.println("break;");
 			pw.decrementIndent();
@@ -477,6 +517,15 @@ public class UglyPrinter {
 
 		pw.decrementIndent();
 		pw.println("}");
+		pw.decrementIndent();
+		
+		pw.println("} catch (Exception e){");
+		
+		pw.incrementIndent();
+		pw.println("System.out.println(\"ERROR while executing housekeeping \"+recopId);");
+		pw.println("System.exit(1);");
+		pw.decrementIndent();
+		pw.println("}");
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -485,7 +534,7 @@ public class UglyPrinter {
 
 		pw.println("public static void init_all() {");
 		pw.incrementIndent();
-
+		
 		for (int i = 0; i < declolist.size(); i++) {
 			String cdName = declolist.get(i).getCDName();
 
@@ -996,6 +1045,8 @@ public class UglyPrinter {
 		pw.println("int status = 0;");
 		pw.println("int recopId = 0;");
 		pw.println("int[] dl = new int[]{0};");
+		pw.println("try{");
+		pw.incrementIndent();
 		pw.println("while(true){");
 		pw.incrementIndent();
 
@@ -1023,8 +1074,8 @@ public class UglyPrinter {
 
 			pw.println("case "+i+":");
 			pw.incrementIndent();
-			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 3 : 2;");
 			pw.println("recopId = "+cdName+".recopId; // Set recop id");
+			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 3 : 2;");
 			pw.println("break;");
 			pw.decrementIndent();
 		}
@@ -1039,6 +1090,13 @@ public class UglyPrinter {
 				"| (status & 0xFFF); /*Status*/");
 		// NOTE Results = 1|ReCOP_id(7)|WritebackAddress(12)|Result(12)
 		pw.println("Native.setDatacallResult(result);");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("} catch (Exception e) {");
+		pw.incrementIndent();
+		pw.println("RTSMain.out.println(\"Error while executing RECOP \"+recopId+\" CASE \"+casen);");
+		pw.println("System.exit(1);");
 		pw.decrementIndent();
 		pw.println("}");
 		pw.decrementIndent();
