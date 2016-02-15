@@ -522,7 +522,7 @@ public class UglyPrinter {
 		pw.println("} catch (Exception e){");
 		
 		pw.incrementIndent();
-		pw.println("System.out.println(\"ERROR while executing housekeeping \"+recopId);");
+		pw.println("System.out.println(\"ERROR while executing housekeeping \"+recopId+\" \"+e.getMessage());");
 		pw.println("System.exit(1);");
 		pw.decrementIndent();
 		pw.println("}");
@@ -1095,7 +1095,7 @@ public class UglyPrinter {
 		pw.decrementIndent();
 		pw.println("} catch (Exception e) {");
 		pw.incrementIndent();
-		pw.println("RTSMain.out.println(\"Error while executing RECOP \"+recopId+\" CASE \"+casen);");
+		pw.println("RTSMain.out.println(\"Error while executing RECOP \"+recopId+\" CASE \"+casen+\" \"+e.getMessage());");
 		pw.println("System.exit(1);");
 		pw.decrementIndent();
 		pw.println("}");
