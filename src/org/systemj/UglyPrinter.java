@@ -293,7 +293,7 @@ public class UglyPrinter {
 				pw.println("  LDR R1 #$"+Long.toHexString(mp.getProgramCounterPointer())+"; Pointer to PC");
 				pw.println("  JMP DCHECK"+i+"; Jump to the last execution point");
 				pw.println("DCHECKCONT"+i+" ADD R1 R1 #1");
-				pw.println("  SUBV R10 R1 #"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
+				pw.println("  SUBV R10 R1 #$"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
 				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
 				pw.println("DCHECK"+i+" LDR R10 R1; Loading the PC");
 				pw.println("  PRESENT R10 DCHECKCONT"+i);
