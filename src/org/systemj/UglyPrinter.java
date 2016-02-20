@@ -305,6 +305,7 @@ public class UglyPrinter {
 				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
+				pw.println("  STR R11 $2; locking this thread");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; Send OSig vals (R10) to JOP");
 				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
