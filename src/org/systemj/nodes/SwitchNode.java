@@ -48,7 +48,9 @@ public class SwitchNode extends BaseGRCNode {
 		for(int i=0; i<children.size(); i++){
 			pw.print(Statename.toLowerCase()+"_"+i);
 			this.getChild(i).weirdPrint(pw, mp, termcode, cdi);
+			pw.println("  JMP SWITCHEND_"+Statename);
 		}
+		pw.println("SWITCHEND_"+Statename);
 	}
 
 	public int getCDid() {
