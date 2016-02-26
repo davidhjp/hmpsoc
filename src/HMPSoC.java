@@ -91,9 +91,10 @@ public class HMPSoC {
 						if(Helper.pMap.nJOP < 0 || Helper.pMap.nReCOP < 0){
 							throw new ParseException("Numbers of JOP/ReCOP should be greater than 0");
 						}
+						break;
 					case Helper.CONFIG_OPTION:
 					case Helper.CONFIG_LONG_OPTION:
-						systemJConfig = o.getValue(0);
+						systemJConfig = o.getValue();
 						break;
 					default:
 						break;
