@@ -1,9 +1,12 @@
-package org.systemj;
+package com.systemj.hmpsoc;
+
+import static com.systemj.hmpsoc.util.Helper.log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,26 +21,28 @@ import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.filter.ElementFilter;
 import org.jdom2.input.SAXBuilder;
-import org.systemj.config.ClockDomainConfig;
-import org.systemj.config.InterfaceConfig;
-import org.systemj.config.LinkConfig;
-import org.systemj.config.SignalConfig;
-import org.systemj.config.SubSystemConfig;
-import org.systemj.config.SystemConfig;
-import org.systemj.nodes.ActionNode;
-import org.systemj.nodes.AforkNode;
-import org.systemj.nodes.AjoinNode;
-import org.systemj.nodes.BaseGRCNode;
-import org.systemj.nodes.EnterNode;
-import org.systemj.nodes.ForkNode;
-import org.systemj.nodes.JoinNode;
-import org.systemj.nodes.SwitchNode;
-import org.systemj.nodes.TerminateNode;
-import org.systemj.nodes.TestLock;
-import org.systemj.nodes.TestNode;
+import org.jdom2.input.sax.XMLReaderJDOMFactory;
+import org.jdom2.input.sax.XMLReaderXSDFactory;
+
+import com.systemj.hmpsoc.config.ClockDomainConfig;
+import com.systemj.hmpsoc.config.InterfaceConfig;
+import com.systemj.hmpsoc.config.LinkConfig;
+import com.systemj.hmpsoc.config.SignalConfig;
+import com.systemj.hmpsoc.config.SubSystemConfig;
+import com.systemj.hmpsoc.config.SystemConfig;
+import com.systemj.hmpsoc.nodes.ActionNode;
+import com.systemj.hmpsoc.nodes.AforkNode;
+import com.systemj.hmpsoc.nodes.AjoinNode;
+import com.systemj.hmpsoc.nodes.BaseGRCNode;
+import com.systemj.hmpsoc.nodes.EnterNode;
+import com.systemj.hmpsoc.nodes.ForkNode;
+import com.systemj.hmpsoc.nodes.JoinNode;
+import com.systemj.hmpsoc.nodes.SwitchNode;
+import com.systemj.hmpsoc.nodes.TerminateNode;
+import com.systemj.hmpsoc.nodes.TestLock;
+import com.systemj.hmpsoc.nodes.TestNode;
 
 import args.Helper;
-
 public class CompilationUnit {
 	private String target;
 	private InputStream is;
@@ -61,11 +66,25 @@ public class CompilationUnit {
 	
 	public CompilationUnit(){}
 	
+	private void loadConfig(String systemJConfig) throws JDOMException, IOException {
+		URL url = ClassLoader.getSystemResource("com/systemj/sysj.xsd");
+		XMLReaderJDOMFactory sch = null;
+		if(url == null){
+			log.warning("Could not find config schema, config validation is skipped");
+		}
+		else {
+			sch = new XMLReaderXSDFactory(url);
+			builder.setXMLReaderFactory(sch);
+		}
+		configDoc = builder.build(new File(systemJConfig));
+
+	}
+	
 	public CompilationUnit(String file, String systemJConfig) throws JDOMException, IOException{
 		target = file;
 		doc = builder.build(new File(file));
 		if (systemJConfig != null)
-			configDoc = builder.build(new File(systemJConfig));
+			loadConfig(systemJConfig);
 	}
 	
 	public CompilationUnit(InputStream is, String systemJConfig) throws JDOMException, IOException{
@@ -74,7 +93,7 @@ public class CompilationUnit {
 		isis = true;
 		doc = builder.build(this.is);
 		if (systemJConfig != null)
-			configDoc = builder.build(new File(systemJConfig));
+			loadConfig(systemJConfig);
 	}
 	
 	private List<DeclaredObjects> getDeclaredObjects(){
@@ -137,7 +156,7 @@ public class CompilationUnit {
 			}
 			
 			l.add(cdit);
-			System.out.println(cdit);
+			log.info(cdit.toString());
 		}
 		
 		return l;
@@ -374,7 +393,7 @@ public class CompilationUnit {
 		
 		BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
 		if(joraj == null){
-			System.out.println(n.dump(1));
+			log.info(n.dump(1));
 			throw new RuntimeException("Error while inserting TestLock");
 		}
 		BaseGRCNode.connectParentChild(tn, joraj);

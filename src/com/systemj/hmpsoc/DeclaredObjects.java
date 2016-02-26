@@ -1,4 +1,4 @@
-package org.systemj;
+package com.systemj.hmpsoc;
 
 import java.util.ArrayList;
 import java.util.HashMap;

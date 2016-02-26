@@ -22,8 +22,7 @@ endif
 all: bin
 
 compileagrc:
-	sjc --ir $(T)
-	# java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
+	java -cp bin$(S)lib/\* JavaPrettyPrinter --ir $(T)
 
 compile:
 	make compileagrc -s T=$(T) | java -cp bin/$(S)lib/\* HMPSoC -v $(ALLOC_PARAM) $(hmpsoc_cfg)

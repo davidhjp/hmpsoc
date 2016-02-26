@@ -1,10 +1,10 @@
-package org.systemj.nodes;
+package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.systemj.MemoryPointer;
+import com.systemj.hmpsoc.MemoryPointer;
 
 public class BaseGRCNode {
 

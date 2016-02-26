@@ -2,6 +2,7 @@ import java.io.FileReader;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -10,12 +11,13 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.systemj.CompilationUnit;
-import org.systemj.CompilerPrintStream;
 
 import args.Helper;
 
 import com.google.gson.Gson;
+import com.systemj.hmpsoc.CompilationUnit;
+
+import static com.systemj.hmpsoc.util.Helper.log;
 
 /**
  * HMPSoC main class
@@ -50,16 +52,10 @@ public class HMPSoC {
 				return 0;
 			}
 		});
-		CompilerPrintStream.setVerbose();
 		hf.printHelp("java -jar hmpsoc.jar [OPTIONS] <filename>", options);
-		CompilerPrintStream.resetVerbose();
 	}
 
 	public static void main(String[] args) {
-		CompilerPrintStream cps = new CompilerPrintStream(System.out);
-		CompilerPrintStream cpser = new CompilerPrintStream(System.err);
-		System.setOut(cps);
-		System.setErr(cpser);
 		Options options = initOptions();
 
 		CommandLineParser parser = new DefaultParser();
@@ -78,8 +74,7 @@ public class HMPSoC {
 				else{
 					switch(o.getOpt()){
 					case Helper.VERBOSE_OPTION:
-						CompilerPrintStream.setVerbose();
-						CompilerPrintStream.setDefaultVerbose();
+						log.setLevel(Level.INFO);
 						break;
 					case Helper.JOP_RECOP_NUM_OPTION:
 						String fname = o.getValue(Helper.JOP_RECOP_NUM_OPTION);
@@ -118,7 +113,6 @@ public class HMPSoC {
 				cu.process();
 			}
 		} catch (Exception e){
-			CompilerPrintStream.setVerbose();
 			if(cmd.hasOption(Helper.VERBOSE_OPTION))
 				e.printStackTrace();
 			else
@@ -126,7 +120,6 @@ public class HMPSoC {
 
 			System.exit(1);
 		} catch (Error e){
-			CompilerPrintStream.setVerbose();
 			e.printStackTrace();
 			System.exit(1);
 		}

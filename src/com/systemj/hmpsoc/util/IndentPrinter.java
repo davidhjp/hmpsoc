@@ -1,4 +1,4 @@
-package org.systemj.util;
+package com.systemj.hmpsoc.util;
 
 import java.io.PrintWriter;
 

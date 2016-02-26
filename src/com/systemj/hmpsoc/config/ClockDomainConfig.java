@@ -1,4 +1,4 @@
-package org.systemj.config;
+package com.systemj.hmpsoc.config;
 
 import java.util.Collections;
 import java.util.Map;

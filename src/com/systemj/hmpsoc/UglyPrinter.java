@@ -1,26 +1,34 @@
-package org.systemj;
+package com.systemj.hmpsoc;
+
+
+import static com.systemj.hmpsoc.util.Helper.log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-import org.systemj.DeclaredObjects.Channel;
-import org.systemj.DeclaredObjects.Signal;
-import org.systemj.DeclaredObjects.Var;
-import org.systemj.config.*;
-import org.systemj.nodes.ActionNode;
-import org.systemj.nodes.BaseGRCNode;
-import org.systemj.nodes.ForkNode;
-import org.systemj.nodes.JoinNode;
-import org.systemj.nodes.SwitchNode;
+import com.systemj.hmpsoc.DeclaredObjects.Channel;
+import com.systemj.hmpsoc.DeclaredObjects.Signal;
+import com.systemj.hmpsoc.DeclaredObjects.Var;
+import com.systemj.hmpsoc.config.ClockDomainConfig;
+import com.systemj.hmpsoc.config.InterfaceConfig;
+import com.systemj.hmpsoc.config.SignalConfig;
+import com.systemj.hmpsoc.config.SystemConfig;
+import com.systemj.hmpsoc.nodes.ActionNode;
+import com.systemj.hmpsoc.nodes.BaseGRCNode;
+import com.systemj.hmpsoc.nodes.ForkNode;
+import com.systemj.hmpsoc.nodes.JoinNode;
+import com.systemj.hmpsoc.nodes.SwitchNode;
+import com.systemj.hmpsoc.util.IndentPrinter;
 
 import args.Helper;
-
-import org.systemj.util.IndentPrinter;
 
 public class UglyPrinter {
 
@@ -232,22 +240,20 @@ public class UglyPrinter {
 
 					mp.setLastAddr(c);
 				}
-
-
-				System.out.println("====== "+cdname+" constructed memory map =====");
-				System.out.println("iSignal    :"+mp.getInputSignalPointer());
-				System.out.println("oSignal    :"+mp.getOutputSignalPointer());
-				System.out.println("DataLock   :"+mp.getDataLockPointer());
-				System.out.println("Signal     :"+mp.getInternalSignalPointer());
-				if(!mp.signalMap.isEmpty())
-					System.out.println(mp.signalMap);
-				System.out.println("PreSig     :"+mp.getPreInternalSignalPointer());
-				System.out.println("PreISig    :"+mp.getPreInputSignalPointer());
-				System.out.println("PreOSig    :"+mp.getPreOutputSignalPointer());
-				System.out.println("PC         :"+mp.getProgramCounterPointer());
-				System.out.println("Term       :"+mp.getTerminateCodePointer());
-				System.out.println("Switch     :"+mp.getSwitchNodePointer());
-				System.out.println("LastAddr+1 :"+mp.getLastAddr());
+				
+				log.info("====== "+cdname+" constructed memory map =====\n"
+				+ "iSignal    :"+mp.getInputSignalPointer()		   + "\n"
+				+ "oSignal    :"+mp.getOutputSignalPointer()	   + "\n"
+				+ "DataLock   :"+mp.getDataLockPointer()		   + "\n"
+				+ "Signal     :"+mp.getInternalSignalPointer()	   + "\n"
+				+ mp.signalMap									   + "\n"
+				+ "PreSig     :"+mp.getPreInternalSignalPointer()  + "\n"
+				+ "PreISig    :"+mp.getPreInputSignalPointer()	   + "\n"
+				+ "PreOSig    :"+mp.getPreOutputSignalPointer()	   + "\n"
+				+ "PC         :"+mp.getProgramCounterPointer()	   + "\n"
+				+ "Term       :"+mp.getTerminateCodePointer()	   + "\n"
+				+ "Switch     :"+mp.getSwitchNodePointer()		   + "\n"
+				+ "LastAddr+1 :"+mp.getLastAddr()				         );
 
 				lmp.add(mp);
 			}
@@ -624,7 +630,6 @@ public class UglyPrinter {
 					systemConfig.subSystems.stream().forEach(SSC -> {
 						SSC.clockDomains.forEach((K, V) -> {
 							if (V.isChannelPartnerLocal(c.name)) {
-								System.out.println(systemConfig.links.size());
 								Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
 								if (o.isPresent()){
 									InterfaceConfig ic = o.get();

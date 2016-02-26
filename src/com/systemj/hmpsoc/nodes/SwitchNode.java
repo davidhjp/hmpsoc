@@ -1,8 +1,8 @@
-package org.systemj.nodes;
+package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 
-import org.systemj.MemoryPointer;
+import com.systemj.hmpsoc.MemoryPointer;
 
 public class SwitchNode extends BaseGRCNode {
 	private String CDName;

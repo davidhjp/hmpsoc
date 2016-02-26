@@ -1,11 +1,12 @@
-package org.systemj.nodes;
+package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.systemj.hmpsoc.MemoryPointer;
+
 import args.Helper;
-import org.systemj.MemoryPointer;
 
 public class ActionNode extends BaseGRCNode {
 	public enum TYPE{
