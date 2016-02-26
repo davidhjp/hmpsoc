@@ -113,15 +113,11 @@ public class HMPSoC {
 				CompilationUnit cu = new CompilationUnit(System.in, systemJConfig);
 				cu.process();
 			}
-		} catch (Exception e){
+		} catch (Exception | Error e){
 			if(cmd.hasOption(Helper.VERBOSE_OPTION))
 				e.printStackTrace();
 			else
-				System.err.println(e.getMessage());
-
-			System.exit(1);
-		} catch (Error e){
-			e.printStackTrace();
+				log.severe(e.toString());
 			System.exit(1);
 		}
 	}
