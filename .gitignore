@@ -4,3 +4,6 @@ hmpsoc/
 jar/
 .idea
 *.iml
+*.swp
+.gradle
+build
