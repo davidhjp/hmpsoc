@@ -562,46 +562,9 @@ public class UglyPrinter {
 
 		pw.println();
 		pw.println("// Interface init");
-//		pw.println(Java.CLASS_INTERFACE_MANAGER + " im = new " + Java.CLASS_INTERFACE_MANAGER + "();");
-//		pw.println(Java.CLASS_INTERCONNECTION + " ic = new " + Java.CLASS_INTERCONNECTION + "();");
-//		pw.println(Java.CLASS_INTERCONNECTION_LINK + " link = null;");
 		pw.println(Java.CLASS_GENERIC_INTERFACE + " gif = null;");
 		pw.println("Hashtable ht = null;");
 		pw.println();
-
-//		for (LinkConfig link : systemConfig.links) {
-//			pw.println("// Create link");
-//			pw.println("link = new " + Java.CLASS_INTERCONNECTION_LINK + "();");
-//			pw.println();
-//			for (InterfaceConfig ifCfg : link.interfaces) {
-//				pw.println("gif = new " + ifCfg.interfaceClass + "();");
-//				pw.println("ht = new Hashtable();");
-//				for (Map.Entry<String, String> e : ifCfg.cfg.entrySet())
-//					pw.println("ht.put(\"" + e.getKey() + "\", \"" + e.getValue() + "\");");
-//				pw.println("gif.configure(ht);");
-//				pw.println("link.addInterface(\"" + ifCfg.subSystem + "\", gif);");
-//				pw.println();
-//			}
-//			pw.println("ic.addLink(link, false);");
-//			pw.println();
-//			pw.println();
-//		}
-//		pw.println("im.setInterconnection(ic);");
-//		pw.println("ic.printInterconnection(); // Debug");
-//		String localSs = null;
-//		for (SubSystemConfig sscfg : systemConfig.subSystems) {
-//			if (sscfg.local) {
-//				if (localSs != null) throw new RuntimeException("More than one local SubSystem found including " + localSs + " and " + sscfg.name);
-//				localSs = sscfg.name;
-//			}
-//			for (ClockDomainConfig cdcfg : sscfg.clockDomains.values()) {
-//				pw.println("im.addCDLocation(\"" + sscfg.name + "\", \"" + cdcfg.name + "\");");
-//			}
-//		}
-//		pw.println("im.setLocalInterface(\"" + localSs + "\");");
-//		pw.println();
-//
-//		pw.println("Hashtable channels = new Hashtable();");
 
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
@@ -625,22 +588,28 @@ public class UglyPrinter {
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 				
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
+					if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
+						// TODO: continue
+						pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory();");
+					} 
 					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
-						SSC.clockDomains.forEach((K, V) -> {
-							if (V.isChannelPartnerLocal(c.name)) {
-								Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
-								if (o.isPresent()){
-									InterfaceConfig ic = o.get();
-									pw.println("gif = new "+ic.interfaceClass+"();");
-									pw.println("ht = new Hashtable();");
-									ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
-									pw.println("gif.configure(ht);");
-									pw.println(channel + ".setLink(gif);");
+						if(!SSC.local){
+							SSC.clockDomains.forEach((K, V) -> {
+								if (V.isChannelPartnerLocal(c.name)) {
+									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
+									if (o.isPresent()){
+										InterfaceConfig ic = o.get();
+										pw.println("gif = new "+ic.interfaceClass+"();");
+										pw.println("ht = new Hashtable();");
+										ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+										pw.println("gif.configure(ht);");
+										pw.println(channel + ".setLink(gif);");
+									}
 								}
-							}
-						});
+							});
+						}
 					});
 				}
 				pw.println(channel+".setInit();");
@@ -653,24 +622,26 @@ public class UglyPrinter {
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_in";
 				pw.println(channel + ".Name = \"" + channel + "\";");
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
-				
+
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
 					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channelPartner+", "+ channel + ");");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
-						SSC.clockDomains.forEach((K, V) -> {
-							if (V.isChannelPartnerLocal(c.name)) {
-								Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
-								if (o.isPresent()){
-									InterfaceConfig ic = o.get();
-									pw.println("gif = new "+ic.interfaceClass+"();");
-									pw.println("ht = new Hashtable();");
-									ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
-									pw.println("gif.configure(ht);");
-									pw.println(channel + ".setLink(gif);");
+						if(!SSC.local){
+							SSC.clockDomains.forEach((K, V) -> {
+								if (V.isChannelPartnerLocal(c.name)) {
+									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
+									if (o.isPresent()){
+										InterfaceConfig ic = o.get();
+										pw.println("gif = new "+ic.interfaceClass+"();");
+										pw.println("ht = new Hashtable();");
+										ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+										pw.println("gif.configure(ht);");
+										pw.println(channel + ".setLink(gif);");
+									}
 								}
-							}
-						});
+							});
+						}
 					});
 				}
 				pw.println(channel+".setInit();");

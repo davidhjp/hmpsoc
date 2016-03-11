@@ -14,6 +14,8 @@ public class Helper {
 	public final static String CONFIG_LONG_OPTION = "config";
 	public static final String D_OPTION = "d";
 	public static final String JOP_RECOP_NUM_OPTION = "j";
+	public static final String DIST_MEM_OPTION = "i";
+	public static final String DIST_MEM_LONG_OPTION = "distmem";
 	
 	private static CommandLine cmd;
 	

@@ -1,15 +1,27 @@
 <System xmlns="http://systemjtechnology.com">
-
-<SubSystem Name="HMPSoC" Local="true">
-	<ClockDomain Name="CD01" Class="CD01" CD="CD01">
-		<iChannel Name="CH01" From="CD02.CH01" />
-
-		<iSignal Name="in" Class="com.systemjx.jop.SignalSW" Index="1"/>
-		<oSignal Name="out" Class="com.systemjx.jop.SignalLED" Index="1"/>
-	</ClockDomain>
-	<ClockDomain Name="CD02" Class="CD02" CD="CD02">
-		<oChannel Name="CH01" To="CD01.CH01" />
-	</ClockDomain>
-</SubSystem>
+	<Interconnection>
+		<Link Type="Destination">
+			<Interface SubSystem="SS1" Class="com.systemj.ipc.TCPIPInterface" Args="127.0.0.1:1100"/>
+			<Interface SubSystem="SS2" Class="com.systemj.ipc.TCPIPInterface" Args="127.0.0.1:1200"/>
+		</Link>
+	</Interconnection>
+	<SubSystem Name="SS1" Local="true">
+		<ClockDomain Name="CD01" Class="CD01">
+			<iChannel Name="CH01" From="CD02.CH01" />
+			<oChannel Name="C" To="CD02.CC" />
+			<iSignal Name="in" Class="com.systemjx.jop.SignalSW" Index="1"/>
+			<oSignal Name="out" Class="com.systemjx.jop.SignalLED" Index="1"/>
+		</ClockDomain>
+		<ClockDomain Name="CD02" Class="CD02" >
+			<oChannel Name="CH01" To="CD01.CH01" />
+			<iChannel Name="CC" From="CD01.C" />
+		</ClockDomain>
+	</SubSystem>
+	<SubSystem Name="SS2" >
+		<ClockDomain Name="CD03" Class="CD03">
+			<oChannel Name="CH01" To="CD01.CH01" />
+			<iChannel Name="CH02" From="CD02.CH01" />
+		</ClockDomain>
+	</SubSystem>
 
 </System>

@@ -3,18 +3,37 @@ CD01(
 	output signal out;
 
 	input Object channel CH01;
+	output Object channel C;
 )->{
-	System.out.println("started systemj");
+	RTSMain.out.println("started systemj");
 	//await(in);
 	emit out;
+	String signal FF;
 
 	receive CH01;
 	pause;
-	System.out.println("received + "+#CH01);
+	RTSMain.out.println("received + "+#CH01);
+	{
+		send C("test2");
+		emit FF("1");
+	}
+	||
+	{
+		await(FF);
+		if(#FF.equals("1")){
+			RTSMain.out.println("right");
+		} else {
+			RTSMain.out.println("no");
+		}
+
+	}
 }
 
 CD02(
 	output Object channel CH01;
+	input Object channel CC;
 )->{
 	send CH01("test");
+	receive CC;
+	RTSMain.out.println("CC "+#CC);
 }
