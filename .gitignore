@@ -3,3 +3,7 @@ bin/
 jar/
 *.swp
 .gradle
+.classpath
+.project
+.gradle
+.settings
