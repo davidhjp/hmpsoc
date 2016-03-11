@@ -1,9 +1,6 @@
 lib/*.jar
 bin/
-hmpsoc/
+./hmpsoc/
 jar/
-.idea
-*.iml
 *.swp
 .gradle
-build
