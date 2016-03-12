@@ -17,6 +17,7 @@ import java.util.Set;
 import com.systemj.hmpsoc.DeclaredObjects.Channel;
 import com.systemj.hmpsoc.DeclaredObjects.Signal;
 import com.systemj.hmpsoc.DeclaredObjects.Var;
+import com.systemj.hmpsoc.SharedMemory.MemorySlot;
 import com.systemj.hmpsoc.config.ClockDomainConfig;
 import com.systemj.hmpsoc.config.InterfaceConfig;
 import com.systemj.hmpsoc.config.SignalConfig;
@@ -566,6 +567,7 @@ public class UglyPrinter {
 		pw.println("Hashtable ht = null;");
 		pw.println();
 
+		SharedMemory sm = new SharedMemory();
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
 
@@ -582,28 +584,35 @@ public class UglyPrinter {
 			pw.println("// Init for " + cdName);
 			for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
-				String channel = cdName+"."+c.name + "_in";
+				String channel = cdName + "." + c.name + "_in";
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_o";
 				pw.println(channel + ".Name = \"" + channel + "\";");
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
-				
+
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
-						// TODO: continue
-						pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory();");
-					} 
-					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
+					if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+						if (sm.hasChan(channelPartner)) {
+							MemorySlot ms = sm.getChanMem(channelPartner);
+							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+						} else
+							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+						pw.println("gif.configure(null);");
+						pw.println(channel + ".setLink(gif);");
+						sm.insertChannel(channel);
+					} else {
+						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
+					}
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
-						if(!SSC.local){
+						if (!SSC.local) {
 							SSC.clockDomains.forEach((K, V) -> {
 								if (V.isChannelPartnerLocal(c.name)) {
-									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
-									if (o.isPresent()){
+									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap(L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name))).findAny();
+									if (o.isPresent()) {
 										InterfaceConfig ic = o.get();
-										pw.println("gif = new "+ic.interfaceClass+"();");
+										pw.println("gif = new " + ic.interfaceClass + "();");
 										pw.println("ht = new Hashtable();");
-										ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+										ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
 										pw.println("gif.configure(ht);");
 										pw.println(channel + ".setLink(gif);");
 									}
@@ -612,30 +621,41 @@ public class UglyPrinter {
 						}
 					});
 				}
-				pw.println(channel+".setInit();");
+				pw.println(channel + ".setInit();");
 				pw.println();
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 				Channel c = it.next();
 
-				String channel = cdName+"."+c.name+"_o";
+				String channel = cdName + "." + c.name + "_o";
 				String channelPartner = cdConfig.channelPartners.get(c.name) + "_in";
 				pw.println(channel + ".Name = \"" + channel + "\";");
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" +channelPartner+", "+ channel + ");");
+					if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+						if (sm.hasChan(channelPartner)) {
+							MemorySlot ms = sm.getChanMem(channelPartner);
+							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+						} else
+							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+						pw.println("gif.configure(null);");
+						pw.println(channel + ".setLink(gif);");
+						sm.insertChannel(channel);
+					} else {
+						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
+					}
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
-						if(!SSC.local){
+						if (!SSC.local) {
 							SSC.clockDomains.forEach((K, V) -> {
 								if (V.isChannelPartnerLocal(c.name)) {
-									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap( L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name)) ).findAny();
-									if (o.isPresent()){
+									Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap(L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name))).findAny();
+									if (o.isPresent()) {
 										InterfaceConfig ic = o.get();
-										pw.println("gif = new "+ic.interfaceClass+"();");
+										pw.println("gif = new " + ic.interfaceClass + "();");
 										pw.println("ht = new Hashtable();");
-										ic.cfg.forEach( (KK, VV) -> pw.println("ht.put(\""+KK+"\", \""+VV+"\");") );
+										ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
 										pw.println("gif.configure(ht);");
 										pw.println(channel + ".setLink(gif);");
 									}
@@ -644,18 +664,10 @@ public class UglyPrinter {
 						}
 					});
 				}
-				pw.println(channel+".setInit();");
+				pw.println(channel + ".setInit();");
 				pw.println();
 			}
 		}
-
-//		pw.println();
-//		pw.println("// InterfaceManager init");
-//		pw.println("im.setChannelInstances(channels);");
-//		pw.println("im.init();");
-//		pw.println("im.printLocalInterface();");
-//		pw.println("System.out.println(\"\\nConstructed clock-domain map : \");");
-//		pw.println("System.out.println(im.getcdmap());");
 
 		pw.decrementIndent();
 		pw.println("}");
