@@ -26,7 +26,7 @@ public class SharedMemory {
 		pointer += DEPTH_SIGNAL;
 	}
 
-	public void insertChannel(String chan) {
+	public void addChannel(String chan) {
 		MemorySlot ms = new MemorySlot();
 		ms.start = pointer;
 		ms.depth = DEPTH_CHAN;
@@ -34,7 +34,7 @@ public class SharedMemory {
 		incChannel();
 	}
 
-	public void insertSignal(String sig) {
+	public void addSignal(String sig) {
 		MemorySlot ms = new MemorySlot();
 		ms.start = pointer;
 		ms.depth = DEPTH_SIGNAL;

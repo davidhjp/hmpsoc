@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import com.systemj.hmpsoc.DeclaredObjects.Channel;
 import com.systemj.hmpsoc.DeclaredObjects.Signal;
@@ -39,6 +40,7 @@ public class UglyPrinter {
 	private List<List<ActionNode>> acts;
 	private String topdir;
 	private SystemConfig systemConfig;
+	private SharedMemory sm = new SharedMemory();
 
 	public UglyPrinter () {}
 
@@ -567,7 +569,6 @@ public class UglyPrinter {
 		pw.println("Hashtable ht = null;");
 		pw.println();
 
-		SharedMemory sm = new SharedMemory();
 		for (int i = 0; i < declolist.size(); i++) {
 			if (systemConfig == null) break;
 
@@ -598,7 +599,7 @@ public class UglyPrinter {
 							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 						pw.println("gif.configure(null);");
 						pw.println(channel + ".setLink(gif);");
-						sm.insertChannel(channel);
+						sm.addChannel(channel);
 					} else {
 						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 					}
@@ -641,7 +642,7 @@ public class UglyPrinter {
 							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 						pw.println("gif.configure(null);");
 						pw.println(channel + ".setLink(gif);");
-						sm.insertChannel(channel);
+						sm.addChannel(channel);
 					} else {
 						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
 					}
@@ -762,6 +763,15 @@ public class UglyPrinter {
 		pw.println(Java.CLASS_GENERIC_SIGNAL_SENDER + " sigSender = null;");
 		pw.println("currentSignals = new java.util.Vector();");
 		pw.println();
+		
+		Consumer<Signal> mL = (ssig -> {
+			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+				String cdSigName = cdName+"."+ssig.name;
+				sm.addSignal(cdSigName);
+				MemorySlot ms = sm.getSigMem(cdSigName);
+				pw.println(ssig.name + ".setMemoryLoc(" + ms.start + "L, " + ms.depth + "L);");
+			}
+		});
 
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
@@ -779,8 +789,10 @@ public class UglyPrinter {
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigReceiver.configure(ht);");
 				pw.println(s.name + ".setServer(sigReceiver);");
-				pw.println();
 			}
+			
+			mL.accept(s);
+			pw.println();
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
@@ -798,14 +810,17 @@ public class UglyPrinter {
 					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
 				pw.println("sigSender.configure(ht);");
 				pw.println(s.name + ".setClient(sigSender);");
-				pw.println();
 			}
+			
+			mL.accept(s);
+			pw.println();
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			// TODO Check if internal pure signals are actually required to be created jop side
 			if (s.type == null) pw.print("//");
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+			mL.accept(s);
 		}
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
