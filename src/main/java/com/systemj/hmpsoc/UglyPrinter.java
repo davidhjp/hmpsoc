@@ -1062,48 +1062,42 @@ public class UglyPrinter {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 
-			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
-				mL.accept(s);
-			} else {
-				if (systemConfig != null) {
-					ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
-					SignalConfig sigCfg = cdCfg.isignals.get(s.name);
+			if (systemConfig != null) {
+				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+				SignalConfig sigCfg = cdCfg.isignals.get(s.name);
 
-					if (sigCfg == null)
-						throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
-					pw.println("sigReceiver = new " + sigCfg.clazz + "();");
-					pw.println("ht = new Hashtable();");
-					for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
-						pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
-					pw.println("sigReceiver.configure(ht);");
-					pw.println(s.name + ".setServer(sigReceiver);");
-				}
+				if (sigCfg == null)
+					throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
+				pw.println("sigReceiver = new " + sigCfg.clazz + "();");
+				pw.println("ht = new Hashtable();");
+				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+				pw.println("sigReceiver.configure(ht);");
+				pw.println(s.name + ".setServer(sigReceiver);");
 			}
 			
+			mL.accept(s);
 			pw.println();
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 
-			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
-				mL.accept(s);
-			} else {
-				if (systemConfig != null) {
-					ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
-					SignalConfig sigCfg = cdCfg.osignals.get(s.name);
+			if (systemConfig != null) {
+				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+				SignalConfig sigCfg = cdCfg.osignals.get(s.name);
 
-					if (sigCfg == null)
-						throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
-					pw.println("sigSender = new " + sigCfg.clazz + "();");
-					pw.println("ht = new Hashtable();");
-					for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
-						pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
-					pw.println("sigSender.configure(ht);");
-					pw.println(s.name + ".setClient(sigSender);");
-				}
+				if (sigCfg == null)
+					throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
+				pw.println("sigSender = new " + sigCfg.clazz + "();");
+				pw.println("ht = new Hashtable();");
+				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+				pw.println("sigSender.configure(ht);");
+				pw.println(s.name + ".setClient(sigSender);");
 			}
 			
+			mL.accept(s);
 			pw.println();
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
