@@ -111,12 +111,6 @@ public class UglyPrinter {
 		
 		printFiles(f);
 		
-		
-//		pw = new PrintWriter(f);
-//		pw.println("www");
-//		pw.flush();
-//		pw.close();
-		
 	}
 
 	private void printFiles(File dir) throws FileNotFoundException {

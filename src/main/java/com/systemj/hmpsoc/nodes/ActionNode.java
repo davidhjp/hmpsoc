@@ -22,6 +22,10 @@ public class ActionNode extends BaseGRCNode {
 		if (nextJopId == 0) nextJopId = 1;
 		return jopId;
 	}
+	
+	public int getJOPIDDist() {
+		return this.getThnum() % Helper.pMap.nJOP;
+	}
 
 
 	private TYPE type = TYPE.JAVA;
