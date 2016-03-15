@@ -22,9 +22,11 @@ public class ActionNode extends BaseGRCNode {
 		if (nextJopId == 0) nextJopId = 1;
 		return jopId;
 	}
-	
+
 	public int getJOPIDDist() {
-		return this.getThnum() % Helper.pMap.nJOP;
+		int i = this.getThnum() % Helper.pMap.nJOP;
+		if (i == 0) i = 1;
+		return i;
 	}
 
 
@@ -203,7 +205,13 @@ public class ActionNode extends BaseGRCNode {
 				if(this.hasEmitVal()){
 					long dl_ptr = mp.getDataLockPointer();
 					long tnum = this.getThnum() - mp.getToplevelThnum();
-					int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
+					int jopId = 0;
+					
+					if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) 
+						jopId = getJOPIDDist();
+					else
+						jopId = getNextJopId(); 
+						
 					dl_ptr += tnum;
 					pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 					pw.println("  LDR R10 #" + casenumber);
@@ -215,7 +223,13 @@ public class ActionNode extends BaseGRCNode {
 			case JAVA:
 				long dl_ptr = mp.getDataLockPointer();
 				long tnum = this.getThnum() - mp.getToplevelThnum();
-				int jopId = getNextJopId(); // TODO Scope datacalls to jop based off reaction
+				int jopId = 0;
+				
+				if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) 
+					jopId = getJOPIDDist();
+				else
+					jopId = getNextJopId(); 
+				
 				dl_ptr += tnum;
 				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
 				pw.println("  LDR R10 #"+casenumber);

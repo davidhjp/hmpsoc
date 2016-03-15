@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.systemj.hmpsoc.DeclaredObjects.Channel;
 import com.systemj.hmpsoc.DeclaredObjects.Signal;
@@ -38,6 +41,7 @@ public class UglyPrinter {
 	private List<BaseGRCNode> nodelist;
 	private List<DeclaredObjects> declolist;
 	private List<List<ActionNode>> acts;
+	private List<List<List<ActionNode>>> actsDist;
 	private String topdir;
 	private SystemConfig systemConfig;
 	private SharedMemory sm = new SharedMemory();
@@ -110,15 +114,300 @@ public class UglyPrinter {
 		}
 		
 		printFiles(f);
-		
 	}
 
 	private void printFiles(File dir) throws FileNotFoundException {
-
-		printJavaJOPThread(dir);
-		printJavaMain(dir);
+		
 		printASM(dir);
 		
+		if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
+			IntStream.range(0, Helper.pMap.nJOP).forEachOrdered(i -> {
+				File ff = new File(dir, "JOP"+i);
+				List<List<ActionNode>> l = actsDist.get(i);
+				try {
+					printJavaMainDistributed(ff, l, i);
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			});
+		} else {
+			printJavaJOPThread(dir);
+			printJavaMain(dir);
+		}
+	}
+
+	private void printJavaMainDistributed(File dir, List<List<ActionNode>> actList, int jopID) throws FileNotFoundException {
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain.java")));
+		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";");
+		pw.println();
+		pw.println("import com.jopdesign.io.IOFactory;");
+		pw.println("import com.jopdesign.io.SysDevice;");
+		pw.println("import com.jopdesign.sys.Startup;");
+		pw.println("import com.jopdesign.sys.Native;");
+		pw.println();
+		pw.println("import java.util.Hashtable;");
+		pw.println();
+		pw.println("public class RTSMain {");
+		pw.incrementIndent();
+		
+		pw.println("private static final StringBuffer sb = new StringBuffer();");
+		pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
+		pw.incrementIndent();
+		pw.println("public void write(int b) throws java.io.IOException {");
+		pw.incrementIndent();
+		pw.println("synchronized(RTSMain.class){");
+		pw.incrementIndent();
+		pw.println("sb.append((char)b);");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("});");
+		
+		pw.println("private static final void printStdOut() {");
+		pw.incrementIndent();
+		pw.println("if(sb.length() > 0) {");
+		pw.incrementIndent();
+		pw.println("synchronized(RTSMain.class) {");
+		pw.incrementIndent();
+		pw.println("System.out.print(sb.toString());");
+		pw.println("sb.delete(0, sb.length());");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		
+		pw.println("public static void main(String[] arg){");
+		pw.incrementIndent();
+		
+
+		pw.println();
+		pw.println();
+		pw.println("init_all();");
+
+		pw.println("int dpcr = 0;");
+		pw.println("int cd = 0;");
+		pw.println("int data = 0;");
+		pw.println("int rval = 0;");
+		pw.println("int[] dl = new int[]{0};");
+		pw.println("int recopId = 0;");
+		pw.println("int result = 0;");
+		pw.println();
+		pw.println("try{");
+		pw.incrementIndent();
+		pw.println("while(true){");
+		pw.incrementIndent();
+
+		pw.println("printStdOut();");
+		pw.println("dpcr = Native.getDatacall();");
+		pw.println("if ((dpcr >> 31) == 0) continue;");
+		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
+		pw.println("data = dpcr & 0xFFFF; // dpcr(15 downto 0)");
+
+		pw.println("switch (cd) {");
+
+		for (int i = 0; i < declolist.size(); i++) {
+			String cdName = declolist.get(i).getCDName();
+
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+
+			if(jopID == 0){
+				pw.println("case " + i + ":");
+				pw.incrementIndent();
+				pw.println("recopId = " + cdName + ".recopId;");
+				pw.println("rval = " + cdName + ".housekeeping(data, dl);");
+				pw.println("break;");
+				pw.decrementIndent();
+			} else if (!actList.get(i).isEmpty()) {
+				pw.println("case " + i + ":");
+				pw.incrementIndent();
+				pw.println("rval = "+cdName+".MethodCall_0(data, dl) ? 3 : 2;");
+				pw.println("break;");
+				pw.decrementIndent();
+			}
+		}
+
+		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+
+		pw.println("}");
+
+		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
+				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
+				"| ((dl[0] & 0xFFF) << 12) /*WritebackAddress*/ " +
+				"| (rval & 0xFFF); /* return val */");
+		pw.println("Native.setDatacallResult(result);");
+
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		
+		pw.println("} catch (Exception e){");
+		
+		pw.incrementIndent();
+		pw.println("System.out.println(\"ERROR while executing housekeeping \"+recopId+\" \"+e.getMessage());");
+		pw.println("System.exit(1);");
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.decrementIndent();
+		pw.println("}");
+
+		pw.println();
+
+		pw.println("public static void init_all() {");
+		pw.incrementIndent();
+		
+		for (int i = 0; i < declolist.size(); i++) {
+			String cdName = declolist.get(i).getCDName();
+
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					continue;
+				}
+			}
+			
+			if(jopID == 0 || !actList.get(i).isEmpty())
+				pw.println(cdName + ".init();");
+		}
+
+		if (systemConfig == null) {
+			pw.println("// ERROR - No System configuration specified");
+			pw.println("// Complete init code can not be generated");
+		}
+
+		pw.println();
+		pw.println("// Interface init");
+		pw.println(Java.CLASS_GENERIC_INTERFACE + " gif = null;");
+		pw.println("Hashtable ht = null;");
+		pw.println();
+
+		for (int i = 0; i < declolist.size(); i++) {
+			if (systemConfig == null) break;
+
+			DeclaredObjects d = declolist.get(i);
+			String cdName = d.getCDName();
+
+			if (!systemConfig.isLocalClockDomain(cdName)) {
+				// This clock domain does not run on this device
+				continue;
+			}
+			
+			if(!actList.get(i).isEmpty()){
+				ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
+
+				pw.println("// Init for " + cdName);
+				for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+					Channel c = it.next();
+					String channel = cdName + "." + c.name + "_in";
+					String channelPartner = cdConfig.channelPartners.get(c.name) + "_o";
+					pw.println(channel + ".Name = \"" + channel + "\";");
+					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+
+					if (cdConfig.isChannelPartnerLocal(c.name)) {
+						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+							if (sm.hasChan(channelPartner)) {
+								MemorySlot ms = sm.getChanMem(channelPartner);
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+								if(!sm.hasChan(channel))
+									sm.linkChannel(channel);
+							} else{
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								if(!sm.hasChan(channel))
+									sm.addChannel(channel);
+							}
+							pw.println("gif.configure(null);");
+							pw.println(channel + ".setLink(gif);");
+						} else {
+							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
+						}
+					} else {
+						systemConfig.subSystems.stream().forEach(SSC -> {
+							if (!SSC.local) {
+								SSC.clockDomains.forEach((K, V) -> {
+									if (V.isChannelPartnerLocal(c.name)) {
+										Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap(L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name))).findAny();
+										if (o.isPresent()) {
+											InterfaceConfig ic = o.get();
+											pw.println("gif = new " + ic.interfaceClass + "();");
+											pw.println("ht = new Hashtable();");
+											ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
+											pw.println("gif.configure(ht);");
+											pw.println(channel + ".setLink(gif);");
+										}
+									}
+								});
+							}
+						});
+					}
+					pw.println(channel + ".setInit();");
+					pw.println();
+				}
+				for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+					Channel c = it.next();
+
+					String channel = cdName + "." + c.name + "_o";
+					String channelPartner = cdConfig.channelPartners.get(c.name) + "_in";
+					pw.println(channel + ".Name = \"" + channel + "\";");
+					pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
+
+					if (cdConfig.isChannelPartnerLocal(c.name)) {
+						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+							if (sm.hasChan(channelPartner)) {
+								MemorySlot ms = sm.getChanMem(channelPartner);
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+								if(!sm.hasChan(channel))
+									sm.linkChannel(channel);
+							} else {
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								if(!sm.hasChan(channel))
+									sm.addChannel(channel);
+							}
+							pw.println("gif.configure(null);");
+							pw.println(channel + ".setLink(gif);");
+						} else {
+							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
+						}
+					} else {
+						systemConfig.subSystems.stream().forEach(SSC -> {
+							if (!SSC.local) {
+								SSC.clockDomains.forEach((K, V) -> {
+									if (V.isChannelPartnerLocal(c.name)) {
+										Optional<InterfaceConfig> o = systemConfig.links.stream().flatMap(L -> L.interfaces.stream().filter(I -> I.subSystem.equals(SSC.name))).findAny();
+										if (o.isPresent()) {
+											InterfaceConfig ic = o.get();
+											pw.println("gif = new " + ic.interfaceClass + "();");
+											pw.println("ht = new Hashtable();");
+											ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
+											pw.println("gif.configure(ht);");
+											pw.println(channel + ".setLink(gif);");
+										}
+									}
+								});
+							}
+						});
+					}
+					pw.println(channel + ".setInit();");
+					pw.println();
+				}
+			}
+		}
+
+		pw.decrementIndent();
+		pw.println("}");
+		pw.decrementIndent();
+		pw.println("}");
+		pw.flush();
+		pw.close();		
 	}
 
 	private void printASM(File dir) throws FileNotFoundException {
@@ -347,9 +636,32 @@ public class UglyPrinter {
 				else
 					pw.println("AJOIN"+cdi+" JMP RUN"+(i+1));
 				
-				
-				printJavaClockDomain(dir, mp, cdi);
+				if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+					IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
+					List<List<List<ActionNode>>> sorted = ist.mapToObj(ii -> {
+						Stream<List<ActionNode>> nds = acts.stream().flatMap(l -> {
+							return Stream.of(l.stream().filter(a -> a.getJOPIDDist() == ii).collect(Collectors.toList()));
+						});
+						return nds.collect(Collectors.toList());
+					}).collect(Collectors.toList());
 
+					this.actsDist = sorted;
+					
+					ist = IntStream.range(0, Helper.pMap.nJOP);
+					ist.forEachOrdered(ii -> {
+						List<List<ActionNode>> actlists = sorted.get(ii);
+						File ff = new File(dir, "JOP"+ii);
+						ff.mkdirs();
+						try {
+							if (!actlists.get(cdi).isEmpty())
+								printJavaClockDomain(ff, mp, cdi, actlists);
+						} catch (Exception e) {
+							e.printStackTrace();
+							System.exit(1);
+						}
+					});
+				} else
+					printJavaClockDomain(dir, mp, cdi, this.acts);
 			}
 
 			pw.println("ENDPROG");
@@ -585,18 +897,7 @@ public class UglyPrinter {
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
-						if (sm.hasChan(channelPartner)) {
-							MemorySlot ms = sm.getChanMem(channelPartner);
-							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
-						} else
-							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
-						pw.println("gif.configure(null);");
-						pw.println(channel + ".setLink(gif);");
-						sm.addChannel(channel);
-					} else {
-						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
-					}
+					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
 						if (!SSC.local) {
@@ -628,18 +929,7 @@ public class UglyPrinter {
 				pw.println(channel + ".PartnerName = \"" + channelPartner + "\";");
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
-					if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
-						if (sm.hasChan(channelPartner)) {
-							MemorySlot ms = sm.getChanMem(channelPartner);
-							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
-						} else
-							pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
-						pw.println("gif.configure(null);");
-						pw.println(channel + ".setLink(gif);");
-						sm.addChannel(channel);
-					} else {
-						pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
-					}
+					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
 						if (!SSC.local) {
@@ -672,8 +962,8 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printJavaClockDomain(File dir, MemoryPointer mp, int cdi) throws FileNotFoundException {
-		if(acts.size() != declolist.size())
+	private void printJavaClockDomain(File dir, MemoryPointer mp, int cdi, List<List<ActionNode>> actlists) throws FileNotFoundException {
+		if(actlists.size() != declolist.size())
 			throw new RuntimeException("Error !");
 		DeclaredObjects d = declolist.get(cdi);
 		String cdName = d.getCDName();
@@ -690,7 +980,7 @@ public class UglyPrinter {
 			throw new RuntimeException("Could not find CD name: "+cdName);
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
 
-		pw.println("package "+target+";\n");
+		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";\n");
 		pw.println();
 		pw.println("import java.util.Hashtable;");
 		pw.println();
@@ -761,7 +1051,8 @@ public class UglyPrinter {
 		Consumer<Signal> mL = (ssig -> {
 			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 				String cdSigName = cdName+"."+ssig.name;
-				sm.addSignal(cdSigName);
+				if(!sm.hasSig(cdSigName))
+					sm.addSignal(cdSigName);
 				MemorySlot ms = sm.getSigMem(cdSigName);
 				pw.println(ssig.name + ".setMemoryLoc(" + ms.start + "L, " + ms.depth + "L);");
 			}
@@ -771,42 +1062,48 @@ public class UglyPrinter {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 
-			if (systemConfig != null) {
-				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
-				SignalConfig sigCfg = cdCfg.isignals.get(s.name);
+			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+				mL.accept(s);
+			} else {
+				if (systemConfig != null) {
+					ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+					SignalConfig sigCfg = cdCfg.isignals.get(s.name);
 
-				if (sigCfg == null)
-					throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
-				pw.println("sigReceiver = new " + sigCfg.clazz + "();");
-				pw.println("ht = new Hashtable();");
-				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
-					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
-				pw.println("sigReceiver.configure(ht);");
-				pw.println(s.name + ".setServer(sigReceiver);");
+					if (sigCfg == null)
+						throw new RuntimeException("Unconfigured input signal " + cdName + "." + s.name);
+					pw.println("sigReceiver = new " + sigCfg.clazz + "();");
+					pw.println("ht = new Hashtable();");
+					for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+						pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+					pw.println("sigReceiver.configure(ht);");
+					pw.println(s.name + ".setServer(sigReceiver);");
+				}
 			}
 			
-			mL.accept(s);
 			pw.println();
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
 
-			if (systemConfig != null) {
-				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
-				SignalConfig sigCfg = cdCfg.osignals.get(s.name);
+			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+				mL.accept(s);
+			} else {
+				if (systemConfig != null) {
+					ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
+					SignalConfig sigCfg = cdCfg.osignals.get(s.name);
 
-				if (sigCfg == null)
-					throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
-				pw.println("sigSender = new " + sigCfg.clazz + "();");
-				pw.println("ht = new Hashtable();");
-				for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
-					pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
-				pw.println("sigSender.configure(ht);");
-				pw.println(s.name + ".setClient(sigSender);");
+					if (sigCfg == null)
+						throw new RuntimeException("Unconfigured output signal " + cdName + "." + s.name);
+					pw.println("sigSender = new " + sigCfg.clazz + "();");
+					pw.println("ht = new Hashtable();");
+					for (Map.Entry<String, String> entry : sigCfg.cfg.entrySet())
+						pw.println("ht.put(\"" + entry.getKey() + "\", \"" + entry.getValue() + "\");");
+					pw.println("sigSender.configure(ht);");
+					pw.println(s.name + ".setClient(sigSender);");
+				}
 			}
 			
-			mL.accept(s);
 			pw.println();
 		}
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
@@ -828,7 +1125,8 @@ public class UglyPrinter {
 		pw.println("}");
 
 		pw.println();
-
+		
+		// House keeping
 		pw.println("public static int housekeeping(int osigs, int[] dl) {");
 		pw.incrementIndent();
 
@@ -887,9 +1185,6 @@ public class UglyPrinter {
 			pw.println(c.name + "_o.gethook();");
 			pw.println(c.name + "_o.sethook();");
 		}
-//		pw.println();
-//		pw.println("// Run interface manager");
-//		pw.println("if (im != null) im.run();");
 
 		pw.println();
 
@@ -911,12 +1206,11 @@ public class UglyPrinter {
 		pw.println("}");
 
 		pw.println();
-
-		List<ActionNode> l = acts.get(cdi);
+		
+		
+		// Non IO-JOP stuffs from here
+		List<ActionNode> l = actlists.get(cdi);
 		pw.println();
-
-		//List<List<StringBuilder>> lsb = new ArrayList<List<StringBuilder>>();
-		//List<StringBuilder> llsb = new ArrayList<StringBuilder>();
 
 		pw.println("public static boolean MethodCall_0(int casen, int[] dl) {");
 		pw.incrementIndent();
@@ -949,7 +1243,7 @@ public class UglyPrinter {
 				case JAVA:
 					if (an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
-//				SystemConfig.out.println(""+an.getThnum()+", "+mp.getDataLockPointer());
+					
 					pw.println("case " + an.getCasenumber() + ": ");
 					pw.incrementIndent();
 					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
@@ -1019,8 +1313,7 @@ public class UglyPrinter {
 		pw.close();
 
 	}
-
-
+	
 	private void printJavaJOPThread(File dir) throws FileNotFoundException{
 
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "JOPThread.java")));

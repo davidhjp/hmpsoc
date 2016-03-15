@@ -25,20 +25,28 @@ public class SharedMemory {
 	private void incSignal() {
 		pointer += DEPTH_SIGNAL;
 	}
-
-	public void addChannel(String chan) {
+	
+	public void linkChannel(String chan) {
 		MemorySlot ms = new MemorySlot();
 		ms.start = pointer;
 		ms.depth = DEPTH_CHAN;
 		chanMap.put(chan, ms);
-		incChannel();
 	}
-
-	public void addSignal(String sig) {
+	
+	public void linkSignal(String sig) {
 		MemorySlot ms = new MemorySlot();
 		ms.start = pointer;
 		ms.depth = DEPTH_SIGNAL;
 		sigMap.put(sig, ms);
+	}
+
+	public void addChannel(String chan) {
+		linkChannel(chan);
+		incChannel();
+	}
+
+	public void addSignal(String sig) {
+		linkSignal(sig);
 		incSignal();
 	}
 
