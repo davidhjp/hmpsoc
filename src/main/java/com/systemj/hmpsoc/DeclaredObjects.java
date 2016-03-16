@@ -59,15 +59,24 @@ public class DeclaredObjects {
 	private List<Channel> ichans = new ArrayList<Channel>();
 	private List<Channel> ochans = new ArrayList<Channel>();
 	private List<Var> vardecls = new ArrayList<Var>();
-	
-	
-	public List<Signal> getIsignals() {
+
+	public List<Channel> getInChans() {
+		return ichans;
+	}
+
+	public List<Channel> getOutChans() {
+		return ochans;
+	}
+
+	public List<Signal> getInputSignals() {
 		return isignals;
 	}
-	public List<Signal> getOsignals() {
+	
+	public List<Signal> getOutputSignals() {
 		return osignals;
 	}
-	public List<Signal> getSignals() {
+	
+	public List<Signal> getInternalSignals() {
 		return signals;
 	}
 	

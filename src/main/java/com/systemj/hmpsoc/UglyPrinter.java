@@ -304,7 +304,7 @@ public class UglyPrinter {
 				continue;
 			}
 			
-			if(!actList.get(i).isEmpty()){
+			if(!actList.get(i).isEmpty() || jopID == 0){
 				ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
 
 				pw.println("// Init for " + cdName);
@@ -684,6 +684,7 @@ public class UglyPrinter {
 					StringBuilder sb = new StringBuilder();
 					ArrayList<String> ll = new ArrayList<>();
 					String ln = "\n";
+					
 					sb.append("for (int i = 0; i < currentSignals.size(); i++) {").append(ln);
 					sb.append("com.systemj.Signal sig = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
 					sb.append("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();").append(ln);
@@ -692,7 +693,10 @@ public class UglyPrinter {
 					sb.append("com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
 					sb.append("}").append(ln);
 					sb.append("currentSignals.removeAllElements();").append(ln);
-					sb.append("// TODO: Read from channels").append(ln);
+					
+					DeclaredObjects d = declolist.get(cdi);
+					d.getInChans().forEach(c -> sb.append(c.name+"_in.sethook();").append(ln));
+					d.getOutChans().forEach(c -> sb.append(c.name+"_o.sethook();").append(ln));
 					
 					
 					ll.add(sb.toString());
@@ -705,8 +709,7 @@ public class UglyPrinter {
 					sb.delete(0, sb.length());
 					ll = new ArrayList<>();
 					
-					DeclaredObjects d = declolist.get(cdi);
-					Stream<Signal> sst = Stream.<List<Signal>>builder().add(d.getIsignals()).add(d.getOsignals()).add(d.getSignals()).build().flatMap( sl -> sl.stream());
+					Stream<Signal> sst = Stream.<List<Signal>>builder().add(d.getInputSignals()).add(d.getOutputSignals()).add(d.getInternalSignals()).build().flatMap( sl -> sl.stream());
 					sst.forEachOrdered(s -> {
 						if(s.type != null){
 							sb.append("{").append(ln);
@@ -716,7 +719,8 @@ public class UglyPrinter {
 							sb.append("b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
 							sb.append(s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
 							sb.append("}").append(ln);
-							sb.append("// TODO: Write from channels").append(ln);
+							d.getInChans().forEach(c -> sb.append(c.name+"_in.sethook();").append(ln));
+							d.getOutChans().forEach(c -> sb.append(c.name+"_o.sethook();").append(ln));
 						}
 					});
 					ll.add(sb.toString());
@@ -1054,7 +1058,7 @@ public class UglyPrinter {
 
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
 
 			if (systemConfig != null) {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
@@ -1075,7 +1079,7 @@ public class UglyPrinter {
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
 
 			if (systemConfig != null) {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
@@ -1094,21 +1098,25 @@ public class UglyPrinter {
 			mL.accept(s);
 			pw.println();
 		}
+		
 		for (Iterator<Signal> it = d.getInternalSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
 			// TODO Check if internal pure signals are actually required to be created jop side
 			if (s.type == null) pw.print("//");
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "();");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
 			mL.accept(s);
 		}
+		
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + "_in = new " + Java.CLASS_I_CHANNEL + "();");
+			pw.println(c.name + "_in = new " + Java.CLASS_I_CHANNEL + "(new "+c.type+"());");
 		}
+		
 		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "();");
+			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "(new "+c.type+"());");
 		}
+		
 		pw.decrementIndent();
 		pw.println("}");
 
