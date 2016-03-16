@@ -27,6 +27,7 @@ import com.systemj.hmpsoc.config.InterfaceConfig;
 import com.systemj.hmpsoc.config.SignalConfig;
 import com.systemj.hmpsoc.config.SystemConfig;
 import com.systemj.hmpsoc.nodes.ActionNode;
+import com.systemj.hmpsoc.nodes.ActionNode.TYPE;
 import com.systemj.hmpsoc.nodes.BaseGRCNode;
 import com.systemj.hmpsoc.nodes.ForkNode;
 import com.systemj.hmpsoc.nodes.JoinNode;
@@ -45,6 +46,7 @@ public class UglyPrinter {
 	private String topdir;
 	private SystemConfig systemConfig;
 	private SharedMemory sm = new SharedMemory();
+	private List<String> imports;
 
 	public UglyPrinter () {}
 
@@ -59,6 +61,10 @@ public class UglyPrinter {
 		this.topdir = dir;
 		this.nodelist = nodes;
 		this.systemConfig = systemConfig;
+	}
+	
+	public void setImports(List<String> l) {
+		imports = l;
 	}
 
 	public List<DeclaredObjects> getDelcaredObjects() {
@@ -98,11 +104,12 @@ public class UglyPrinter {
 		public static final String CLASS_GENERIC_SIGNAL_RECIEVER = "com.systemj.ipc.GenericSignalReceiver";
 		public static final String CLASS_GENERIC_SIGNAL_SENDER = "com.systemj.ipc.GenericSignalSender";
 		public static final String CLASS_GENERIC_CHANNEL = "com.systemj.GenericChannel";
+		public static final String CLASS_SERIALIZABLE = "com.systemjx.jop.ipc.Serializable";
 
 	}
 
 	public void uglyprint() throws FileNotFoundException {
-	
+		
 		File f = null;
 		if(this.hasDir()){
 			f = new File(topdir+"/"+target);
@@ -117,6 +124,10 @@ public class UglyPrinter {
 	}
 
 	private void printFiles(File dir) throws FileNotFoundException {
+		if(acts.size() != declolist.size())
+			throw new RuntimeException("Error !");
+		
+		distributeActions();
 		
 		printASM(dir);
 		
@@ -148,45 +159,34 @@ public class UglyPrinter {
 		pw.println();
 		pw.println("import java.util.Hashtable;");
 		pw.println();
+		
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
 		
-		pw.println("private static final StringBuffer sb = new StringBuffer();");
-		pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
-		pw.incrementIndent();
-		pw.println("public void write(int b) throws java.io.IOException {");
-		pw.incrementIndent();
-		pw.println("synchronized(RTSMain.class){");
-		pw.incrementIndent();
-		pw.println("sb.append((char)b);");
-		pw.decrementIndent();
-		pw.println("}");
-		pw.decrementIndent();
-		pw.println("}");
-		pw.decrementIndent();
-		pw.println("});");
-		
-		pw.println("private static final void printStdOut() {");
-		pw.incrementIndent();
-		pw.println("if(sb.length() > 0) {");
-		pw.incrementIndent();
-		pw.println("synchronized(RTSMain.class) {");
-		pw.incrementIndent();
-		pw.println("System.out.print(sb.toString());");
-		pw.println("sb.delete(0, sb.length());");
-		pw.decrementIndent();
-		pw.println("}");
-		pw.decrementIndent();
-		pw.println("}");
-		pw.decrementIndent();
-		pw.println("}");
+		if(jopID == 0) {
+			pw.println("public static void printStdOut(){");
+			pw.println("// TODO: complete this");
+			pw.println("}");
+			pw.println();
+		} else {
+			pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
+			pw.incrementIndent();
+			pw.println("public void write(int b) throws java.io.IOException {");
+			pw.incrementIndent();
+			pw.println("synchronized(RTSMain.class){");
+			pw.incrementIndent();
+			pw.println("// TODO: complete this");
+			pw.decrementIndent();
+			pw.println("}");
+			pw.decrementIndent();
+			pw.println("}");
+			pw.decrementIndent();
+			pw.println("});");
+		}
+
 		
 		pw.println("public static void main(String[] arg){");
 		pw.incrementIndent();
-		
-
-		pw.println();
-		pw.println();
 		pw.println("init_all();");
 
 		pw.println("int dpcr = 0;");
@@ -202,7 +202,9 @@ public class UglyPrinter {
 		pw.println("while(true){");
 		pw.incrementIndent();
 
-		pw.println("printStdOut();");
+		if(jopID == 0)
+			pw.println("printStdOut();");
+		
 		pw.println("dpcr = Native.getDatacall();");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
@@ -638,36 +640,99 @@ public class UglyPrinter {
 				
 				if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 					IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
-					List<List<List<ActionNode>>> sorted = ist.mapToObj(ii -> {
-						Stream<List<ActionNode>> nds = acts.stream().flatMap(l -> {
-							return Stream.of(l.stream().filter(a -> a.getJOPIDDist() == ii).collect(Collectors.toList()));
-						});
-						return nds.collect(Collectors.toList());
-					}).collect(Collectors.toList());
-
-					this.actsDist = sorted;
-					
-					ist = IntStream.range(0, Helper.pMap.nJOP);
 					ist.forEachOrdered(ii -> {
-						List<List<ActionNode>> actlists = sorted.get(ii);
+						List<List<ActionNode>> actlists = actsDist.get(ii);
 						File ff = new File(dir, "JOP"+ii);
 						ff.mkdirs();
 						try {
-							if (!actlists.get(cdi).isEmpty())
-								printJavaClockDomain(ff, mp, cdi, actlists);
+							printJavaClockDomainDistributed(ff, mp, actlists.get(cdi), declolist.get(cdi), cdi, ii);
 						} catch (Exception e) {
 							e.printStackTrace();
 							System.exit(1);
 						}
 					});
 				} else
-					printJavaClockDomain(dir, mp, cdi, this.acts);
+					printJavaClockDomain(dir, mp, this.acts.get(cdi), declolist.get(cdi), cdi);
 			}
 
 			pw.println("ENDPROG");
 			pw.flush();
 			pw.close();
 		}
+		
+	}
+	
+	private void distributeActions() {
+		IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
+		List<List<List<ActionNode>>> sorted = ist.mapToObj(ii -> {
+			Stream<List<ActionNode>> nds = acts.stream().flatMap(l -> {
+				return Stream.of(l.stream().filter(a -> a.getJOPIDDist() == ii).collect(Collectors.toList()));
+			});
+			return nds.collect(Collectors.toList());
+		}).collect(Collectors.toList());
+
+		this.actsDist = sorted;
+		
+		// Adding HK
+		this.actsDist = IntStream.range(0, actsDist.size()).mapToObj(jopi -> {
+			return IntStream.range(0, actsDist.get(jopi).size()).mapToObj(cdi -> {
+				List<ActionNode> l = actsDist.get(jopi).get(cdi);
+				if (l.size() > 0) {
+					ActionNode an = new ActionNode();
+					an.setThnum(l.get(0).getThnum());
+					an.setActionType(TYPE.GROUPED_JAVA);
+					StringBuilder sb = new StringBuilder();
+					ArrayList<String> ll = new ArrayList<>();
+					String ln = "\n";
+					sb.append("for (int i = 0; i < currentSignals.size(); i++) {").append(ln);
+					sb.append("com.systemj.Signal sig = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
+					sb.append("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();").append(ln);
+					sb.append("sig.setpreval(sig.getValue());").append(ln);
+					sb.append("byte[] b = (("+Java.CLASS_SERIALIZABLE+")sig.getpreval()).serialize();").append(ln);
+					sb.append("com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
+					sb.append("}").append(ln);
+					sb.append("currentSignals.removeAllElements();").append(ln);
+					ll.add(sb.toString());
+					an.setStmts(ll);
+					l.add(0, an);
+					
+					an = new ActionNode();
+					an.setThnum(l.get(0).getThnum());
+					an.setActionType(TYPE.GROUPED_JAVA);
+					sb.delete(0, sb.length());
+					ll = new ArrayList<>();
+					
+					DeclaredObjects d = declolist.get(cdi);
+					Stream<Signal> sst = Stream.<List<Signal>>builder().add(d.getIsignals()).add(d.getOsignals()).add(d.getSignals()).build().flatMap( sl -> sl.stream());
+					sst.forEachOrdered(s -> {
+						if(s.type != null){
+							sb.append("{").append(ln);
+							sb.append("int val = com.jopdesign.sys.Native.rd((int)"+s.name+".getMemLoc());").append(ln);
+							sb.append("byte[] b = new byte[4];").append(ln);
+							sb.append("for (int i=0 ; i<b.length; i++)").append(ln);
+							sb.append("b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
+							sb.append(s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
+							sb.append("}").append(ln);
+						}
+					});
+					ll.add(sb.toString());
+					an.setStmts(ll);
+					l.add(0, an);
+				}
+				return l;
+			}).collect(Collectors.toList());
+		}).collect(Collectors.toList());
+		
+		// Setting caes number here
+		actsDist.stream().map(ll -> 
+			ll.stream().map(l -> 
+				l.stream().filter(n -> 
+					(n.getActionType() == ActionNode.TYPE.JAVA || n.getActionType() == ActionNode.TYPE.GROUPED_JAVA ||
+							(n.getActionType() == ActionNode.TYPE.EMIT && n.hasEmitVal()) && n.getCasenumber() < 0)).collect(Collectors.toList())).collect(Collectors.toList()))
+		.forEachOrdered( ll -> 
+			ll.forEach( l -> 
+				IntStream.range(0, l.size()).forEachOrdered(i -> 
+					l.get(i).setCasenumber(i))));
 		
 	}
 
@@ -962,83 +1027,8 @@ public class UglyPrinter {
 		pw.close();
 	}
 	
-	private void printJavaClockDomain(File dir, MemoryPointer mp, int cdi, List<List<ActionNode>> actlists) throws FileNotFoundException {
-		if(actlists.size() != declolist.size())
-			throw new RuntimeException("Error !");
-		DeclaredObjects d = declolist.get(cdi);
+	private void printJavaCDInit(IndentPrinter pw, DeclaredObjects d) {
 		String cdName = d.getCDName();
-
-		if (systemConfig != null) {
-			if (!systemConfig.isLocalClockDomain(cdName)) {
-				// This clock domain does not run on this device
-				return;
-			}
-		}
-
-		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
-		if (recopId == null)
-			throw new RuntimeException("Could not find CD name: "+cdName);
-		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
-
-		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";\n");
-		pw.println();
-		pw.println("import java.util.Hashtable;");
-		pw.println();
-		pw.println("public class "+cdName+"{");
-
-		pw.incrementIndent();
-
-		pw.println("public static final String CDName = \"" + cdName + "\";");
-		pw.println("public static final int recopId = " + recopId + ";");
-		pw.println("private static java.util.Vector currentSignals;");
-//		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
-		{
-			Iterator<Signal> iter = d.getInputSignalIterator();
-			while(iter.hasNext()){
-				Signal s = iter.next();
-				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // isig");
-			}
-		}
-		{
-			Iterator<Signal> iter = d.getOutputSignalIterator();
-			while(iter.hasNext()){
-				Signal s = iter.next();
-				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // osig");
-			}
-		}
-		{
-			Iterator<Signal> iter = d.getInternalSignalIterator();
-			while(iter.hasNext()){
-				Signal s = iter.next();
-				// TODO Check if internal pure signals are actually required to be created jop side
-				if (s.type == null) pw.print("//");
-				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
-			}
-		}
-		{
-			Iterator<Channel> iter = d.getInputChannelIterator();
-			while(iter.hasNext()){
-				Channel s = iter.next();
-				pw.println("public static "+Java.CLASS_I_CHANNEL+" "+s.name+"_in;");
-			}
-		}
-		{
-			Iterator<Channel> iter = d.getOutputChannelIterator();
-			while(iter.hasNext()){
-				Channel s = iter.next();
-				pw.println("public static "+Java.CLASS_O_CHANNEL+" "+s.name+"_o;");
-			}
-		}
-		{
-			Iterator<Var> iter = d.getVarDeclIterator();
-			while(iter.hasNext()){
-				Var s = iter.next();
-				pw.println("public static "+s.type+" "+s.name+";");
-			}
-		}
-
-		pw.println();
-
 		pw.println("public static void init() {");
 		pw.incrementIndent();
 
@@ -1119,7 +1109,65 @@ public class UglyPrinter {
 		pw.println("}");
 
 		pw.println();
-		
+	}
+	
+	private void printJavaFields(IndentPrinter pw, DeclaredObjects d, File dir) {
+		String cdName = d.getCDName();
+		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
+
+		pw.println("public static final String CDName = \"" + cdName + "\";");
+		pw.println("public static final int recopId = " + recopId + ";");
+		pw.println("private static java.util.Vector currentSignals;");
+//		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
+		{
+			Iterator<Signal> iter = d.getInputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // isig");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getOutputSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+"; // osig");
+			}
+		}
+		{
+			Iterator<Signal> iter = d.getInternalSignalIterator();
+			while(iter.hasNext()){
+				Signal s = iter.next();
+				// TODO Check if internal pure signals are actually required to be created jop side
+				if (s.type == null) pw.print("//");
+				pw.println("public static "+Java.CLASS_SIGNAL+" "+s.name+";");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getInputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("public static "+Java.CLASS_I_CHANNEL+" "+s.name+"_in;");
+			}
+		}
+		{
+			Iterator<Channel> iter = d.getOutputChannelIterator();
+			while(iter.hasNext()){
+				Channel s = iter.next();
+				pw.println("public static "+Java.CLASS_O_CHANNEL+" "+s.name+"_o;");
+			}
+		}
+		{
+			Iterator<Var> iter = d.getVarDeclIterator();
+			while(iter.hasNext()){
+				Var s = iter.next();
+				pw.println("public static "+s.type+" "+s.name+";");
+			}
+		}
+		pw.println();
+	}
+	
+	private void printJavaCDHK(IndentPrinter pw, DeclaredObjects d, MemoryPointer mp) {
+		String cdName = d.getCDName();
 		// House keeping
 		pw.println("public static int housekeeping(int osigs, int[] dl) {");
 		pw.incrementIndent();
@@ -1159,16 +1207,9 @@ public class UglyPrinter {
 			pw.println(s.name + ".sethook();");
 		}
 		pw.println();
+		
 		// START - Update channels
 		pw.println("// Update Channels");
-//		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
-//			Channel c = it.next();
-//			pw.println(c.name + ".update_r_s();");
-//		}
-//		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
-//			Channel c = it.next();
-//			pw.println(c.name + ".update_w_r();");
-//		}
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
 			pw.println(c.name + "_in.gethook();");
@@ -1179,7 +1220,6 @@ public class UglyPrinter {
 			pw.println(c.name + "_o.gethook();");
 			pw.println(c.name + "_o.sethook();");
 		}
-
 		pw.println();
 
 		pw.println("// Get input signal statues");
@@ -1200,10 +1240,56 @@ public class UglyPrinter {
 		pw.println("}");
 
 		pw.println();
-		
-		
+	}
+	
+	private void printJavaClockDomainDistributed(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi, int jopID) throws FileNotFoundException {
+		if (!actlists.isEmpty() || jopID == 0) {
+			String cdName = d.getCDName();
+
+			if (systemConfig != null) {
+				if (!systemConfig.isLocalClockDomain(cdName)) {
+					// This clock domain does not run on this device
+					return;
+				}
+			}
+
+			Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
+			if (recopId == null)
+				throw new RuntimeException("Could not find CD name: "+cdName);
+			IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
+
+			pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";\n");
+			pw.println();
+			pw.println("import java.util.Hashtable;");
+			pw.println();
+			
+			imports.forEach(v -> pw.println(v+"\n"));
+			
+			pw.println("public class "+cdName+"{");
+			pw.incrementIndent();
+
+			printJavaFields(pw, d, dir);
+
+			printJavaCDInit(pw, d);
+
+			if (jopID == 0)
+				printJavaCDHK(pw, d, mp);
+			
+			if (jopID != 0){
+				// Inserting non-io house-keeping actions to the list
+
+				printJavaCDMethods(pw, mp, actlists, cdi);
+			}
+
+			pw.decrementIndent();
+			pw.println("}");
+			pw.flush();
+			pw.close();
+		}
+	}
+	
+	private void printJavaCDMethods(IndentPrinter pw, MemoryPointer mp, List<ActionNode> l, int cdi) {
 		// Non IO-JOP stuffs from here
-		List<ActionNode> l = actlists.get(cdi);
 		pw.println();
 
 		pw.println("public static boolean MethodCall_0(int casen, int[] dl) {");
@@ -1220,7 +1306,7 @@ public class UglyPrinter {
 			boolean genMethod = caseGen && numCasesGened % 100 == 0;
 
 			if (genMethod) {
-				pw.println("default: return MethodCall_" + (methodNum+1) + "(casen);");
+				pw.println("default: return MethodCall_" + (methodNum + 1) + "(casen);");
 				pw.println("}"); // Switch end
 				pw.decrementIndent();
 				pw.println("}"); // Method end
@@ -1233,62 +1319,61 @@ public class UglyPrinter {
 				pw.incrementIndent();
 			}
 
-			switch(an.getActionType()) {
-				case JAVA:
+			switch (an.getActionType()) {
+			case JAVA:
+				if (an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+
+				pw.println("case " + an.getCasenumber() + ": ");
+				pw.incrementIndent();
+				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+				if (an.isBeforeTestNode()) {
+					pw.println("return " + an.getStmt() + ";");
+					pw.decrementIndent();
+				} else {
+					pw.println(an.getStmt() + "");
+					pw.println("break;");
+					pw.decrementIndent();
+				}
+				numCasesGened++;
+				caseGen = true;
+				break;
+			case GROUPED_JAVA:
+				if (an.getCasenumber() < 0)
+					throw new RuntimeException("Unresolved Action Case");
+				pw.println("case " + an.getCasenumber() + ":");
+				pw.incrementIndent();
+				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+				for (String stmt : an.getStmts()) {
+					pw.println(stmt);
+				}
+				pw.println("break;");
+				pw.decrementIndent();
+				numCasesGened++;
+				caseGen = true;
+				break;
+			case EMIT:
+				if (an.hasEmitVal()) {
 					if (an.getCasenumber() < 0)
-						throw new RuntimeException("Unresolved Action Case");
-					
-					pw.println("case " + an.getCasenumber() + ": ");
-					pw.incrementIndent();
-					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-					if (an.isBeforeTestNode()) {
-						pw.println("return " + an.getStmt() + ";");
-						pw.decrementIndent();
-					} else {
-						pw.println(an.getStmt() + "");
-						pw.println("break;");
-						pw.decrementIndent();
-					}
-					numCasesGened++;
-					caseGen = true;
-					break;
-				case GROUPED_JAVA:
-					if(an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
 					pw.println("case " + an.getCasenumber() + ":");
 					pw.incrementIndent();
 					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-					for(String stmt : an.getStmts()){
-						pw.println(stmt);
-					}
+					pw.println(an.getStmt() + "");
+					pw.println("currentSignals.addElement(" + an.getSigName() + ");");
 					pw.println("break;");
 					pw.decrementIndent();
+
 					numCasesGened++;
 					caseGen = true;
-					break;
-				case EMIT:
-					if(an.hasEmitVal()){
-						if(an.getCasenumber() < 0)
-							throw new RuntimeException("Unresolved Action Case");
-						pw.println("case " + an.getCasenumber()+":");
-						pw.incrementIndent();
-						pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer())+";");
-						pw.println(an.getStmt()+"");
-						pw.println("currentSignals.addElement(" + an.getSigName() + ");");
-						pw.println("break;");
-						pw.decrementIndent();
-
-						numCasesGened++;
-						caseGen = true;
-					}
-					else {
-						caseGen = false;
-						continue;
-					}
-					break;
-				default:
+				} else {
 					caseGen = false;
 					continue;
+				}
+				break;
+			default:
+				caseGen = false;
+				continue;
 			}
 		}
 
@@ -1299,7 +1384,37 @@ public class UglyPrinter {
 		pw.println("return false;");
 		pw.println("}"); // Method end
 		pw.println();
+	}
+	
+	private void printJavaClockDomain(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi) throws FileNotFoundException {
+		String cdName = d.getCDName();
 
+		if (systemConfig != null) {
+			if (!systemConfig.isLocalClockDomain(cdName)) {
+				// This clock domain does not run on this device
+				return;
+			}
+		}
+
+		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
+		if (recopId == null)
+			throw new RuntimeException("Could not find CD name: "+cdName);
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, cdName+".java")));
+		
+		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";\n");
+		pw.println();
+		pw.println("import java.util.Hashtable;");
+		pw.println();
+		
+		imports.forEach(v -> pw.println(v+"\n"));
+		pw.println("public class "+cdName+"{");
+
+		pw.incrementIndent();
+		
+		printJavaFields(pw, d, dir);
+		printJavaCDInit(pw, d);
+		printJavaCDHK(pw, d, mp);
+		printJavaCDMethods(pw, mp, actlists, cdi);
 
 		pw.decrementIndent();
 		pw.println("}");

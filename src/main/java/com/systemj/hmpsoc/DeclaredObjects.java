@@ -60,6 +60,17 @@ public class DeclaredObjects {
 	private List<Channel> ochans = new ArrayList<Channel>();
 	private List<Var> vardecls = new ArrayList<Var>();
 	
+	
+	public List<Signal> getIsignals() {
+		return isignals;
+	}
+	public List<Signal> getOsignals() {
+		return osignals;
+	}
+	public List<Signal> getSignals() {
+		return signals;
+	}
+	
 	public Iterator<Signal> getInputSignalIterator(){
 		return isignals.iterator();
 	}

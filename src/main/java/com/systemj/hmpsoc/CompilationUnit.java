@@ -13,8 +13,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import org.apache.commons.cli.CommandLine;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -42,6 +43,7 @@ import com.systemj.hmpsoc.nodes.SwitchNode;
 import com.systemj.hmpsoc.nodes.TerminateNode;
 import com.systemj.hmpsoc.nodes.TestLock;
 import com.systemj.hmpsoc.nodes.TestNode;
+import com.systemj.hmpsoc.nodes.ActionNode.TYPE;
 
 import args.Helper;
 public class CompilationUnit {
@@ -314,9 +316,12 @@ public class CompilationUnit {
 
 		for(BaseGRCNode n : glist)
 			groupActions(n);
-		
-		for(BaseGRCNode n : glist)
-			setCaseNumber(n, 1);
+
+		// Setting casenumber. In case of dist, added later after adding hk action node
+		if(!Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+			for(BaseGRCNode n : glist)
+				setCaseNumber(n, 1);
+		}
 		
 		int mjop = 1;
 		if(Helper.getSingleArgInstance().hasOption("j")){
@@ -345,6 +350,7 @@ public class CompilationUnit {
 			connectForkJoin(n);
 		}
 		
+		List<String> imports = getImports();
 		
 		UglyPrinter printer = new UglyPrinter(glist, systemConfig);
 		if(Helper.getSingleArgInstance().hasOption(Helper.D_OPTION)){
@@ -353,6 +359,7 @@ public class CompilationUnit {
 		printer.setTarget(this.target.split("\\.")[0]);
 		printer.setDelcaredObjects(l);
 		printer.setActmap(m);
+		printer.setImports(imports);
 		printer.uglyprint();
 		
 		// Debug
@@ -365,6 +372,15 @@ public class CompilationUnit {
 	}
 	
 	
+	private List<String> getImports() {
+		Element e = doc.getRootElement();
+		Element pkgs = e.getChild("JavaPackages");
+		if (pkgs != null) {
+			return pkgs.getChildren().stream().map(v -> v.getText()).collect(Collectors.toList());
+		} else 
+			return new ArrayList<String>();
+	}
+
 	private void connectForkJoin(BaseGRCNode n) {
 		if(n instanceof ForkNode){
 			if(((ForkNode)n).getJoin() == null)
