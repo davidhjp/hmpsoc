@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -319,11 +320,11 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L," + ms.depth + "L);");
 								if(!sm.hasChan(channel))
 									sm.linkChannel(channel);
 							} else{
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 								if(!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
@@ -366,11 +367,11 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + ms.start + "L," + ms.depth + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L," + ms.depth + "L);");
 								if(!sm.hasChan(channel))
 									sm.linkChannel(channel);
 							} else {
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 								if(!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
@@ -685,18 +686,19 @@ public class UglyPrinter {
 					ArrayList<String> ll = new ArrayList<>();
 					String ln = "\n";
 					
-					sb.append("for (int i = 0; i < currentSignals.size(); i++) {").append(ln);
-					sb.append("com.systemj.Signal sig = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
-					sb.append("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();").append(ln);
-					sb.append("sig.setpreval(sig.getValue());").append(ln);
-					sb.append("byte[] b = (("+Java.CLASS_SERIALIZABLE+")sig.getpreval()).serialize();").append(ln);
-					sb.append("com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
-					sb.append("}").append(ln);
-					sb.append("currentSignals.removeAllElements();").append(ln);
+					Function<Integer, String> f = IndentPrinter::getIndentString;
+					sb.append(f.apply(4)+"for (int i = 0; i < currentSignals.size(); i++) {").append(ln);
+					sb.append(f.apply(5)+"com.systemj.Signal sig = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
+					sb.append(f.apply(5)+"if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();").append(ln);
+					sb.append(f.apply(5)+"sig.setpreval(sig.getValue());").append(ln);
+					sb.append(f.apply(5)+"byte[] b = (("+Java.CLASS_SERIALIZABLE+")sig.getpreval()).serialize();").append(ln);
+					sb.append(f.apply(5)+"com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
+					sb.append(f.apply(4)+"}").append(ln);
+					sb.append(f.apply(4)+"currentSignals.removeAllElements();").append(ln);
 					
 					DeclaredObjects d = declolist.get(cdi);
-					d.getInChans().forEach(c -> sb.append(c.name+"_in.sethook();").append(ln));
-					d.getOutChans().forEach(c -> sb.append(c.name+"_o.sethook();").append(ln));
+					d.getInChans().forEach(c -> sb.append(f.apply(4)+c.name+"_in.sethook();").append(ln));
+					d.getOutChans().forEach(c -> sb.append(f.apply(4)+c.name+"_o.sethook();").append(ln));
 					
 					
 					ll.add(sb.toString());
@@ -712,15 +714,15 @@ public class UglyPrinter {
 					Stream<Signal> sst = Stream.<List<Signal>>builder().add(d.getInputSignals()).add(d.getOutputSignals()).add(d.getInternalSignals()).build().flatMap( sl -> sl.stream());
 					sst.forEachOrdered(s -> {
 						if(s.type != null){
-							sb.append("{").append(ln);
-							sb.append("int val = com.jopdesign.sys.Native.rd((int)"+s.name+".getMemLoc());").append(ln);
-							sb.append("byte[] b = new byte[4];").append(ln);
-							sb.append("for (int i=0 ; i<b.length; i++)").append(ln);
-							sb.append("b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
-							sb.append(s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
-							sb.append("}").append(ln);
-							d.getInChans().forEach(c -> sb.append(c.name+"_in.sethook();").append(ln));
-							d.getOutChans().forEach(c -> sb.append(c.name+"_o.sethook();").append(ln));
+							sb.append(f.apply(4)+"{").append(ln);
+							sb.append(f.apply(5)+"int val = com.jopdesign.sys.Native.rd((int)"+s.name+".getMemLoc());").append(ln);
+							sb.append(f.apply(5)+"byte[] b = new byte[4];").append(ln);
+							sb.append(f.apply(5)+"for (int i=0 ; i<b.length; i++)").append(ln);
+							sb.append(f.apply(5)+"b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
+							sb.append(f.apply(5)+s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
+							sb.append(f.apply(4)+"}").append(ln);
+							d.getInChans().forEach(c -> sb.append(f.apply(4)+c.name+"_in.sethook();").append(ln));
+							d.getOutChans().forEach(c -> sb.append(f.apply(4)+c.name+"_o.sethook();").append(ln));
 						}
 					});
 					ll.add(sb.toString());
@@ -1052,7 +1054,7 @@ public class UglyPrinter {
 				if(!sm.hasSig(cdSigName))
 					sm.addSignal(cdSigName);
 				MemorySlot ms = sm.getSigMem(cdSigName);
-				pw.println(ssig.name + ".setMemoryLoc(" + ms.start + "L, " + ms.depth + "L);");
+				pw.println(ssig.name + ".setMemoryLoc(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L, " + ms.depth + "L);");
 			}
 		});
 
@@ -1357,7 +1359,8 @@ public class UglyPrinter {
 				pw.incrementIndent();
 				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
 				for (String stmt : an.getStmts()) {
-					pw.println(stmt);
+					pw.print(stmt);
+					pw.println();
 				}
 				pw.println("break;");
 				pw.decrementIndent();
