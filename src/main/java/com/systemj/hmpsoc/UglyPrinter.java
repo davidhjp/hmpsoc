@@ -692,6 +692,9 @@ public class UglyPrinter {
 					sb.append("com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
 					sb.append("}").append(ln);
 					sb.append("currentSignals.removeAllElements();").append(ln);
+					sb.append("// TODO: Read from channels").append(ln);
+					
+					
 					ll.add(sb.toString());
 					an.setStmts(ll);
 					l.add(0, an);
@@ -713,6 +716,7 @@ public class UglyPrinter {
 							sb.append("b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
 							sb.append(s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
 							sb.append("}").append(ln);
+							sb.append("// TODO: Write from channels").append(ln);
 						}
 					});
 					ll.add(sb.toString());
