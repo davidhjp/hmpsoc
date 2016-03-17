@@ -179,7 +179,7 @@ public class UglyPrinter {
 				File ff = new File(dir, "JOP"+i);
 				List<List<ActionNode>> l = actsDist.get(i);
 				try {
-					printJavaMainDistributed(ff, l, i);
+					printJavaMainDistributed(dir, l, i);
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.exit(1);
@@ -195,18 +195,19 @@ public class UglyPrinter {
 	}
 
 	private void printJavaMainDistributed(File dir, List<List<ActionNode>> actList, int jopID) throws FileNotFoundException {
-		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain.java")));
-		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";");
+		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain"+jopID+".java")));
+		pw.println("package "+dir.getPath()+";");
 		pw.println();
 //		pw.println("import com.jopdesign.io.IOFactory;");
 //		pw.println("import com.jopdesign.io.SysDevice;");
 //		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println("import com.jopdesign.sys.Native;");
+		pw.println("import hmpsoc.JOP"+jopID+".*;");
 		pw.println();
 		pw.println("import java.util.Hashtable;");
 		pw.println();
 		
-		pw.println("public class RTSMain {");
+		pw.println("public class RTSMain"+jopID+" {");
 		pw.incrementIndent();
 		
 		pw.println("public static void main(String[] arg){");
@@ -445,7 +446,7 @@ public class UglyPrinter {
 			pw.incrementIndent();
 			pw.println("public void write(int b) throws java.io.IOException {");
 			pw.incrementIndent();
-			pw.println("synchronized(RTSMain.class){");
+			pw.println("synchronized(RTSMain"+jopID+".class){");
 			pw.incrementIndent();
 			pw.println("com.jopdesign.sys.Native.wr(b, " + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + ");");
 			pw.decrementIndent();
