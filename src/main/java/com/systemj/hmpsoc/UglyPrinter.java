@@ -41,9 +41,14 @@ public class UglyPrinter {
 
 	private String target;
 	private List<BaseGRCNode> nodelist;
-	private List<DeclaredObjects> declolist;
 	private List<List<ActionNode>> acts;
-	private List<List<List<ActionNode>>> actsDist;
+	private List<DeclaredObjects> declolist;
+	
+	private List<List<List<ActionNode>>> actsDist; // [JOP1[CD0[AN...] CD1[AN...] ...] ...]
+	
+	private List<List<MemoryPointer>> mps; // [ReCOP1[CD3,CD1...] ReCOP2[CD5,CD0...]]
+	private List<List<BaseGRCNode>> allocnodes;
+	
 	private String topdir;
 	private SystemConfig systemConfig;
 	private SharedMemory sm = new SharedMemory();
@@ -125,15 +130,51 @@ public class UglyPrinter {
 		printFiles(f);
 	}
 
+	public void printJavaClockDomain(File dir) {
+		IntStream.range(0, allocnodes.size()).forEachOrdered(rid -> {
+			IntStream.range(0, allocnodes.get(rid).size()).forEachOrdered(indx -> {
+				SwitchNode node = (SwitchNode) allocnodes.get(rid).get(indx);
+				MemoryPointer mp = mps.get(rid).get(indx);
+				int cdi = node.getCDid();
+				
+				if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
+					IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
+					ist.forEachOrdered(jopi -> {
+						List<List<ActionNode>> actlists = actsDist.get(jopi);
+						File subdir = new File(dir, "JOP" + jopi);
+						try {
+							printJavaClockDomainDistributed(subdir, mp, actlists.get(cdi), declolist.get(cdi), cdi, jopi);
+						} catch (Exception e) {
+							e.printStackTrace();
+							System.exit(1);
+						}
+					});
+				} else {
+					try {
+						printJavaClockDomainShared(dir, mp, this.acts.get(cdi), declolist.get(cdi), cdi);
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.exit(1);
+					}
+				}
+			});
+		});
+	}
+
 	private void printFiles(File dir) throws FileNotFoundException {
 		if(acts.size() != declolist.size())
 			throw new RuntimeException("Error !");
 		
-		distributeActions();
-		
-		printASM(dir);
+		// Allocates CDs
+		allocateCDNodes();
 		
 		if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
+			IntStream.range(0, Helper.pMap.nJOP).forEachOrdered(i -> {
+				File ff = new File(dir, "JOP"+i);
+				ff.mkdirs();});
+			distributeActions();
+			printASM(dir);
+			printJavaClockDomain(dir);
 			IntStream.range(0, Helper.pMap.nJOP).forEachOrdered(i -> {
 				File ff = new File(dir, "JOP"+i);
 				List<List<ActionNode>> l = actsDist.get(i);
@@ -143,8 +184,11 @@ public class UglyPrinter {
 					e.printStackTrace();
 					System.exit(1);
 				}
+
 			});
 		} else {
+			printASM(dir);
+			printJavaClockDomain(dir);
 			printJavaJOPThread(dir);
 			printJavaMain(dir);
 		}
@@ -417,11 +461,8 @@ public class UglyPrinter {
 		pw.flush();
 		pw.close();		
 	}
-
-	private void printASM(File dir) throws FileNotFoundException {
-		if(nodelist.size() != declolist.size())
-			throw new RuntimeException("Internal Error: nodelist size != declolist size");
-		
+	
+	public void allocateCDNodes() {
 		// Allocates CDs
 		List<List<BaseGRCNode>> allocnodes = new ArrayList<List<BaseGRCNode>>();
 		for(int i=0 ; i<Helper.pMap.nReCOP ; i++){
@@ -453,8 +494,15 @@ public class UglyPrinter {
 			}
 		}
 		
+		this.allocnodes = allocnodes;
+	}
+
+	private void printASM(File dir) throws FileNotFoundException {
+		if(nodelist.size() != declolist.size())
+			throw new RuntimeException("Internal Error: nodelist size != declolist size");
 		
-	
+		mps = new ArrayList<>();
+		
 		for(int o=0;o<allocnodes.size(); o++){
 			List<BaseGRCNode> nodes = allocnodes.get(o);
 			if(nodes.isEmpty())
@@ -464,7 +512,6 @@ public class UglyPrinter {
 			long c = 0;
 			List<MemoryPointer> lmp = new ArrayList<MemoryPointer>();
 			
-
 			for(int i=0; i<nodes.size(); i++){
 				BaseGRCNode bcn = nodes.get(i);
 				String cdname = ((SwitchNode)bcn).getCDName();
@@ -673,27 +720,14 @@ public class UglyPrinter {
 					pw.println("AJOIN"+cdi+" JMP RUN0");
 				else
 					pw.println("AJOIN"+cdi+" JMP RUN"+(i+1));
-				
-				if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
-					IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
-					ist.forEachOrdered(ii -> {
-						List<List<ActionNode>> actlists = actsDist.get(ii);
-						File ff = new File(dir, "JOP"+ii);
-						ff.mkdirs();
-						try {
-							printJavaClockDomainDistributed(ff, mp, actlists.get(cdi), declolist.get(cdi), cdi, ii);
-						} catch (Exception e) {
-							e.printStackTrace();
-							System.exit(1);
-						}
-					});
-				} else
-					printJavaClockDomain(dir, mp, this.acts.get(cdi), declolist.get(cdi), cdi);
+
 			}
 
 			pw.println("ENDPROG");
 			pw.flush();
 			pw.close();
+			
+			mps.add(lmp);
 		}
 		
 	}
@@ -1089,13 +1123,14 @@ public class UglyPrinter {
 				if(!sm.hasSig(cdSigName))
 					sm.addSignal(cdSigName);
 				MemorySlot ms = sm.getSigMem(cdSigName);
-				pw.println(ssig.name + ".setMemoryLoc(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L, " + ms.depth + "L);");
+				pw.println(ssig.name + ".setMemoryLoc(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L);");
 			}
 		});
 
+		boolean dist = Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION);
 		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (dist ? (s.type == null ? "" : "new " + s.type + "()") : "") + ");");
 
 			if (systemConfig != null) {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
@@ -1116,7 +1151,7 @@ public class UglyPrinter {
 		}
 		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
 			Signal s = it.next();
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (dist ? (s.type == null ? "" : "new " + s.type + "()") : "") + ");");
 
 			if (systemConfig != null) {
 				ClockDomainConfig cdCfg = systemConfig.getClockDomain(cdName);
@@ -1140,18 +1175,18 @@ public class UglyPrinter {
 			Signal s = it.next();
 			// TODO Check if internal pure signals are actually required to be created jop side
 			if (s.type == null) pw.print("//");
-			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (s.type == null ? "" : "new " + s.type + "()") + ");");
+			pw.println(s.name + " = new " + Java.CLASS_SIGNAL + "(" + (dist ? (s.type == null ? "" : "new " + s.type + "()") : "") + ");");
 			mL.accept(s);
 		}
-		
+	
 		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + "_in = new " + Java.CLASS_I_CHANNEL + "(new "+c.type+"());");
+			pw.println(c.name + "_in = new " + Java.CLASS_I_CHANNEL + "(" + (dist ? "new " + c.type + "()" : "") + ");");
 		}
 		
 		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
 			Channel c = it.next();
-			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "(new "+c.type+"());");
+			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "(" + (dist ? "new " + c.type + "()" : "") + ");");
 		}
 		
 		pw.decrementIndent();
@@ -1160,7 +1195,7 @@ public class UglyPrinter {
 		pw.println();
 	}
 	
-	private void printJavaFields(IndentPrinter pw, DeclaredObjects d, File dir) {
+	private void printJavaFields(IndentPrinter pw, DeclaredObjects d) {
 		String cdName = d.getCDName();
 		Integer recopId = Helper.pMap.rAlloc != null ? Helper.pMap.rAlloc.get(cdName) : 0;
 
@@ -1317,7 +1352,7 @@ public class UglyPrinter {
 			pw.println("public class "+cdName+"{");
 			pw.incrementIndent();
 
-			printJavaFields(pw, d, dir);
+			printJavaFields(pw, d);
 
 			printJavaCDInit(pw, d);
 
@@ -1436,7 +1471,7 @@ public class UglyPrinter {
 		pw.println();
 	}
 	
-	private void printJavaClockDomain(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi) throws FileNotFoundException {
+	private void printJavaClockDomainShared(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi) throws FileNotFoundException {
 		String cdName = d.getCDName();
 
 		if (systemConfig != null) {
@@ -1461,7 +1496,7 @@ public class UglyPrinter {
 
 		pw.incrementIndent();
 		
-		printJavaFields(pw, d, dir);
+		printJavaFields(pw, d);
 		printJavaCDInit(pw, d);
 		printJavaCDHK(pw, d, mp);
 		printJavaCDMethods(pw, mp, actlists, cdi);
