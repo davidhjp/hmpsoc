@@ -106,6 +106,7 @@ public class UglyPrinter {
 		public static final String CLASS_GENERIC_SIGNAL_SENDER = "com.systemj.ipc.GenericSignalSender";
 		public static final String CLASS_GENERIC_CHANNEL = "com.systemj.GenericChannel";
 		public static final String CLASS_SERIALIZABLE = "com.systemjx.jop.ipc.Serializable";
+		public static final String CONSTANT_SCRATCHPAD_ADDRESS = "com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS";
 
 	}
 
@@ -153,9 +154,9 @@ public class UglyPrinter {
 		IndentPrinter pw = new IndentPrinter(new PrintWriter(new File(dir, "RTSMain.java")));
 		pw.println("package "+dir.getPath().replace("\\", ".").replace("/", ".")+";");
 		pw.println();
-		pw.println("import com.jopdesign.io.IOFactory;");
-		pw.println("import com.jopdesign.io.SysDevice;");
-		pw.println("import com.jopdesign.sys.Startup;");
+//		pw.println("import com.jopdesign.io.IOFactory;");
+//		pw.println("import com.jopdesign.io.SysDevice;");
+//		pw.println("import com.jopdesign.sys.Startup;");
 		pw.println("import com.jopdesign.sys.Native;");
 		pw.println();
 		pw.println("import java.util.Hashtable;");
@@ -163,28 +164,6 @@ public class UglyPrinter {
 		
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
-		
-		if(jopID == 0) {
-			pw.println("public static void printStdOut(){");
-			pw.println("// TODO: complete this");
-			pw.println("}");
-			pw.println();
-		} else {
-			pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
-			pw.incrementIndent();
-			pw.println("public void write(int b) throws java.io.IOException {");
-			pw.incrementIndent();
-			pw.println("synchronized(RTSMain.class){");
-			pw.incrementIndent();
-			pw.println("// TODO: complete this");
-			pw.decrementIndent();
-			pw.println("}");
-			pw.decrementIndent();
-			pw.println("}");
-			pw.decrementIndent();
-			pw.println("});");
-		}
-
 		
 		pw.println("public static void main(String[] arg){");
 		pw.incrementIndent();
@@ -320,12 +299,12 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L," + ms.depth + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
 								if(!sm.hasChan(channel))
-									sm.linkChannel(channel);
-							} else{
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
-								if(!sm.hasChan(channel))
+									sm.addChannel(channel, channelPartner);
+							} else {
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								if (!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
 							pw.println("gif.configure(null);");
@@ -367,11 +346,11 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + ms.start + "L," + ms.depth + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
 								if(!sm.hasChan(channel))
-									sm.linkChannel(channel);
+									sm.addChannel(channel, channelPartner);
 							} else {
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 								if(!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
@@ -407,6 +386,32 @@ public class UglyPrinter {
 
 		pw.decrementIndent();
 		pw.println("}");
+		
+		pw.println();
+		if(jopID == 0) {
+			pw.println("public static void printStdOut(){");
+			pw.incrementIndent();
+			pw.println("int word = com.jopdesign.sys.Native.rd(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + ");");
+			pw.println("System.out.print(String.valueOf(word));");
+			pw.decrementIndent();
+			pw.println("}");
+			pw.println();
+		} else {
+			pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
+			pw.incrementIndent();
+			pw.println("public void write(int b) throws java.io.IOException {");
+			pw.incrementIndent();
+			pw.println("synchronized(RTSMain.class){");
+			pw.incrementIndent();
+			pw.println("com.jopdesign.sys.Native.wr(b, " + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + ");");
+			pw.decrementIndent();
+			pw.println("}");
+			pw.decrementIndent();
+			pw.println("}");
+			pw.decrementIndent();
+			pw.println("});");
+		}
+
 		pw.decrementIndent();
 		pw.println("}");
 		pw.flush();
@@ -594,17 +599,47 @@ public class UglyPrinter {
 				pw.println("  PRESENT R10 DCHECKCONT"+i);
 				pw.println("  JMP R10");
 
-
 				pw.println("HOUSEKEEPING"+i+" CLFZ");
 				pw.println("  LER R10; Checking whether reactive-interface-JOP is ready");
 				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
+				
+				
+				if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
+					pw.println("; --------- Internal house keeping ----------");
+					pw.println("; First hk to write stuffs to the shared memory");
+					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
+						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
+							pw.println("  STR R11 $2; locking this thread");
+							pw.println("  LDR R10 #1");
+							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
+							pw.println("  STRPC $"+mp.getProgramCounterPointer());
+							pw.println("  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
+							pw.println("  PRESENT R10 AJOIN"+cdi);
+							pw.println("  JMP AJOIN"+cdi);
+						}
+					});
+					pw.println("; Then hk to read stuffs from the shared memory");
+					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
+						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
+							pw.println("  STR R11 $2; locking this thread");
+							pw.println("  LDR R10 #0");
+							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
+							pw.println("  STRPC $"+mp.getProgramCounterPointer());
+							pw.println("  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
+							pw.println("  PRESENT R10 AJOIN"+cdi);
+							pw.println("  JMP AJOIN"+cdi);
+						}
+					});
+					pw.println("; --------- Internal house keeping done ----------");
+				}
+				
+				
 				pw.println("  STR R11 $2; locking this thread");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; Send OSig vals (R10) to JOP");
 				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
-				//pw.println("  STR R11 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Reseting to zero");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Reset ISig");
 				pw.println("  STR R10 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");

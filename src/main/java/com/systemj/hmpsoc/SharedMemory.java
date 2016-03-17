@@ -26,27 +26,31 @@ public class SharedMemory {
 		pointer += DEPTH_SIGNAL;
 	}
 	
-	public void linkChannel(String chan) {
+	public void addChannel(String newchan, String partner) {
+		MemorySlot ms = new MemorySlot();
+		MemorySlot p = chanMap.get(partner);
+		if(p != null){
+			ms.start = p.start;
+			ms.depth = p.depth;
+			chanMap.put(newchan, p);
+		} else {
+			throw new Error("Tried to link with the unknown channel : " + partner);
+		}
+	}
+
+	public void addChannel(String chan) {
 		MemorySlot ms = new MemorySlot();
 		ms.start = pointer;
 		ms.depth = DEPTH_CHAN;
 		chanMap.put(chan, ms);
-	}
-	
-	public void linkSignal(String sig) {
-		MemorySlot ms = new MemorySlot();
-		ms.start = pointer;
-		ms.depth = DEPTH_SIGNAL;
-		sigMap.put(sig, ms);
-	}
-
-	public void addChannel(String chan) {
-		linkChannel(chan);
 		incChannel();
 	}
 
 	public void addSignal(String sig) {
-		linkSignal(sig);
+		MemorySlot ms = new MemorySlot();
+		ms.start = pointer;
+		ms.depth = DEPTH_SIGNAL;
+		sigMap.put(sig, ms);
 		incSignal();
 	}
 
@@ -68,5 +72,9 @@ public class SharedMemory {
 
 	public long getPointer() {
 		return pointer;
+	}
+	
+	public void incPointer() {
+		pointer++;
 	}
 }
