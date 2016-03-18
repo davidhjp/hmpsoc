@@ -228,7 +228,7 @@ public class UglyPrinter {
 		pw.incrementIndent();
 
 		if(jopID == 0)
-			pw.println("printStdOut();");
+			pw.println("//printStdOut();");
 		
 		pw.println("dpcr = Native.getDatacall();");
 		pw.println("if ((dpcr >> 31) == 0) continue;");
@@ -257,6 +257,7 @@ public class UglyPrinter {
 			} else if (!actList.get(i).isEmpty()) {
 				pw.println("case " + i + ":");
 				pw.incrementIndent();
+				pw.println("recopId = " + cdName + ".recopId;");
 				pw.println("rval = "+cdName+".MethodCall_0(data, dl) ? 3 : 2;");
 				pw.println("break;");
 				pw.decrementIndent();
@@ -280,7 +281,8 @@ public class UglyPrinter {
 		pw.println("} catch (Exception e){");
 		
 		pw.incrementIndent();
-		pw.println("System.out.println(\"ERROR while executing housekeeping \"+recopId+\" \"+e.getMessage());");
+		pw.println("System.out.println(\"ERROR while executing " + (jopID == 0 ? "housekeeping" : "datacall casenumber \"+data+\" CDid: \"+cd+\"") + " ReCOP id: \"+recopId+\" JOP id: " + jopID
+				+ " \"+e.getMessage());");
 		pw.println("System.exit(1);");
 		pw.decrementIndent();
 		pw.println("}");
@@ -653,36 +655,39 @@ public class UglyPrinter {
 				pw.println("  SEOT; JOP is ready!");
 				pw.println("  CER");
 				
-				
 				if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
+					final int CASE_WRITE = 1;
+					final int CASE_READ = 0;
+					
 					pw.println("; --------- Internal house keeping ----------");
 					pw.println("; First hk to write stuffs to the shared memory");
 					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
 						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
-							pw.println("  STR R11 $2; locking this thread");
-							pw.println("  LDR R10 #1");
+							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
+							String dl_h = Long.toHexString(dl);
+							pw.println("  STR R11 $" + dl_h + "; locking this thread");
+							pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-							pw.println("  STRPC $"+mp.getProgramCounterPointer());
-							pw.println("  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
-							pw.println("  PRESENT R10 AJOIN"+cdi);
-							pw.println("  JMP AJOIN"+cdi);
+							pw.println("  STRPC $" + mp.getProgramCounterPointer());
+							pw.println("  LDR R10 $" + dl_h);
+							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
 					});
 					pw.println("; Then hk to read stuffs from the shared memory");
 					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
 						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
-							pw.println("  STR R11 $2; locking this thread");
-							pw.println("  LDR R10 #0");
+							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
+							String dl_h = Long.toHexString(dl);
+							pw.println("  STR R11 $" + dl_h + "; locking this thread");
+							pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-							pw.println("  STRPC $"+mp.getProgramCounterPointer());
-							pw.println("  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
-							pw.println("  PRESENT R10 AJOIN"+cdi);
-							pw.println("  JMP AJOIN"+cdi);
+							pw.println("  STRPC $" + mp.getProgramCounterPointer());
+							pw.println("  LDR R10 $" + dl_h);
+							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
 					});
 					pw.println("; --------- Internal house keeping done ----------");
 				}
-				
 				
 				pw.println("  STR R11 $2; locking this thread");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
