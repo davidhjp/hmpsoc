@@ -24,9 +24,8 @@ public class ActionNode extends BaseGRCNode {
 	}
 
 	public int getJOPIDDist() {
-		int i = this.getThnum() % Helper.pMap.nJOP;
-		if (i == 0) i = 1;
-		return i;
+		int i = this.getThnum() % (Helper.pMap.nJOP-1);
+		return i+1;
 	}
 
 
