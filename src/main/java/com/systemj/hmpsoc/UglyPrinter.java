@@ -18,6 +18,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.Stream.Builder;
 
 import com.systemj.hmpsoc.DeclaredObjects.Channel;
 import com.systemj.hmpsoc.DeclaredObjects.Signal;
@@ -112,6 +113,8 @@ public class UglyPrinter {
 		public static final String CLASS_GENERIC_CHANNEL = "com.systemj.GenericChannel";
 		public static final String CLASS_SERIALIZABLE = "com.systemjx.jop.ipc.Serializable";
 		public static final String CONSTANT_SCRATCHPAD_ADDRESS = "com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS";
+		public static final String CLASS_CHANNEL_MEMORY = "com.systemjx.jop.ipc.ChannelMemory";
+		public static final String CLASS_SIGNAL_MEMORY = "com.systemjx.jop.ipc.SignalMemory";
 
 	}
 
@@ -317,6 +320,7 @@ public class UglyPrinter {
 		pw.println();
 		pw.println("// Interface init");
 		pw.println(Java.CLASS_GENERIC_INTERFACE + " gif = null;");
+		pw.println(Java.CLASS_CHANNEL_MEMORY + " cm = null;");
 		pw.println("Hashtable ht = null;");
 		pw.println();
 
@@ -346,16 +350,16 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
-								if(!sm.hasChan(channel))
+								pw.println("cm = new " + Java.CLASS_CHANNEL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
+								if (!sm.hasChan(channel))
 									sm.addChannel(channel, channelPartner);
 							} else {
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								pw.println("cm = new " + Java.CLASS_CHANNEL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 								if (!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
-							pw.println("gif.configure(null);");
-							pw.println(channel + ".setLink(gif);");
+							pw.println(channel + ".setMemory(cm);");
+							pw.println(channel + ".setLocal(true);");
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 						}
@@ -393,16 +397,16 @@ public class UglyPrinter {
 						if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 							if (sm.hasChan(channelPartner)) {
 								MemorySlot ms = sm.getChanMem(channelPartner);
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
+								pw.println("cm = new " + Java.CLASS_CHANNEL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L," + ms.depth + "L);");
 								if(!sm.hasChan(channel))
 									sm.addChannel(channel, channelPartner);
 							} else {
-								pw.println("gif = new com.systemjx.jop.ipc.ChannelMemory(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
+								pw.println("cm = new " + Java.CLASS_CHANNEL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + sm.getPointer() + "L," + SharedMemory.DEPTH_CHAN + "L);");
 								if(!sm.hasChan(channel))
 									sm.addChannel(channel);
 							}
-							pw.println("gif.configure(null);");
-							pw.println(channel + ".setLink(gif);");
+							pw.println(channel + ".setMemory(cm);");
+							pw.println(channel + ".setLocal(true);");
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
 						}
@@ -432,48 +436,15 @@ public class UglyPrinter {
 			}
 		}
 		
-		pw.println("// Initializing ref arrays");
-		for (int i = 0; i < declolist.size(); i++) {
-			if (systemConfig == null) break;
-
-			DeclaredObjects d = declolist.get(i);
-			String cdName = d.getCDName();
-
-			if (!systemConfig.isLocalClockDomain(cdName)) {
-				// This clock domain does not run on this device
-				continue;
-			}
-			
-			if(!actList.get(i).isEmpty() || jopID == 0){
-				pw.print(pw.getIndentString() + cdName + ".chanrefs = new " + Java.CLASS_GENERIC_CHANNEL + "[]{ ");
-				IntStream.range(0, d.getInChans().size()).forEachOrdered(j -> {
-					pw.print(cdName + "." + d.getInChans().get(j).name + "_in");
-					pw.print(", ");
-				});
-				IntStream.range(0, d.getOutChans().size()).forEachOrdered(j -> {
-					pw.print(cdName + "." + d.getOutChans().get(j).name + "_o");
-					if (!(j == d.getOutChans().size() - 1))
-						pw.print(", ");
-				});
-				pw.print("};\n");
-
-				pw.print(pw.getIndentString() + cdName + ".sigrefs = new " + Java.CLASS_SIGNAL + "[]{ ");
-//				Stream<Signal> sst = Stream.<List<Signal>> builder().add(d.getInputSignals()).add(d.getOutputSignals()).add(d.getInternalSignals()).build().flatMap(sl -> sl.stream());
-				List<Signal> sstt = new ArrayList<>();
-				sstt.addAll(d.getInputSignals());
-				sstt.addAll(d.getOutputSignals());
-				sstt.addAll(d.getInternalSignals());
-				IntStream.range(0, (int) sstt.size()).forEach(j -> {
-					if(sstt.get(j).type != null){
-						pw.print(cdName + "." + sstt.get(j).name);
-						if (!(j == sstt.size() - 1))
-							pw.print(", ");
-					}
-				});
-				pw.print("};\n");
-			}
-
-		}
+//		pw.println("// Initializing ref arrays");
+//		for (int i = 0; i < declolist.size(); i++) {
+//			if (systemConfig == null) break;
+//			DeclaredObjects d = declolist.get(i);
+//			
+//			if(!actList.get(i).isEmpty() || jopID == 0){
+//				printInterfaceInit(pw, d);
+//			}
+//		}
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -806,27 +777,25 @@ public class UglyPrinter {
 					String ln = "\n";
 					
 					Function<Integer, String> f = IndentPrinter::getIndentString;
+					
+					// Writing to a memory
 					sb.append(f.apply(4)+"for (int i = 0; i < currentSignals.size(); i++) {").append(ln);
-					sb.append(f.apply(5)+"com.systemj.Signal sig = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
-//					sb.append(f.apply(5)+"if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();").append(ln);
-					sb.append(f.apply(5)+"sig.setpreval(sig.getValue());").append(ln);
-					sb.append(f.apply(5)+"byte[] b = (("+Java.CLASS_SERIALIZABLE+")sig.getpreval()).serialize();").append(ln);
-					sb.append(f.apply(5)+"com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)sig.getMemLoc());").append(ln);
+					sb.append(f.apply(5)+"com.systemj.Signal s = (com.systemj.Signal) currentSignals.elementAt(i);").append(ln);
+					sb.append(f.apply(5)+"s.setpreval(s.getValue());").append(ln);
+					sb.append(f.apply(5)+"s.writeMemory();").append(ln);
+//					sb.append(f.apply(5)+"byte[] b = (("+Java.CLASS_SERIALIZABLE+")s.getpreval()).serialize();").append(ln);
+//					sb.append(f.apply(5)+"com.jopdesign.sys.Native.wr(b[3] << 24 | b[2] << 16 | b[1] << 8 | b[0], (int)s.getMemLoc());").append(ln);
 					sb.append(f.apply(4)+"}").append(ln);
 					sb.append(f.apply(4)+"currentSignals.removeAllElements();").append(ln);
 
 					sb.append(f.apply(4)+"for (int i=0; i < chanrefs.length; i++)").append(ln);
-					sb.append(f.apply(5)+"chanrefs[i].sethook();").append(ln);
-					
-//					DeclaredObjects d = declolist.get(cdi);
-//					d.getInChans().forEach(c -> sb.append(f.apply(4)+c.name+"_in.sethook();").append(ln));
-//					d.getOutChans().forEach(c -> sb.append(f.apply(4)+c.name+"_o.sethook();").append(ln));
-					
+					sb.append(f.apply(5)+"chanrefs[i].writeMemory();").append(ln);
 					
 					ll.add(sb.toString());
 					an.setStmts(ll);
 					l.add(0, an);
 					
+					// Reading from a memory
 					an = new ActionNode();
 					an.setThnum(l.get(0).getThnum());
 					an.setActionType(TYPE.GROUPED_JAVA);
@@ -835,31 +804,17 @@ public class UglyPrinter {
 					
 					sb.append(f.apply(4)+"for (int i=0; i < sigrefs.length; i++) {").append(ln);
 					sb.append(f.apply(5)+Java.CLASS_SIGNAL+" s = sigrefs[i];").append(ln);
-					sb.append(f.apply(5)+"int val = com.jopdesign.sys.Native.rd((int)s.getMemLoc());").append(ln);
-					sb.append(f.apply(5)+"byte[] b = new byte[4];").append(ln);
-					sb.append(f.apply(5)+"for (int j=0 ; j<b.length; j++)").append(ln);
-					sb.append(f.apply(6)+"b[j] = (byte)((val >> j*8) & 0xF);").append(ln);
-					sb.append(f.apply(5)+"s.setpreval(s.getType().deserialize(b));").append(ln);
+					sb.append(f.apply(5)+"s.readMemory();").append(ln);
+//					sb.append(f.apply(5)+"int val = com.jopdesign.sys.Native.rd((int)s.getMemLoc());").append(ln);
+//					sb.append(f.apply(5)+"byte[] b = new byte[4];").append(ln);
+//					sb.append(f.apply(5)+"for (int j=0 ; j<b.length; j++)").append(ln);
+//					sb.append(f.apply(6)+"b[j] = (byte)((val >> j*8) & 0xF);").append(ln);
+//					sb.append(f.apply(5)+"s.setpreval(s.getType().deserialize(b));").append(ln);
 					sb.append(f.apply(4)+"}").append(ln);
 					
 					sb.append(f.apply(4)+"for (int i=0; i < chanrefs.length; i++)").append(ln);
-					sb.append(f.apply(5)+"chanrefs[i].sethook();").append(ln);
+					sb.append(f.apply(5)+"chanrefs[i].readMemory();").append(ln);
 					
-					
-//					Stream<Signal> sst = Stream.<List<Signal>>builder().add(d.getInputSignals()).add(d.getOutputSignals()).add(d.getInternalSignals()).build().flatMap( sl -> sl.stream());
-//					sst.forEachOrdered(s -> {
-//						if(s.type != null){
-//							sb.append(f.apply(4)+"{").append(ln);
-//							sb.append(f.apply(5)+"int val = com.jopdesign.sys.Native.rd((int)"+s.name+".getMemLoc());").append(ln);
-//							sb.append(f.apply(5)+"byte[] b = new byte[4];").append(ln);
-//							sb.append(f.apply(5)+"for (int i=0 ; i<b.length; i++)").append(ln);
-//							sb.append(f.apply(6)+"b[i] = (byte)((val >> i*8) & 0xF);").append(ln);
-//							sb.append(f.apply(5)+s.name+".setpreval("+s.name+".getType().deserialize(b));").append(ln);
-//							sb.append(f.apply(4)+"}").append(ln);
-//							d.getInChans().forEach(c -> sb.append(f.apply(4)+c.name+"_in.sethook();").append(ln));
-//							d.getOutChans().forEach(c -> sb.append(f.apply(4)+c.name+"_o.sethook();").append(ln));
-//						}
-//					});
 					ll.add(sb.toString());
 					an.setStmts(ll);
 					l.add(0, an);
@@ -1163,6 +1118,14 @@ public class UglyPrinter {
 				pw.println();
 			}
 		}
+		
+//		pw.println("// Initializing ref arrays");
+//		for (int i = 0; i < declolist.size(); i++) {
+//			if (systemConfig == null) break;
+//			DeclaredObjects d = declolist.get(i);
+//
+//			printInterfaceInit(pw, d);
+//		}
 
 		pw.decrementIndent();
 		pw.println("}");
@@ -1170,6 +1133,54 @@ public class UglyPrinter {
 		pw.println("}");
 		pw.flush();
 		pw.close();
+	}
+	
+	private void printInterfaceInit(IndentPrinter pw, DeclaredObjects d){
+		String cdName = d.getCDName();
+		
+		if (!systemConfig.isLocalClockDomain(cdName)) {
+			// This clock domain does not run on this device
+			return;
+		}
+		
+		ClockDomainConfig cdConfig = systemConfig.getClockDomain(cdName);
+		boolean dist = Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION);
+		Builder<String> b = Stream.<String>builder();
+		
+		pw.print(pw.getIndentString() + cdName + ".chanrefs = new " + Java.CLASS_GENERIC_CHANNEL + "[]{ ");
+		d.getInChans().forEach(c -> {
+			pw.print(cdName + "." + c.name + "_in, ");
+			if(!cdConfig.isChannelPartnerLocal(c.name)) 
+				b.add(c.name+"_in");
+		});
+		IntStream.range(0, d.getOutChans().size()).forEachOrdered(j -> {
+			pw.print(cdName + "." + d.getOutChans().get(j).name + "_o, ");
+			if(!cdConfig.isChannelPartnerLocal(d.getOutChans().get(j).name)) 
+				b.add(d.getOutChans().get(j).name + "_o");
+		});
+		pw.print("};\n");
+		
+		pw.print(pw.getIndentString() + cdName + ".chandistrefs = new " + Java.CLASS_GENERIC_CHANNEL + "[]{ ");
+		b.build().forEachOrdered(c -> pw.print(c + ", "));
+		pw.print("};\n");
+
+		pw.print(pw.getIndentString() + cdName + ".sigrefs = new " + Java.CLASS_SIGNAL + "[]{ ");
+		List<Signal> sstt = new ArrayList<>();
+		sstt.addAll(d.getInputSignals());
+		sstt.addAll(d.getOutputSignals());
+		sstt.addAll(d.getInternalSignals());
+		IntStream.range(0, (int) sstt.size()).forEach(j -> {
+			if (sstt.get(j).type != null) {
+				pw.print(cdName + "." + sstt.get(j).name);
+				if (!(j == sstt.size() - 1))
+					pw.print(", ");
+			}
+		});
+		pw.print("};\n");
+
+		pw.print(pw.getIndentString() + cdName + ".isigrefs = new " + Java.CLASS_SIGNAL + "[]{ ");
+		d.getInputSignals().forEach(s -> pw.print(cdName + "." + s.name + ","));
+		pw.print("};\n");
 	}
 	
 	private void printJavaCDInit(IndentPrinter pw, DeclaredObjects d) {
@@ -1189,7 +1200,8 @@ public class UglyPrinter {
 				if(!sm.hasSig(cdSigName))
 					sm.addSignal(cdSigName);
 				MemorySlot ms = sm.getSigMem(cdSigName);
-				pw.println(ssig.name + ".setMemoryLoc(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L);");
+				pw.println(ssig.name + ".setMemory(new " + Java.CLASS_SIGNAL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L));");
+//				pw.println(ssig.name + ".setMemoryLoc(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L);");
 			}
 		});
 
@@ -1255,6 +1267,10 @@ public class UglyPrinter {
 			pw.println(c.name + "_o = new " + Java.CLASS_O_CHANNEL + "(" + (dist ? "new " + c.type + "()" : "") + ");");
 		}
 		
+		pw.println();
+		pw.println("// Initializing ref arrays");
+		printInterfaceInit(pw, d);
+		
 		pw.decrementIndent();
 		pw.println("}");
 
@@ -1269,7 +1285,9 @@ public class UglyPrinter {
 		pw.println("public static final int recopId = " + recopId + ";");
 		pw.println("private static java.util.Vector currentSignals;");
 		pw.println("public static "+Java.CLASS_SIGNAL+"[] sigrefs;");
+		pw.println("public static "+Java.CLASS_SIGNAL+"[] isigrefs;");
 		pw.println("public static "+Java.CLASS_GENERIC_CHANNEL+"[] chanrefs;");
+		pw.println("public static "+Java.CLASS_GENERIC_CHANNEL+"[] chandistrefs;");
 //		pw.println("public static " + Java.CLASS_INTERFACE_MANAGER + " im = null; // Note: Configured externally");
 		{
 			Iterator<Signal> iter = d.getInputSignalIterator();
@@ -1320,58 +1338,80 @@ public class UglyPrinter {
 	
 	private void printJavaCDHK(IndentPrinter pw, DeclaredObjects d, MemoryPointer mp) {
 		String cdName = d.getCDName();
-		// House keeping
+		boolean dist = Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION);
+		
 		pw.println("public static int housekeeping(int osigs, int[] dl) {");
 		pw.incrementIndent();
 
-		pw.println("// Set output signal statuses");
-		Iterator<Signal> osigIt = d.getOutputSignalIterator();
-		if (!osigIt.hasNext()) pw.println("// Note: No output signals for " + cdName);
-		for (int i = 0; osigIt.hasNext(); i++) {
-			Signal s = osigIt.next();
-			pw.println("if ((osigs & " + (1 << i) + ") == 0) " + s.name + ".setClear(); else " + s.name + ".setPresent();");
+		if(dist){
+			pw.println("// TODO: deal with output signals ");
+		} else {
+			pw.println("// Set preval for valued signals which have been emitted this tick");
+			pw.println("for (int i = 0; i < currentSignals.size(); i++) {");
+			pw.incrementIndent();
+
+			pw.println(Java.CLASS_SIGNAL + " sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
+			pw.println("sig.setpreval(sig.getValue());");
+			pw.println("sig.sethook();");
+
+			pw.decrementIndent();
+			pw.println("}");
+			pw.println("currentSignals.removeAllElements();");
 		}
-
 		pw.println();
-
-		// START - Set preVal for internal valued signals which have been emitted this tick
-		pw.println("// Set preval for valued signals which have been emitted this tick");
-		pw.println("for (int i = 0; i < currentSignals.size(); i++) {");
+		
+		// START - GetHook for all input signals
+		pw.println("// Update input signals");
+//		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
+//			Signal s = it.next();
+//			pw.println(s.name + ".gethook();");
+//			pw.println("// TODO: Accumulate signal status");
+//			if(dist)
+//				pw.println(s.name + ".writeMemory(); // Writing a value to the shared memory");
+//		}
+		pw.println("for (int i=0; i<isigrefs.length; i++){");
 		pw.incrementIndent();
-
-		pw.println(Java.CLASS_SIGNAL + " sig = (" + Java.CLASS_SIGNAL + ") currentSignals.elementAt(i);");
-		pw.println("if (sig.getStatus()) sig.setprepresent(); else sig.setpreclear();");
-		pw.println("sig.setpreval(sig.getValue());");
-		pw.println("sig.sethook();");
-
+		pw.println("isigrefs[i].gethook();");
+		pw.println("// TODO: Accumulate signal status");
+		if(dist)
+			pw.println("isigrefs[i].writeMemory(); // Writing a value to the shared memory");
 		pw.decrementIndent();
 		pw.println("}");
-		pw.println("currentSignals.removeAllElements();");
-		pw.println();
-		// START - GetHook for all input signals
-		pw.println("// Update signals");
-		for (Iterator<Signal> it = d.getInputSignalIterator(); it.hasNext();) {
-			Signal s = it.next();
-			pw.println(s.name + ".gethook();");
-		}
-		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
-			Signal s = it.next();
-			pw.println(s.name + ".sethook();");
-		}
+//		for (Iterator<Signal> it = d.getOutputSignalIterator(); it.hasNext();) {
+//			Signal s = it.next();
+//			pw.println(s.name + ".sethook();");
+//		}
 		pw.println();
 		
 		// START - Update channels
 		pw.println("// Update Channels");
-		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
-			Channel c = it.next();
-			pw.println(c.name + "_in.gethook();");
-			pw.println(c.name + "_in.sethook();");
+		if(dist){
+			pw.println("for (int i=0; i < chandistrefs.length; i++){");
+			pw.incrementIndent();
+			pw.println("chandistrefs[i].readMemory(); // Reading updated channel statuses from the shared memory");
+			pw.println("chandistrefs[i].sethook();");
+			pw.println("chandistrefs[i].gethook();");
+			pw.println("chandistrefs[i].writeMemory(); // Writing back to the memory");
+			pw.decrementIndent();
+			pw.println("}");
+		} else {
+			pw.println("for (int i=0; i < chanrefs.length; i++){");
+			pw.incrementIndent();
+			pw.println("chanrefs[i].sethook();");
+			pw.println("chanrefs[i].gethook();");
+			pw.decrementIndent();
+			pw.println("}");
 		}
-		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
-			Channel c = it.next();
-			pw.println(c.name + "_o.gethook();");
-			pw.println(c.name + "_o.sethook();");
-		}
+//		for (Iterator<Channel> it = d.getInputChannelIterator(); it.hasNext();) {
+//			Channel c = it.next();
+//			pw.println(c.name + "_in.gethook();");
+//			pw.println(c.name + "_in.sethook();");
+//		}
+//		for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
+//			Channel c = it.next();
+//			pw.println(c.name + "_o.gethook();");
+//			pw.println(c.name + "_o.sethook();");
+//		}
 		pw.println();
 
 		pw.println("// Get input signal statues");
