@@ -104,14 +104,11 @@ public class UglyPrinter {
 		public static final String CLASS_SIGNAL = "com.systemj.Signal";//"systemj.lib.emb.Signal";
 		public static final String CLASS_I_CHANNEL = "com.systemj.input_Channel";//"systemj.lib.emb.input_Channel";
 		public static final String CLASS_O_CHANNEL = "com.systemj.output_Channel";//"systemj.lib.emb.output_Channel";
-		public static final String CLASS_INTERFACE_MANAGER = "com.systemj.InterfaceManager";
-		public static final String CLASS_INTERCONNECTION = "com.systemj.Interconnection";
-		public static final String CLASS_INTERCONNECTION_LINK = "com.systemj.Interconnection.Link";
 		public static final String CLASS_GENERIC_INTERFACE = "com.systemj.ipc.GenericInterface";
 		public static final String CLASS_GENERIC_SIGNAL_RECIEVER = "com.systemj.ipc.GenericSignalReceiver";
 		public static final String CLASS_GENERIC_SIGNAL_SENDER = "com.systemj.ipc.GenericSignalSender";
 		public static final String CLASS_GENERIC_CHANNEL = "com.systemj.GenericChannel";
-		public static final String CLASS_SERIALIZABLE = "com.systemjx.jop.ipc.Serializable";
+		public static final String CLASS_SERIALIZABLE = "com.systemj.Serializable";
 		public static final String CONSTANT_SCRATCHPAD_ADDRESS = "com.jopdesign.sys.Const.SCRATCHPAD_ADDRESS";
 		public static final String CLASS_CHANNEL_MEMORY = "com.systemjx.jop.ipc.ChannelMemory";
 		public static final String CLASS_SIGNAL_MEMORY = "com.systemjx.jop.ipc.SignalMemory";
