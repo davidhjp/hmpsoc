@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class SharedMemory {
 
-	public static final int DEPTH_CHAN = 2;
+	public static final int DEPTH_CHAN = 3;
 	public static final int DEPTH_SIGNAL = 1;
 
 	private long pointer = 0;
