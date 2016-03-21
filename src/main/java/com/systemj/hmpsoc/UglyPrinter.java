@@ -356,7 +356,6 @@ public class UglyPrinter {
 									sm.addChannel(channel);
 							}
 							pw.println(channel + ".setMemory(cm);");
-							pw.println(channel + ".setLocal(true);");
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 						}
@@ -403,7 +402,6 @@ public class UglyPrinter {
 									sm.addChannel(channel);
 							}
 							pw.println(channel + ".setMemory(cm);");
-							pw.println(channel + ".setLocal(true);");
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
 						}
