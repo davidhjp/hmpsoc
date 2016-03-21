@@ -671,6 +671,7 @@ public class UglyPrinter {
 					
 					pw.println("; --------- Internal house keeping ----------");
 					pw.println("; First hk to write stuffs to the shared memory");
+					List<String> dls = new ArrayList<>();
 					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
 						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
@@ -678,11 +679,19 @@ public class UglyPrinter {
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
 							pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-							pw.println("  STRPC $" + mp.getProgramCounterPointer());
-							pw.println("  LDR R10 $" + dl_h);
-							pw.println("  PRESENT R10 AJOIN" + cdi);
+							dls.add(dl_h);
+//							pw.println("  STRPC $" + mp.getProgramCounterPointer());
+//							pw.println("  LDR R10 $" + dl_h);
+//							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
 					});
+					dls.forEach(dl_h -> {
+						pw.println("  STRPC $" + mp.getProgramCounterPointer());
+						pw.println("  LDR R10 $" + dl_h);
+						pw.println("  PRESENT R10 AJOIN" + cdi);
+					});
+					dls.clear();
+					
 					pw.println("; Then hk to read stuffs from the shared memory");
 					IntStream.range(1, actsDist.size()).forEachOrdered(jopi -> {
 						if (!actsDist.get(jopi).get(cdi).isEmpty()) {
@@ -691,10 +700,16 @@ public class UglyPrinter {
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
 							pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-							pw.println("  STRPC $" + mp.getProgramCounterPointer());
-							pw.println("  LDR R10 $" + dl_h);
-							pw.println("  PRESENT R10 AJOIN" + cdi);
+							dls.add(dl_h);
+//							pw.println("  STRPC $" + mp.getProgramCounterPointer());
+//							pw.println("  LDR R10 $" + dl_h);
+//							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
+					});
+					dls.forEach(dl_h -> {
+						pw.println("  STRPC $" + mp.getProgramCounterPointer());
+						pw.println("  LDR R10 $" + dl_h);
+						pw.println("  PRESENT R10 AJOIN" + cdi);
 					});
 					pw.println("; --------- Internal house keeping done ----------");
 				}
