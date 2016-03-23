@@ -359,6 +359,7 @@ public class UglyPrinter {
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
 						}
+						pw.println(channel + ".setInit();");
 					} else {
 						systemConfig.subSystems.stream().forEach(SSC -> {
 							if (!SSC.local) {
@@ -377,8 +378,8 @@ public class UglyPrinter {
 								});
 							}
 						});
+						pw.println(channel + ".setInit();");
 					}
-					pw.println(channel + ".setInit();");
 					pw.println();
 				}
 				for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
@@ -405,6 +406,7 @@ public class UglyPrinter {
 						} else {
 							pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
 						}
+						pw.println(channel + ".setInit();");
 					} else {
 						systemConfig.subSystems.stream().forEach(SSC -> {
 							if (!SSC.local) {
@@ -423,8 +425,8 @@ public class UglyPrinter {
 								});
 							}
 						});
+						pw.println(channel + ".setInit();");
 					}
-					pw.println(channel + ".setInit();");
 					pw.println();
 				}
 
@@ -1073,6 +1075,7 @@ public class UglyPrinter {
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
 					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channel + ", " + channelPartner + ");");
+					pw.println(channel + ".setInit();");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
 						if (!SSC.local) {
@@ -1091,8 +1094,8 @@ public class UglyPrinter {
 							});
 						}
 					});
+					pw.println(channel + ".setInit();");
 				}
-				pw.println(channel + ".setInit();");
 				pw.println();
 			}
 			for (Iterator<Channel> it = d.getOutputChannelIterator(); it.hasNext();) {
@@ -1105,6 +1108,7 @@ public class UglyPrinter {
 
 				if (cdConfig.isChannelPartnerLocal(c.name)) {
 					pw.println(Java.CLASS_GENERIC_CHANNEL + ".setPartner(" + channelPartner + ", " + channel + ");");
+					pw.println(channel + ".setInit();");
 				} else {
 					systemConfig.subSystems.stream().forEach(SSC -> {
 						if (!SSC.local) {
@@ -1123,8 +1127,8 @@ public class UglyPrinter {
 							});
 						}
 					});
+					pw.println(channel + ".setInit();");
 				}
-				pw.println(channel + ".setInit();");
 				pw.println();
 			}
 		}
