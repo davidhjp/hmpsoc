@@ -1340,7 +1340,7 @@ public class UglyPrinter {
 			Iterator<Var> iter = d.getVarDeclIterator();
 			while(iter.hasNext()){
 				Var s = iter.next();
-				pw.println("public static "+s.type+" "+s.name+";");
+				pw.println("public static "+s.type+(s.array ? "[]" : "")+" "+s.name+";");
 			}
 		}
 		pw.println();
@@ -1504,18 +1504,19 @@ public class UglyPrinter {
 		int numCasesGened = 0;
 		while (nodeIterator.hasNext()) {
 			ActionNode an = nodeIterator.next();
-			int methodNum = numCasesGened / 100;
-			boolean genMethod = caseGen && numCasesGened % 100 == 0;
+			int methodNum = numCasesGened / 50;
+			boolean genMethod = caseGen && numCasesGened % 50 == 0;
 
 			if (genMethod) {
-				pw.println("default: return MethodCall_" + (methodNum + 1) + "(casen);");
+				pw.println("default: return MethodCall_" + (methodNum) + "(casen, dl);");
 				pw.println("}"); // Switch end
 				pw.decrementIndent();
+				pw.println("return false;");
 				pw.println("}"); // Method end
 				pw.decrementIndent();
 				pw.println();
 
-				pw.println("public static boolean MethodCall_" + methodNum + "(int casen) {");
+				pw.println("public static boolean MethodCall_" + methodNum + "(int casen, int[] dl) {");
 				pw.incrementIndent();
 				pw.println("switch (casen) {");
 				pw.incrementIndent();
