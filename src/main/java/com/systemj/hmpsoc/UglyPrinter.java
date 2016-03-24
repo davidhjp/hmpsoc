@@ -650,8 +650,8 @@ public class UglyPrinter {
 				pw.println("RUN"+i+" NOOP");
 				pw.println("  LDR R7 #"+cdi+"; Current CD number");
 
-//				for(long j=0; j<mp.getSizeTerminateCode(); j++)
-//					pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
+				for(long j=0; j<mp.getSizeTerminateCode(); j++)
+					pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
 				pw.println("  LDR R1 #$"+Long.toHexString(mp.getProgramCounterPointer())+"; Pointer to PC");
 				pw.println("  JMP DCHECK"+i+"; Jump to the last execution point");
 				pw.println("DCHECKCONT"+i+" ADD R1 R1 #1");
@@ -734,8 +734,6 @@ public class UglyPrinter {
 				for(long j=0; j<mp.getSizeProgramCounter(); j++){
 					pw.println("  STR R11 $"+Long.toHexString((mp.getProgramCounterPointer()+j))+"; PC");
 				}
-				for(long j=0; j<mp.getSizeTerminateCode(); j++)
-					pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
 				pw.println("; Wait for ISig vals from JOP");
 				pw.println("  LDR R10 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
 				pw.println("  STR R10 $" + Long.toHexString(mp.getProgramCounterPointer()));
