@@ -12,7 +12,7 @@ public class TestLock extends BaseGRCNode {
 		long pc_ptr = mp.getProgramCounterPointer();
 		long dl_ptr = mp.getDataLockPointer();
 		long ttnum = this.thnum - mp.getToplevelThnum();
-		pc_ptr += ttnum;
+//		pc_ptr += ttnum;
 		dl_ptr += ttnum;
 		pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Testlock storing PC");
 		pw.println("  LDR R10 $"+Long.toHexString(dl_ptr)+"; Loading datalock");

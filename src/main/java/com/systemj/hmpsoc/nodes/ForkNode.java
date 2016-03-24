@@ -58,9 +58,11 @@ public class ForkNode extends BaseGRCNode {
 				tncode = 0;
 				label = "JOIN"+cc+"CD"+cdi+"CODE"+tncode;
 			}
-			pw.println("  SUBV R1 R10 #"+tncode);
-			pw.println("  PRESENT R1 "+label+"; joinchild");
-			lbs.put(tncode, label);
+			if(!lbs.containsKey(tncode)){
+				pw.println("  SUBV R1 R10 #"+tncode);
+				pw.println("  PRESENT R1 "+label+"; joinchild");
+				lbs.put(tncode, label);
+			}
 		}
 		
 		for(BaseGRCNode child : jn.getChildren()){
