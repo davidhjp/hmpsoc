@@ -41,10 +41,12 @@ public class TerminateNode extends BaseGRCNode {
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
 			int cdi) {
-		long t_ptr = mp.getTerminateCodePointer();
-		pw.println("  LDR R10 $"+Long.toHexString(t_ptr+termcode));
-		pw.println("  MAX R10 #"+this.tcode);
-		pw.println("  STR R10 $"+Long.toHexString(t_ptr+termcode)+"; term");
+		if(this.getChild(0) instanceof JoinNode){
+			long t_ptr = mp.getTerminateCodePointer();
+			pw.println("  LDR R10 $"+Long.toHexString(t_ptr+termcode));
+			pw.println("  MAX R10 #"+this.tcode);
+			pw.println("  STR R10 $"+Long.toHexString(t_ptr+termcode)+"; term");
+		}
 		
 		for(BaseGRCNode child : this.getChildren()){
 			child.weirdPrint(pw, mp, termcode, cdi);
