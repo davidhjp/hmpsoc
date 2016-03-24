@@ -42,7 +42,8 @@ public class TerminateNode extends BaseGRCNode {
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
 			int cdi) {
 		long t_ptr = mp.getTerminateCodePointer();
-		pw.println("  LDR R10 #"+this.tcode);
+		pw.println("  LDR R10 $"+Long.toHexString(t_ptr+termcode));
+		pw.println("  MAX R10 #"+this.tcode);
 		pw.println("  STR R10 $"+Long.toHexString(t_ptr+termcode)+"; term");
 		
 		for(BaseGRCNode child : this.getChildren()){

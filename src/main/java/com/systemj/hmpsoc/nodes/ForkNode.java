@@ -26,13 +26,26 @@ public class ForkNode extends BaseGRCNode {
 		pw.println("; Forking reactions");
 		termcode++;
 	
-		for(BaseGRCNode child : this.getChildren()){
+		for(int i=0; i<this.getNumChildren(); i++){
+			BaseGRCNode child = this.getChild(i);
 			child.weirdPrint(pw, mp, termcode, cdi);
+			
+			if(i < this.getNumChildren()-1){
+				// Need to jump to the pos if data-call is pending
+				long pc_ptr = mp.getProgramCounterPointer();
+				long ttnum = this.getChild(i+1).getThnum() - mp.getToplevelThnum();
+				pc_ptr += ttnum;
+				pw.println("  LDR R10 $"+Long.toHexString(pc_ptr));
+				String label = "NOTPENDING_CD"+cdi+"_"+(mp.cc++);
+				pw.println("  PRESENT R10 "+label);
+				pw.println("  JMP R10");
+				pw.print(label);
+			}
 		}
 		
 		// Traversing JoinNode
 		
-		pw.println("  LDR R1 $"+(Long.toHexString(termcode+mp.getTerminateCodePointer()))+"; Loading term code");
+		pw.println("  LDR R10 $"+(Long.toHexString(termcode+mp.getTerminateCodePointer()))+"; Loading term code");
 		termcode--;
 		
 		for(BaseGRCNode parent : jn.getParents()){
@@ -52,11 +65,11 @@ public class ForkNode extends BaseGRCNode {
 			if(child instanceof TerminateNode){
 				TerminateNode tn = (TerminateNode)child;
 				tncode = tn.getTermcode();
-				label = "JOIN"+cc+"CD"+cdi+"CODE"+tncode;
+				label = "JOINBR"+cc+"CD"+cdi+"CODE"+tncode;
 			}
 			else{
 				tncode = 0;
-				label = "JOIN"+cc+"CD"+cdi+"CODE"+tncode;
+				label = "JOINBR"+cc+"CD"+cdi+"CODE"+tncode;
 			}
 			if(!lbs.containsKey(tncode)){
 				pw.println("  SUBV R1 R10 #"+tncode);
@@ -64,6 +77,8 @@ public class ForkNode extends BaseGRCNode {
 				lbs.put(tncode, label);
 			}
 		}
+		
+		String joinlabel = "JOIN"+(mp.cc++)+"CD"+cdi;
 		
 		for(BaseGRCNode child : jn.getChildren()){
 			String label = null;
@@ -75,6 +90,8 @@ public class ForkNode extends BaseGRCNode {
 			}
 			pw.print(label);
 			child.weirdPrint(pw, mp, termcode, cdi);
+			pw.println("  JMP "+joinlabel);
 		}
+		pw.println(joinlabel);
 	}
 }
