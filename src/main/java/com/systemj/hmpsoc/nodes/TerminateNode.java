@@ -56,6 +56,9 @@ public class TerminateNode extends BaseGRCNode {
 		}
 		
 		for(BaseGRCNode child : this.getChildren()){
+			if(child instanceof AjoinNode){
+				termcode = this.getTermcode();
+			}
 			child.weirdPrint(pw, mp, termcode, cdi);
 		}
 	}

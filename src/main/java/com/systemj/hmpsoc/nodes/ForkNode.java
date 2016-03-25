@@ -48,14 +48,14 @@ public class ForkNode extends BaseGRCNode {
 		pw.println("  LDR R10 $"+(Long.toHexString(termcode+mp.getTerminateCodePointer()))+"; Loading term code");
 		termcode--;
 		
-		for(BaseGRCNode parent : jn.getParents()){
-			TerminateNode tn = (TerminateNode) parent;
-			if(tn.getTermcode() == TerminateNode.MAX_TERM){
-				pw.println("  SUBV R1 R10 #$"+Integer.toHexString(TerminateNode.MAX_TERM));
-				pw.println("  PRESENT R1 AJOIN"+cdi+"; Pausing cd");
-				break;
-			}
-		}
+//		for(BaseGRCNode parent : jn.getParents()){
+//			TerminateNode tn = (TerminateNode) parent;
+//			if(tn.getTermcode() == TerminateNode.MAX_TERM){
+//				pw.println("  SUBV R1 R10 #$"+Integer.toHexString(TerminateNode.MAX_TERM));
+//				pw.println("  PRESENT R1 AJOIN"+cdi+"; Pausing cd");
+//				break;
+//			}
+//		}
 		
 		HashMap<Integer, String> lbs = new HashMap<Integer, String>();
 		for(BaseGRCNode child : jn.getChildren()){

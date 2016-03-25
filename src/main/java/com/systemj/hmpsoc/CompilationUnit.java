@@ -344,6 +344,8 @@ public class CompilationUnit {
 		for(BaseGRCNode n : glist){
 			addTestLock(n);
 			n.resetVisited();
+			addInfTerminate(n);
+			n.resetVisited();
 		}
 		
 		for(BaseGRCNode n : glist){
@@ -372,6 +374,30 @@ public class CompilationUnit {
 	}
 	
 	
+	private void addInfTerminate(BaseGRCNode n) {
+		AjoinNode aj = getAjoinNode(n);
+		addTerminate(n, aj);
+	}
+
+	private void addTerminate(BaseGRCNode n, AjoinNode aj) {
+		if(n instanceof JoinNode && !n.isVisited()){
+			TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
+			BaseGRCNode.connectParentChild(n, tn);
+			BaseGRCNode.connectParentChild(tn, aj);
+			n.setVisited(true);
+		}
+		
+		for(BaseGRCNode child : n.getChildren())
+			addTerminate(child, aj);
+	}
+
+	private AjoinNode getAjoinNode(BaseGRCNode n) {
+		if(n instanceof AjoinNode)
+			return (AjoinNode) n;
+		
+		return getAjoinNode(n.getChild(0));
+	}
+
 	private List<String> getImports() {
 		Element e = doc.getRootElement();
 		Element pkgs = e.getChild("JavaPackages");
