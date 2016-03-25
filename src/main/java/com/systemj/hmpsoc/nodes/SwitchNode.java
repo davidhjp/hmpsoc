@@ -41,13 +41,13 @@ public class SwitchNode extends BaseGRCNode {
 	}
 
 	@Override
-	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi) {
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi, BaseGRCNode directParent) {
 		pw.println("  LDR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(Statename)));
 		pw.println("  JMP R10; Jump to this switch child");
 		
 		for(int i=0; i<children.size(); i++){
 			pw.print(Statename.toLowerCase()+"_"+i);
-			this.getChild(i).weirdPrint(pw, mp, termcode, cdi);
+			this.getChild(i).weirdPrint(pw, mp, termcode, cdi, this);
 			pw.println("  JMP SWITCHEND_"+Statename);
 		}
 		pw.println("SWITCHEND_"+Statename);

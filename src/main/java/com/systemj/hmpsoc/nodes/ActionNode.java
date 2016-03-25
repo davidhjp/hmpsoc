@@ -181,7 +181,7 @@ public class ActionNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		switch(type){
 			case EMIT:
 				if(mp.osignalMap.containsKey(this.SigName)){
@@ -241,7 +241,7 @@ public class ActionNode extends BaseGRCNode {
 		}
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode, cdi);
+			child.weirdPrint(pw, mp, termcode, cdi, this);
 		}
 		
 	}

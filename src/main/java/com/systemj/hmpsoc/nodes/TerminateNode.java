@@ -40,7 +40,7 @@ public class TerminateNode extends BaseGRCNode {
 	
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		if(this.getChild(0) instanceof JoinNode){
 			if(this.getTermcode() != TerminateNode.MAX_TERM){
 				long pc_ptr = mp.getProgramCounterPointer();
@@ -56,10 +56,7 @@ public class TerminateNode extends BaseGRCNode {
 		}
 		
 		for(BaseGRCNode child : this.getChildren()){
-			if(child instanceof AjoinNode){
-				termcode = this.getTermcode();
-			}
-			child.weirdPrint(pw, mp, termcode, cdi);
+			child.weirdPrint(pw, mp, termcode, cdi, this);
 		}
 	}
 

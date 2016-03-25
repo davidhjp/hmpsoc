@@ -653,14 +653,9 @@ public class UglyPrinter {
 				for(long j=0; j<mp.getSizeTerminateCode(); j++)
 					pw.println("  STR R11 $"+Long.toHexString(mp.getTerminateCodePointer()+j)+"; Clearing TerminateNode");
 				pw.println("  LDR R1 #$"+Long.toHexString(mp.getProgramCounterPointer())+"; Pointer to PC");
-				pw.println("  JMP DCHECK"+i+"; Jump to the last execution point");
-				pw.println("DCHECKCONT"+i+" ADD R1 R1 #1");
-				pw.println("  SUBV R10 R1 #$"+Long.toHexString((mp.getSizeProgramCounter()+mp.getProgramCounterPointer()))+"; Next DS loc");
+				pw.println("  LDR R10 R1; Loading the PC");
 				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
-				pw.println("DCHECK"+i+" LDR R10 R1; Loading the PC");
-				pw.println("  PRESENT R10 DCHECKCONT"+i);
 				pw.println("  JMP R10");
-
 				pw.println("HOUSEKEEPING"+i+" CLFZ");
 				pw.println("  LER R10; Checking whether reactive-interface-JOP is ready");
 				pw.println("  PRESENT R10 HOUSEKEEPING"+i);
@@ -747,7 +742,7 @@ public class UglyPrinter {
 				pw.println("  CEOT; Clearing EOT register");
 
 
-				topnode.weirdPrint(pw, mp, 0, cdi);
+				topnode.weirdPrint(pw, mp, 0, cdi, null);
 
 				if(i == nodes.size()-1)
 					pw.println("AJOIN"+cdi+" JMP RUN0");

@@ -52,7 +52,7 @@ public class TestNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 //		int c = mp.signalMap.get(SigName);
 //		long c1 = (c / mp.WORD_SIZE) + mp.getInternalSignalPointer();
 //		long c2 = 1 << (c % mp.WORD_SIZE);
@@ -97,20 +97,20 @@ public class TestNode extends BaseGRCNode {
 		}
 		
 		if(this.isRev()){
-			this.getChild(1).weirdPrint(pw, mp, termcode, cdi);;
+			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this);;
 		}
 		else{
-			this.getChild(0).weirdPrint(pw, mp, termcode, cdi);;
+			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this);;
 		}
 		String oelse = "OVERELSE"+(mp.cc++)+"CD"+cdi;
 		pw.println("  JMP "+oelse);
 		pw.println(lbl+" NOOP");
 		
 		if(this.isRev()){
-			this.getChild(0).weirdPrint(pw, mp, termcode, cdi);;
+			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this);;
 		}
 		else{
-			this.getChild(1).weirdPrint(pw, mp, termcode, cdi);;
+			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this);;
 		}
 		
 		pw.println(oelse+" NOOP");

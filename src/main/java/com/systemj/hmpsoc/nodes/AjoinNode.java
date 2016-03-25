@@ -8,14 +8,17 @@ public class AjoinNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		
-		if(termcode != TerminateNode.MAX_TERM){
-			long pc_ptr = mp.getProgramCounterPointer();
-			long ttnum = this.thnum - mp.getToplevelThnum();
-			pc_ptr += ttnum;
-			pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
-			pw.println("  JMP AJOIN"+cdi+"; Normal termination");
+		if(directParent instanceof TerminateNode){
+			TerminateNode parent = (TerminateNode)directParent;
+			if(parent.getTermcode() != TerminateNode.MAX_TERM){
+				long pc_ptr = mp.getProgramCounterPointer();
+				long ttnum = parent.getThnum() - mp.getToplevelThnum();
+				pc_ptr += ttnum;
+				pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
+				pw.println("  JMP AJOIN"+cdi+"; Normal termination");
+			}
 		} else {
 			pw.println("  JMP AJOIN"+cdi+"; data-call is pending");
 		}

@@ -13,8 +13,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.jdom2.Attribute;
 import org.jdom2.Document;
@@ -43,7 +43,6 @@ import com.systemj.hmpsoc.nodes.SwitchNode;
 import com.systemj.hmpsoc.nodes.TerminateNode;
 import com.systemj.hmpsoc.nodes.TestLock;
 import com.systemj.hmpsoc.nodes.TestNode;
-import com.systemj.hmpsoc.nodes.ActionNode.TYPE;
 
 import args.Helper;
 public class CompilationUnit {
@@ -375,20 +374,28 @@ public class CompilationUnit {
 	
 	
 	private void addInfTerminate(BaseGRCNode n) {
-		AjoinNode aj = getAjoinNode(n);
-		addTerminate(n, aj);
+		addTerminate(n);
 	}
 
-	private void addTerminate(BaseGRCNode n, AjoinNode aj) {
+	private void addTerminate(BaseGRCNode n) {
 		if(n instanceof JoinNode && !n.isVisited()){
-			TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
-			BaseGRCNode.connectParentChild(n, tn);
-			BaseGRCNode.connectParentChild(tn, aj);
+			Optional<BaseGRCNode> to = n.getParents()
+					.stream()
+					.filter(nn -> nn instanceof TerminateNode && ((TerminateNode)nn).getTermcode() == TerminateNode.MAX_TERM)
+					.findFirst();
+			if(to.isPresent()){
+				int thnum = n.getChild(0).getThnum();
+				BaseGRCNode joraj = getFirstJoinOrAjoin(n, 1);
+				TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
+				tn.setThnum(thnum);
+				BaseGRCNode.connectParentChild(n, tn);
+				BaseGRCNode.connectParentChild(tn, joraj);
+			}
 			n.setVisited(true);
 		}
 		
 		for(BaseGRCNode child : n.getChildren())
-			addTerminate(child, aj);
+			addTerminate(child);
 	}
 
 	private AjoinNode getAjoinNode(BaseGRCNode n) {

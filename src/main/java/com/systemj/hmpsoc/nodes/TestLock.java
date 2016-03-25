@@ -8,7 +8,7 @@ public class TestLock extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		long pc_ptr = mp.getProgramCounterPointer();
 		long dl_ptr = mp.getDataLockPointer();
 		long ttnum = this.thnum - mp.getToplevelThnum();
@@ -19,11 +19,11 @@ public class TestLock extends BaseGRCNode {
 		String label = "DCPENDING"+(mp.cc++)+"CD"+cdi;
 		pw.println("  PRESENT R10 "+label+"; checking result");
 		pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
-		this.getChild(0).weirdPrint(pw, mp, termcode, cdi);
+		this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this);
 		String overelse = "TLBRANCH"+(mp.cc++)+"CD"+cdi;
 		pw.println("  JMP "+overelse);
-		pw.print(label);
-		this.getChild(1).weirdPrint(pw, mp, termcode, cdi);
+		pw.println(label);
+		this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this);
 		pw.print(overelse+" \n");
 	}
 	

@@ -22,25 +22,32 @@ public class ForkNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		pw.println("; Forking reactions");
+		// Storing PC before forking.. needed for interleaving
+		{
+			long pc_ptr = mp.getProgramCounterPointer();
+			long ttnum = this.getThnum() - mp.getToplevelThnum();
+			pc_ptr += ttnum;
+			pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Storing PC for this fork node until normal termination");
+		}
+		
 		termcode++;
 	
 		for(int i=0; i<this.getNumChildren(); i++){
 			BaseGRCNode child = this.getChild(i);
-			child.weirdPrint(pw, mp, termcode, cdi);
 			
-			if(i < this.getNumChildren()-1){
-				// Need to jump to the pos if data-call is pending
-				long pc_ptr = mp.getProgramCounterPointer();
-				long ttnum = this.getChild(i+1).getThnum() - mp.getToplevelThnum();
-				pc_ptr += ttnum;
-				pw.println("  LDR R10 $"+Long.toHexString(pc_ptr));
-				String label = "NOTPENDING_CD"+cdi+"_"+(mp.cc++);
-				pw.println("  PRESENT R10 "+label);
-				pw.println("  JMP R10");
-				pw.print(label);
-			}
+			// Need to jump to the pos if data-call is pending
+			long pc_ptr = mp.getProgramCounterPointer();
+			long ttnum = child.getThnum() - mp.getToplevelThnum();
+			pc_ptr += ttnum;
+			pw.println("  LDR R10 $"+Long.toHexString(pc_ptr));
+			String label = "NOTPENDING_CD"+cdi+"_"+(mp.cc++);
+			pw.println("  PRESENT R10 "+label);
+			pw.println("  JMP R10");
+			pw.print(label);
+			
+			child.weirdPrint(pw, mp, termcode, cdi, this);
 		}
 		
 		// Traversing JoinNode
@@ -89,7 +96,7 @@ public class ForkNode extends BaseGRCNode {
 				label = lbs.get(0);
 			}
 			pw.print(label);
-			child.weirdPrint(pw, mp, termcode, cdi);
+			child.weirdPrint(pw, mp, termcode, cdi, this);
 			pw.println("  JMP "+joinlabel);
 		}
 		pw.println(joinlabel);

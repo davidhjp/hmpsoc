@@ -43,12 +43,12 @@ public class EnterNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi) {
+			int cdi, BaseGRCNode directParent) {
 		pw.println("  LDR R10 #"+statename.toLowerCase()+"_"+statecode);
 		pw.println("  STR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(statename))+"; encoding "+statename);
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode, cdi);
+			child.weirdPrint(pw, mp, termcode, cdi, this);
 		}
 	}
 
