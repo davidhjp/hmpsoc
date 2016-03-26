@@ -348,6 +348,10 @@ public class CompilationUnit {
 		}
 		
 		for(BaseGRCNode n : glist){
+			checkJoins(n);
+		}
+		
+		for(BaseGRCNode n : glist){
 			connectForkJoin(n);
 		}
 		
@@ -373,6 +377,18 @@ public class CompilationUnit {
 	}
 	
 	
+	private void checkJoins(BaseGRCNode n) {
+		if(n instanceof JoinNode){
+			boolean b1 = n.getParents().stream().anyMatch(i -> i instanceof TerminateNode && ((TerminateNode)i).getTermcode() == TerminateNode.MAX_TERM);
+			boolean b2 = n.getChildren().stream().anyMatch(i -> i instanceof TerminateNode && ((TerminateNode)i).getTermcode() == TerminateNode.MAX_TERM);
+			if(b1 && !b2)
+				throw new RuntimeException("TerminateNode(inf) missing at the joinnode child");
+		}
+
+		for(BaseGRCNode child : n.getChildren())
+			checkJoins(child);
+	}
+
 	private void addInfTerminate(BaseGRCNode n) {
 		addTerminate(n);
 	}
@@ -383,26 +399,23 @@ public class CompilationUnit {
 					.stream()
 					.filter(nn -> nn instanceof TerminateNode && ((TerminateNode)nn).getTermcode() == TerminateNode.MAX_TERM)
 					.findFirst();
-			if(to.isPresent()){
+			Optional<BaseGRCNode> yo = n.getChildren()
+					.stream()
+					.filter(nn -> nn instanceof TerminateNode && ((TerminateNode)nn).getTermcode() == TerminateNode.MAX_TERM)
+					.findFirst();
+			if(to.isPresent() && !yo.isPresent()){
 				int thnum = n.getChild(0).getThnum();
 				BaseGRCNode joraj = getFirstJoinOrAjoin(n, 1);
 				TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
 				tn.setThnum(thnum);
 				BaseGRCNode.connectParentChild(n, tn);
 				BaseGRCNode.connectParentChild(tn, joraj);
+				n.setVisited(true);
 			}
-			n.setVisited(true);
 		}
 		
 		for(BaseGRCNode child : n.getChildren())
 			addTerminate(child);
-	}
-
-	private AjoinNode getAjoinNode(BaseGRCNode n) {
-		if(n instanceof AjoinNode)
-			return (AjoinNode) n;
-		
-		return getAjoinNode(n.getChild(0));
 	}
 
 	private List<String> getImports() {
