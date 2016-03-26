@@ -711,7 +711,10 @@ public class UglyPrinter {
 					pw.println("; --------- Internal house keeping done ----------");
 				}
 				
-				pw.println("  STR R11 $2; locking this thread");
+				long dl_ptr = mp.getDataLockPointer();
+				long tnum = topnode.getThnum() - mp.getToplevelThnum();
+				dl_ptr += tnum;
+				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; locking this thread");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; Send OSig vals (R10) to JOP");
 				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
@@ -732,13 +735,13 @@ public class UglyPrinter {
 				pw.println("; Wait for ISig vals from JOP");
 				pw.println("  LDR R10 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
 				pw.println("  STR R10 $" + Long.toHexString(mp.getProgramCounterPointer()));
-				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(mp.getDataLockPointer()));
+				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(dl_ptr));
 				pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 				pw.println("  AND R10 R10 #$0FFF ; Keep only ISigs");
 
 				pw.println("  STR R10 $"+Long.toHexString(mp.getInputSignalPointer())+"; Updating ISig");
-				pw.println("  STR R11 $"+Long.toHexString(mp.getDataLockPointer())+"; Locking this thread");
+				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Locking this thread");
 				pw.println("  CEOT; Clearing EOT register");
 
 
@@ -1433,7 +1436,7 @@ public class UglyPrinter {
 		}
 		pw.println();
 		pw.println("// Write to isigs memory address");
-		pw.println("dl[0] = " + mp.getDataLockPointer() + ";");
+		pw.println("dl[0] = 0x" + Long.toHexString(mp.getDataLockPointer()) + ";");
 
 		pw.println("return isigs;");
 
@@ -1546,11 +1549,19 @@ public class UglyPrinter {
 				pw.println("case " + an.getCasenumber() + ":");
 				pw.incrementIndent();
 				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-				for (String stmt : an.getStmts()) {
-					pw.print(stmt);
-					pw.println();
-				}
-				pw.println("break;");
+				IntStream.range(0, an.getNumStmts()).forEachOrdered(i -> {
+					if (i == an.getNumStmts() - 1) {
+						if (an.isBeforeTestNode())
+							pw.println("return " + an.getStmt(i) + ";");
+						else {
+							pw.println(an.getStmt(i));
+							pw.println("break;");
+						}
+
+					} else {
+						pw.println(an.getStmt(i));
+					}
+				});
 				pw.decrementIndent();
 				numCasesGened++;
 				caseGen = true;

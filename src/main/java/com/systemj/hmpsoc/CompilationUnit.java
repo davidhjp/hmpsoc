@@ -531,16 +531,22 @@ public class CompilationUnit {
 					ActionNode an = new ActionNode();
 					an.setStmt(((TestNode)n).getExpr());
 					an.setActionType(ActionNode.TYPE.JAVA);
-					if(n.getNumParents() > 1)
-						throw new RuntimeException("TestNode cannot have more than one parent");
-					BaseGRCNode bcn = n.getParent(0);
-					for(int i=0; i<bcn.getNumChildren(); i++){
-						if(bcn.getChild(i).equals(n)){
-							bcn.setChild(i, an);
+					
+					n.getParents().forEach(p -> {
+						boolean found = false;
+						for(int i=0; i<p.getNumChildren(); i++){
+							if(p.getChild(i).equals(n)){
+								p.setChild(i, an);
+								an.addParent(p);
+								found = true;
+							}
 						}
-					}
+						if(!found)
+							throw new RuntimeException("Could not find a correct child to replace : testnode");
+					});
+					
+					n.setParents(new ArrayList<BaseGRCNode>(Arrays.asList(an)));
 					an.addChild(n);
-					n.setParent(0, an);
 					an.setThnum(n.getThnum());
 					an.setBeforeTestNode(true);
 				}
@@ -614,6 +620,7 @@ public class CompilationUnit {
 							}
 						}
 					}
+					pan.setBeforeTestNode(((ActionNode) n).isBeforeTestNode());
 				}
 			}
 		}
