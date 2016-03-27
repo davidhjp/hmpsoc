@@ -307,6 +307,7 @@ public class CompilationUnit {
 		for(int i=0;i<glist.size(); i++){
 			((SwitchNode)glist.get(i)).setCDid(i);
 		}
+		
 		for(BaseGRCNode n : glist){
 			n.setTopLevel();
 			splitTestAction(n);
@@ -630,35 +631,9 @@ public class CompilationUnit {
 		}
 	}
 	
-
 	public static boolean isAGRCNode(Element e){
 		return nodenames.contains(e.getName());
 	}
-	
-//	private void resetVisitTag(Element e){
-//		e.removeAttribute("Visited");
-//		
-//		for(Element ee : (List<Element>)e.getChildren()){
-//			resetVisitTag(ee);
-//		}
-//	}
-//	
-//	private void resetVisitTagAGRC(Element e){
-//		if(isAGRCNode(e)){
-//			if(e.getAttributeValue("Visited") == null || e.getAttributeValue("Visited").equals("true")){
-//				e.setAttribute("Visited", "false");
-//			}
-//			else{
-//				return;
-//			}
-//		}
-//		else
-//			e.removeAttribute("Visited");
-//
-//		for(Element ee : (List<Element>)e.getChildren()){
-//			resetVisitTagAGRC(ee);
-//		}
-//	}
 
 	private List<BaseGRCNode> getGRC(List<DeclaredObjects> l) {
 		Element grc = (Element) doc.getRootElement().getDescendants(new ElementFilter("AforkNode")).next();
@@ -694,12 +669,6 @@ public class CompilationUnit {
 				an.setActionType(ActionNode.TYPE.SIG_DECL);
 				return an;
 			}
-//			cel = e.getChild("VariableDeclaration");
-//			if(cel != null){
-//				an.setStmt(cel.getChildText("Name")+" = "+cel.getChildText("VarInit")+";");
-//				an.setActionType(ActionNode.TYPE.VAR_DECL);
-//				return an;
-//			}
 			cel = e.getChild("EmitStmt");
 			if(cel != null){
 				String name = cel.getChildText("Name");
@@ -746,8 +715,11 @@ public class CompilationUnit {
 			}
 			cel = e.getChild("ExitStmt");
 			if(cel != null){
-				an.setActionType(ActionNode.TYPE.EXIT);
+				an.setActionType(ActionNode.TYPE./*EXIT*/JAVA);
 				an.setCapturing(cel.getChildText("Capturing"));
+				StringBuilder sb = new StringBuilder();
+				cel.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+".setPreempted(true);\n"));
+				an.setStmt(sb.toString());
 				an.setExitCode(Integer.valueOf(cel.getChildText("ExitCode")));
 				return an;
 			}
@@ -796,6 +768,30 @@ public class CompilationUnit {
 				test.setJavastmt(true);
 			if(e.getChild("Rev") != null)
 				test.setRev(true);
+
+			if(e.getChild("PreChans") != null){
+				StringBuilder sb = new StringBuilder();
+				e.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+";\n"));
+				Element ann = new Element(BaseGRCNode.ACTION_NODE);
+				ann.addContent(new Element("Expr").setText(sb.toString()));
+				ann.setAttribute("ThNum", e.getAttributeValue("ThNum"));
+				
+				Element tc = e.getChild("Children");
+				if(tc.getChildren().size() != 2)
+					throw new RuntimeException("TestNode's children size : "+tc.getChildren().size());
+				
+				if(test.isRev()){
+					Element first = tc.getChildren().get(1);
+					tc.getChildren().remove(1);
+					ann.addContent(new Element("Children").addContent(first));
+					tc.getChildren().add(ann);
+				} else {
+					Element second = tc.getChildren().get(0);
+					tc.getChildren().remove(0);
+					ann.addContent(new Element("Children").addContent(second));
+					tc.getChildren().add(0, ann);
+				}
+			}
 			return test;
 		case BaseGRCNode.AFORK_NODE:
 			AforkNode afn = new AforkNode();
