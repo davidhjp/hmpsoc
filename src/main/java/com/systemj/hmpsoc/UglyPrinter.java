@@ -677,13 +677,10 @@ public class UglyPrinter {
 							pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
 							dls.add(dl_h);
-//							pw.println("  STRPC $" + mp.getProgramCounterPointer());
-//							pw.println("  LDR R10 $" + dl_h);
-//							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
 					});
 					dls.forEach(dl_h -> {
-						pw.println("  STRPC $" + mp.getProgramCounterPointer());
+						pw.println("  STRPC $" + Long.toHexString(mp.getProgramCounterPointer()));
 						pw.println("  LDR R10 $" + dl_h);
 						pw.println("  PRESENT R10 AJOIN" + cdi);
 					});
@@ -698,13 +695,10 @@ public class UglyPrinter {
 							pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
 							dls.add(dl_h);
-//							pw.println("  STRPC $" + mp.getProgramCounterPointer());
-//							pw.println("  LDR R10 $" + dl_h);
-//							pw.println("  PRESENT R10 AJOIN" + cdi);
 						}
 					});
 					dls.forEach(dl_h -> {
-						pw.println("  STRPC $" + mp.getProgramCounterPointer());
+						pw.println("  STRPC $" + Long.toHexString(mp.getProgramCounterPointer()));
 						pw.println("  LDR R10 $" + dl_h);
 						pw.println("  PRESENT R10 AJOIN" + cdi);
 					});
@@ -1212,8 +1206,8 @@ public class UglyPrinter {
 				if(!sm.hasSig(cdSigName))
 					sm.addSignal(cdSigName);
 				MemorySlot ms = sm.getSigMem(cdSigName);
-				pw.println(ssig.name + ".setMemory(new " + Java.CLASS_SIGNAL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L));");
-//				pw.println(ssig.name + ".setMemoryLoc(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L);");
+				if(ssig.type !=null)
+					pw.println(ssig.name + ".setMemory(new " + Java.CLASS_SIGNAL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L));");
 			}
 		});
 
