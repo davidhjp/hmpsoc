@@ -373,12 +373,12 @@ public class UglyPrinter {
 											ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
 											pw.println("gif.configure(ht);");
 											pw.println(channel + ".setLink(gif);");
+											pw.println(channel + ".setInit();");
 										}
 									}
 								});
 							}
 						});
-						pw.println(channel + ".setInit();");
 					}
 					pw.println();
 				}
@@ -420,12 +420,12 @@ public class UglyPrinter {
 											ic.cfg.forEach((KK, VV) -> pw.println("ht.put(\"" + KK + "\", \"" + VV + "\");"));
 											pw.println("gif.configure(ht);");
 											pw.println(channel + ".setLink(gif);");
+											pw.println(channel + ".setInit();");
 										}
 									}
 								});
 							}
 						});
-						pw.println(channel + ".setInit();");
 					}
 					pw.println();
 				}
