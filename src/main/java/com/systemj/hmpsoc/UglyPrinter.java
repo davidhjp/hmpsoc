@@ -1203,11 +1203,12 @@ public class UglyPrinter {
 		Consumer<Signal> mL = (ssig -> {
 			if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) {
 				String cdSigName = cdName+"."+ssig.name;
-				if(!sm.hasSig(cdSigName))
-					sm.addSignal(cdSigName);
-				MemorySlot ms = sm.getSigMem(cdSigName);
-				if(ssig.type !=null)
+				if(ssig.type !=null){
+					if(!sm.hasSig(cdSigName))
+						sm.addSignal(cdSigName);
+					MemorySlot ms = sm.getSigMem(cdSigName);
 					pw.println(ssig.name + ".setMemory(new " + Java.CLASS_SIGNAL_MEMORY + "(" + Java.CONSTANT_SCRATCHPAD_ADDRESS + "+" + ms.start + "L, " + ms.depth + "L));");
+				}
 			}
 		});
 
