@@ -54,6 +54,8 @@ public class UglyPrinter {
 	private SystemConfig systemConfig;
 	private SharedMemory sm = new SharedMemory();
 	private List<String> imports;
+	
+	public static final int MAX_RECOP = 0xFF;
 
 	public UglyPrinter () {}
 
@@ -711,7 +713,11 @@ public class UglyPrinter {
 				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; locking this thread");
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
 				pw.println("; Send OSig vals (R10) to JOP");
-				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+				if(Helper.pMap.nJOP == 1){
+					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (MAX_RECOP - cdi)) + " ; EOT Datacall ; Format = 1|IO-JOP| MAXNUM - CD-ID | OSigs");
+				} else{
+					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+				}
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Reset ISig");
 				pw.println("  STR R10 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
@@ -981,8 +987,18 @@ public class UglyPrinter {
 			pw.println("case " + i + ":");
 			pw.incrementIndent();
 			
-			pw.println("recopId = " + cdName + ".recopId;");
-			pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			if(Helper.pMap.nJOP == 1){
+				pw.println("recopId = 0;");
+				pw.println("isigs = " + cdName + ".MethodCall_0(osigs, dl) ? 3 : 2;");
+				pw.println("break;");
+				pw.decrementIndent();
+				pw.println("case 0x" + (Integer.toHexString(MAX_RECOP - i)) + ":");
+				pw.incrementIndent();
+				pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			} else {
+				pw.println("recopId = " + cdName + ".recopId;");
+				pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
+			}
 			
 
 			pw.println("break;");
