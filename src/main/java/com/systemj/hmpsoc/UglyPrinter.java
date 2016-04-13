@@ -988,12 +988,13 @@ public class UglyPrinter {
 			pw.incrementIndent();
 			
 			if(Helper.pMap.nJOP == 1){
-				pw.println("recopId = 0;");
+				pw.println("recopId = " + cdName + ".recopId;");
 				pw.println("isigs = " + cdName + ".MethodCall_0(osigs, dl) ? 3 : 2;");
 				pw.println("break;");
 				pw.decrementIndent();
 				pw.println("case 0x" + (Integer.toHexString(MAX_RECOP - i)) + ":");
 				pw.incrementIndent();
+				pw.println("recopId = " + cdName + ".recopId;");
 				pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
 			} else {
 				pw.println("recopId = " + cdName + ".recopId;");
