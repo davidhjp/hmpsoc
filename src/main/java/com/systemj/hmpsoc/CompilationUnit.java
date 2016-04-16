@@ -718,7 +718,7 @@ public class CompilationUnit {
 				an.setActionType(ActionNode.TYPE./*EXIT*/JAVA);
 				an.setCapturing(cel.getChildText("Capturing"));
 				StringBuilder sb = new StringBuilder();
-				cel.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+".setPreempted(true);\n"));
+				cel.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+".setPreempted();\n"));
 				an.setStmt(sb.toString());
 				an.setExitCode(Integer.valueOf(cel.getChildText("ExitCode")));
 				return an;
@@ -771,9 +771,9 @@ public class CompilationUnit {
 
 			if(e.getChild("PreChans") != null){
 				StringBuilder sb = new StringBuilder();
-				e.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+";\n"));
+				e.getChildren("PreChans").forEach(ee -> sb.append(ee.getText()+".setPreempted();\n"));
 				Element ann = new Element(BaseGRCNode.ACTION_NODE);
-				ann.addContent(new Element("Expr").setText(sb.toString()));
+				ann.addContent(new Element("ExprStmt").addContent(new Element("Expr").setText(sb.toString())));
 				ann.setAttribute("ThNum", e.getAttributeValue("ThNum"));
 				
 				Element tc = e.getChild("Children");
