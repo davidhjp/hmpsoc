@@ -1603,7 +1603,7 @@ public class UglyPrinter {
 			}
 		}
 
-		pw.println("default: throw new RuntimeException(\"Unexpected case number \"+casen);");
+		pw.println("default: if(1==1) throw new RuntimeException(\"Unexpected case number \"+casen);");
 		pw.decrementIndent();
 		pw.println("}"); // Switch end
 		pw.decrementIndent();
