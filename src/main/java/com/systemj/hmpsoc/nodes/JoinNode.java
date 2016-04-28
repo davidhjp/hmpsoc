@@ -3,13 +3,14 @@ package com.systemj.hmpsoc.nodes;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class JoinNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		return;
 	}
 

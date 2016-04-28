@@ -3,6 +3,7 @@ package com.systemj.hmpsoc.nodes;
 import java.io.PrintWriter;
 import java.util.HashMap;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class ForkNode extends BaseGRCNode {
@@ -22,7 +23,7 @@ public class ForkNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		pw.println("; Forking reactions");
 		// Storing PC before forking.. needed for interleaving
 		{
@@ -47,7 +48,7 @@ public class ForkNode extends BaseGRCNode {
 			pw.println("  JMP R10");
 			pw.print(label);
 			
-			child.weirdPrint(pw, mp, termcode, cdi, this);
+			child.weirdPrint(pw, mp, termcode, cdi, this, doo);
 		}
 		
 		// Traversing JoinNode
@@ -96,7 +97,7 @@ public class ForkNode extends BaseGRCNode {
 				label = lbs.get(0);
 			}
 			pw.print(label);
-			child.weirdPrint(pw, mp, termcode, cdi, this);
+			child.weirdPrint(pw, mp, termcode, cdi, this, doo);
 			pw.println("  JMP "+joinlabel);
 		}
 		pw.println(joinlabel);

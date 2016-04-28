@@ -16,6 +16,8 @@ public class Helper {
 	public static final String JOP_RECOP_NUM_OPTION = "j";
 	public static final String DIST_MEM_OPTION = "i";
 	public static final String DIST_MEM_LONG_OPTION = "distmem";
+	public static final String COMPILE_ONLY_OPTION = "S";
+	public static final String DYN_DISPATCH_OPTION = "y";
 	
 	private static CommandLine cmd;
 	

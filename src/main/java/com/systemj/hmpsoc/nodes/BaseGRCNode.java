@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class BaseGRCNode {
@@ -26,6 +27,11 @@ public class BaseGRCNode {
 	
 	public String id;
 
+	
+	public static final String dCallAnnotFormat(){
+		return " ; format : @Datacall(CDname, JOPid, casenumber)";
+	}
+	
 	public int getTopThreadNum(){
 		if(this.isTopLevel())
 			return this.getThnum();
@@ -56,15 +62,30 @@ public class BaseGRCNode {
 		parents.remove(n);
 	}
 	
+	public int indexOfParent(BaseGRCNode n){
+		return parents.indexOf(n);
+	}
+	
+	public int indexOfChild(BaseGRCNode n){
+		return children.indexOf(n);
+	}
+	
 	public void addChild(BaseGRCNode n){
 		children.add(n);
 	}
+	
+	public void addChild(int i, BaseGRCNode n){
+		children.add(i, n);
+	}
+	
 	public BaseGRCNode getChild(int i){
 		return children.get(i);
 	}
+	
 	public void setChild(int i, BaseGRCNode n){
 		children.set(i, n);
 	}
+	
 	public int getNumChildren(){
 		return children.size();
 	}
@@ -72,6 +93,11 @@ public class BaseGRCNode {
 	public void addParent(BaseGRCNode p){
 		parents.add(p);
 	}
+	
+	public void addParent(int i, BaseGRCNode p){
+		parents.add(i, p);
+	}
+	
 	public BaseGRCNode getParent(int i){
 		return parents.get(i);
 	}
@@ -148,11 +174,11 @@ public class BaseGRCNode {
 	}
 	
 	
-	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi, BaseGRCNode directParent){
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi, BaseGRCNode directParent, DeclaredObjects doo){
 		pw.println("; TODO: Override "+this.getClass().getSimpleName()+".weirdPrint(..) method"); // TODO
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode, cdi, directParent);
+			child.weirdPrint(pw, mp, termcode, cdi, directParent, doo);
 		}
 	}
 

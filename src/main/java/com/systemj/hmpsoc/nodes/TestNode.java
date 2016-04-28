@@ -2,6 +2,7 @@ package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class TestNode extends BaseGRCNode {
@@ -52,7 +53,7 @@ public class TestNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 //		int c = mp.signalMap.get(SigName);
 //		long c1 = (c / mp.WORD_SIZE) + mp.getInternalSignalPointer();
 //		long c2 = 1 << (c % mp.WORD_SIZE);
@@ -97,20 +98,20 @@ public class TestNode extends BaseGRCNode {
 		}
 		
 		if(this.isRev()){
-			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this);;
+			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this, doo);;
 		}
 		else{
-			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this);;
+			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this, doo);;
 		}
 		String oelse = "OVERELSE"+(mp.cc++)+"CD"+cdi;
 		pw.println("  JMP "+oelse);
 		pw.println(lbl+" NOOP");
 		
 		if(this.isRev()){
-			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this);;
+			this.getChild(0).weirdPrint(pw, mp, termcode, cdi, this, doo);;
 		}
 		else{
-			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this);;
+			this.getChild(1).weirdPrint(pw, mp, termcode, cdi, this, doo);;
 		}
 		
 		pw.println(oelse+" NOOP");

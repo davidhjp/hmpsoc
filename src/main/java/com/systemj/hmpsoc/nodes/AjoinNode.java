@@ -2,13 +2,14 @@ package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class AjoinNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		
 		if(directParent instanceof TerminateNode){
 			TerminateNode parent = (TerminateNode)directParent;

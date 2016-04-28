@@ -36,6 +36,8 @@ public class HMPSoC {
 		options.addOption(Option.builder(Helper.HELP_OPTION).longOpt(Helper.HELP_LONG_OPTION).desc("Print this help message").build());
 		options.addOption(Option.builder(Helper.CONFIG_OPTION).longOpt(Helper.CONFIG_LONG_OPTION).hasArg().argName("file").desc("Specify SystemJ Configuration").build());
 		options.addOption(Option.builder(Helper.DIST_MEM_OPTION).longOpt(Helper.DIST_MEM_LONG_OPTION).desc("Distributed memory").build());
+		options.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Compile only, do not link").build());
+		options.addOption(Option.builder(Helper.DYN_DISPATCH_OPTION).desc("Dynamic dispatch to JOPs").build());
 		return options;
 	}
 

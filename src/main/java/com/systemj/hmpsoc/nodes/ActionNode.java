@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 import args.Helper;
@@ -181,7 +182,7 @@ public class ActionNode extends BaseGRCNode {
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		switch(type){
 			case EMIT:
 				if(mp.osignalMap.containsKey(this.SigName)){
@@ -210,13 +211,18 @@ public class ActionNode extends BaseGRCNode {
 						jopId = getJOPIDDist();
 					else
 						jopId = getNextJopId(); 
-						
+
 					dl_ptr += tnum;
 					pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-					pw.println("  LDR R10 #" + casenumber);
+					pw.print("  LDR R10 ");
+					if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+						pw.println("@Datacall(\""+doo.getCDName()+"\", \""+jopId+"\", \""+casenumber+"\") "+dCallAnnotFormat());
+					else{
+						pw.println("#" + casenumber);
+					}
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
 				}
-				
+
 				break;
 			case GROUPED_JAVA:
 			case JAVA:
@@ -231,7 +237,12 @@ public class ActionNode extends BaseGRCNode {
 				
 				dl_ptr += tnum;
 				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-				pw.println("  LDR R10 #"+casenumber);
+				pw.print("  LDR R10 ");
+				if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+					pw.println("@Datacall(\""+doo.getCDName()+"\", \""+jopId+"\", \""+casenumber+"\") "+dCallAnnotFormat());
+				else{
+					pw.println("#"+casenumber);
+				}
 				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
 				break;
 			case SIG_DECL:
@@ -241,7 +252,7 @@ public class ActionNode extends BaseGRCNode {
 		}
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode, cdi, this);
+			child.weirdPrint(pw, mp, termcode, cdi, this, doo);
 		}
 		
 	}

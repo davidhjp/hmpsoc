@@ -2,6 +2,7 @@ package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class SwitchNode extends BaseGRCNode {
@@ -41,13 +42,13 @@ public class SwitchNode extends BaseGRCNode {
 	}
 
 	@Override
-	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi, BaseGRCNode directParent) {
+	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode, int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		pw.println("  LDR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(Statename)));
 		pw.println("  JMP R10; Jump to this switch child");
 		
 		for(int i=0; i<children.size(); i++){
 			pw.print(Statename.toLowerCase()+"_"+i);
-			this.getChild(i).weirdPrint(pw, mp, termcode, cdi, this);
+			this.getChild(i).weirdPrint(pw, mp, termcode, cdi, this, doo);
 			pw.println("  JMP SWITCHEND_"+Statename);
 		}
 		pw.println("SWITCHEND_"+Statename);

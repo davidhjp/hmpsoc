@@ -2,6 +2,7 @@ package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 
+import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
 
 public class TerminateNode extends BaseGRCNode {
@@ -40,7 +41,7 @@ public class TerminateNode extends BaseGRCNode {
 	
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
-			int cdi, BaseGRCNode directParent) {
+			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
 		if(this.getChild(0) instanceof JoinNode){
 			if(this.getTermcode() != TerminateNode.MAX_TERM){
 				long pc_ptr = mp.getProgramCounterPointer();
@@ -56,7 +57,7 @@ public class TerminateNode extends BaseGRCNode {
 		}
 		
 		for(BaseGRCNode child : this.getChildren()){
-			child.weirdPrint(pw, mp, termcode, cdi, this);
+			child.weirdPrint(pw, mp, termcode, cdi, this, doo);
 		}
 	}
 

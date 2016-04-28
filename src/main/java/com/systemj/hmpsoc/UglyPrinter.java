@@ -525,7 +525,7 @@ public class UglyPrinter {
 			if(nodes.isEmpty())
 				continue;
 			
-			PrintWriter pw = new PrintWriter(new File(dir, target+"_R"+o+".asm"));
+			PrintWriter pw = new PrintWriter(new File(dir, target+"_R"+o+(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION) ? ".s" : ".asm")));
 			long c = 0;
 			List<MemoryPointer> lmp = new ArrayList<MemoryPointer>();
 			
@@ -676,7 +676,11 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-							pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
+							pw.print("  LDR R10 ");
+							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+								pw.println("@Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"1\") "+BaseGRCNode.dCallAnnotFormat());
+							else
+								pw.println("#" + CASE_WRITE + "; casenumber 1 for writing");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
 							dls.add(dl_h);
 						}
@@ -694,7 +698,11 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-							pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
+							pw.print("  LDR R10 ");
+							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+								pw.println("@Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"0\") "+BaseGRCNode.dCallAnnotFormat());
+							else
+								pw.println("#" + CASE_READ + "; casenumber 0 for reading");
 							pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
 							dls.add(dl_h);
 						}
@@ -711,13 +719,19 @@ public class UglyPrinter {
 				long tnum = topnode.getThnum() - mp.getToplevelThnum();
 				dl_ptr += tnum;
 				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; locking this thread");
-				pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
+				pw.print("  LDR R10 ");
+				if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+					pw.println("@Datacall(\""+topnode.getCDName()+"\", \"0\", \"Osig\") ; TODO: need to send output signals to IOJOP, need some protocol here..");
+				else{
+					pw.println("$"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
+				}
 				pw.println("; Send OSig vals (R10) to JOP");
 				if(Helper.pMap.nJOP == 1){
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (MAX_RECOP - cdi)) + " ; EOT Datacall ; Format = 1|IO-JOP| MAXNUM - CD-ID | OSigs");
 				} else{
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				}
+				
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
 				pw.println("  STR R11 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Reset ISig");
 				pw.println("  STR R10 $"+Long.toHexString(mp.getPreInputSignalPointer())+"; Updating PreISig");
@@ -745,7 +759,8 @@ public class UglyPrinter {
 				pw.println("  CEOT; Clearing EOT register");
 
 
-				topnode.weirdPrint(pw, mp, 0, cdi, null);
+				DeclaredObjects doo = declolist.get(cdi);
+				topnode.weirdPrint(pw, mp, 0, cdi, null, doo);
 
 				if(i == nodes.size()-1)
 					pw.println("AJOIN"+cdi+" JMP RUN0");
