@@ -55,7 +55,7 @@ public class HMPSoC {
 				return 0;
 			}
 		});
-		hf.printHelp("java -jar hmpsoc.jar [OPTIONS] <filename>", options);
+		hf.printHelp("hmpsoc [OPTIONS] <filename>", options);
 	}
 
 	public static void main(String[] args) {
