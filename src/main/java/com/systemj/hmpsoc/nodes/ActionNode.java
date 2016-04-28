@@ -179,10 +179,52 @@ public class ActionNode extends BaseGRCNode {
 		this.beforeTestNode = beforeTestNode;
 	}
 	
+	private void genTLElseLabel(MemoryPointer mp, int cdi) {
+		((TestLock)this.getChild(0)).generateElseLabel(mp, cdi);
+	}
+	
+	private void printJOPPending(PrintWriter pw, MemoryPointer mp){
+		long pc_ptr = mp.getProgramCounterPointer();
+		long ttnum = this.thnum - mp.getToplevelThnum();
+		pc_ptr += ttnum;
+		pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; JOP availabilty check");
+		pw.println("  LSIP R10");
+		pw.println("  AND R1 R10 #1");
+		pw.println("  SUBV R10 R1 #1");
+		String nf = ((TestLock)this.getChild(0)).getElseLabel();
+		pw.println("  PRESENT R10 "+nf+"; checking if it is okay to launch dcall");
+//		pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
+	}
+	
+	private void printDataCall(PrintWriter pw, MemoryPointer mp, DeclaredObjects doo, int cdi) {
+		long dl_ptr = mp.getDataLockPointer();
+		long tnum = this.getThnum() - mp.getToplevelThnum();
+		int jopId = 0;
+
+		if (Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION))
+			jopId = getJOPIDDist();
+		else
+			jopId = getNextJopId();
+
+		dl_ptr += tnum;
+		pw.println("  STR R11 $" + Long.toHexString(dl_ptr) + "; Thread is locked");
+		boolean dyn = Helper.getSingleArgInstance().hasOption(Helper.DYN_DISPATCH_OPTION);
+		if(dyn) genTLElseLabel(mp, cdi);
+		if (Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)) {
+			if(dyn) printJOPPending(pw, mp);
+			pw.println("  LDR R10 @Datacall(\"" + doo.getCDName() + "\", \"" + jopId + "\", \"" + casenumber + "\") " + dCallAnnotFormat());
+			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
+		} else {
+			if(dyn) printJOPPending(pw, mp);
+			pw.println("  LDR R10 #" + casenumber);
+			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
+		}
+	}
 
 	@Override
 	public void weirdPrint(PrintWriter pw, MemoryPointer mp, int termcode,
 			int cdi, BaseGRCNode directParent, DeclaredObjects doo) {
+		
 		switch(type){
 			case EMIT:
 				if(mp.osignalMap.containsKey(this.SigName)){
@@ -203,47 +245,12 @@ public class ActionNode extends BaseGRCNode {
 				else throw new RuntimeException("Could not resolve the signal: "+SigName);
 
 				if(this.hasEmitVal()){
-					long dl_ptr = mp.getDataLockPointer();
-					long tnum = this.getThnum() - mp.getToplevelThnum();
-					int jopId = 0;
-					
-					if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) 
-						jopId = getJOPIDDist();
-					else
-						jopId = getNextJopId(); 
-
-					dl_ptr += tnum;
-					pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-					pw.print("  LDR R10 ");
-					if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
-						pw.println("@Datacall(\""+doo.getCDName()+"\", \""+jopId+"\", \""+casenumber+"\") "+dCallAnnotFormat());
-					else{
-						pw.println("#" + casenumber);
-					}
-					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+", casenumber="+casenumber);
+					printDataCall(pw, mp, doo, cdi);
 				}
-
 				break;
 			case GROUPED_JAVA:
 			case JAVA:
-				long dl_ptr = mp.getDataLockPointer();
-				long tnum = this.getThnum() - mp.getToplevelThnum();
-				int jopId = 0;
-				
-				if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)) 
-					jopId = getJOPIDDist();
-				else
-					jopId = getNextJopId(); 
-				
-				dl_ptr += tnum;
-				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; Thread is locked");
-				pw.print("  LDR R10 ");
-				if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
-					pw.println("@Datacall(\""+doo.getCDName()+"\", \""+jopId+"\", \""+casenumber+"\") "+dCallAnnotFormat());
-				else{
-					pw.println("#"+casenumber);
-				}
-				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000|(jopId<<8)|(cdi&0xFF))  + "; Emit val - jop="+jopId+", cd="+cdi+",; Java casenumber "+casenumber);
+				printDataCall(pw, mp, doo, cdi);
 				break;
 			case SIG_DECL:
 			case EXIT:

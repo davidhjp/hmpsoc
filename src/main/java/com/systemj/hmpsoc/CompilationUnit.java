@@ -442,52 +442,25 @@ public class CompilationUnit {
 
 	private void addTL(BaseGRCNode n){
 		if(n.getNumChildren() > 1) throw new RuntimeException("ActioNode has more than 1 child");
-		{
-			BaseGRCNode oc = n.getChild(0);
-			n.removeChild(oc);
-			oc.removeParent(n);
+		BaseGRCNode oc = n.getChild(0);
+		n.removeChild(oc);
+		oc.removeParent(n);
 
-			TestLock tl = new TestLock();
-			tl.setThnum(n.getThnum());
-			BaseGRCNode.connectParentChild(n, tl);
+		TestLock tl = new TestLock();
+		tl.setThnum(n.getThnum());
+		BaseGRCNode.connectParentChild(n, tl);
 
-			// Then :0, else : 1
-			tl.addChild(oc);
-			TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
-			BaseGRCNode.connectParentChild(tl, tn);
+		// Then :0, else : 1
+		tl.addChild(oc);
+		TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
+		BaseGRCNode.connectParentChild(tl, tn);
 
-			BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
-			if(joraj == null){
-				log.info(n.dump(1));
-				throw new RuntimeException("Error while inserting TestLock");
-			}
-			BaseGRCNode.connectParentChild(tn, joraj);
+		BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
+		if(joraj == null){
+			log.info(n.dump(1));
+			throw new RuntimeException("Error while inserting TestLock");
 		}
-		
-		// Check if the dynamic dispatching is needed (-y option)
-		if(Helper.getSingleArgInstance().hasOption(Helper.DYN_DISPATCH_OPTION)){
-			TestLock tl = new TestLock();
-			tl.setThnum(n.getThnum());
-			// Then :0, else : 1
-			tl.addChild(n);
-			tl.setType(TestLock.TYPE.DISPATCH);
-			TerminateNode tn = new TerminateNode(TerminateNode.MAX_TERM);
-			BaseGRCNode.connectParentChild(tl, tn);
-			BaseGRCNode joraj = getFirstJoinOrAjoin(n, 0);
-			if(joraj == null){
-				log.info(n.dump(1));
-				throw new RuntimeException("Error while inserting TestLock");
-			}
-			BaseGRCNode.connectParentChild(tn, joraj);
-			
-			List<BaseGRCNode> parents = n.getParents();
-			parents.forEach(p -> {
-				int ic = p.indexOfChild(n);
-				int ip = n.indexOfParent(p);
-				p.setChild(ic, tl);
-				n.setParent(ip, tl);
-			});
-		}
+		BaseGRCNode.connectParentChild(tn, joraj);
 	}
 
 	private void addTestLock(BaseGRCNode n) {
