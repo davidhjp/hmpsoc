@@ -464,7 +464,7 @@ public class CompilationUnit {
 			BaseGRCNode.connectParentChild(tn, joraj);
 		}
 		
-		// Check if the dynamic dispatching is needed (-S option)
+		// Check if the dynamic dispatching is needed (-y option)
 		if(Helper.getSingleArgInstance().hasOption(Helper.DYN_DISPATCH_OPTION)){
 			TestLock tl = new TestLock();
 			tl.setThnum(n.getThnum());
