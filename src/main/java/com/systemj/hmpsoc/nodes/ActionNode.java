@@ -187,7 +187,7 @@ public class ActionNode extends BaseGRCNode {
 		long pc_ptr = mp.getProgramCounterPointer();
 		long ttnum = this.thnum - mp.getToplevelThnum();
 		pc_ptr += ttnum;
-		pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; JOP availabilty check");
+		pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Dynamic dispatch check");
 		pw.println("  LSIP R10");
 		pw.println("  AND R1 R10 #1");
 		pw.println("  SUBV R10 R1 #1");

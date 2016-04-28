@@ -515,7 +515,7 @@ public class UglyPrinter {
 	}
 	
 	private void printJOPPending(PrintWriter pw, MemoryPointer mp, int cdi){
-		pw.println("  STRPC $"+Long.toHexString(mp.getProgramCounterPointer())+"; JOP availabilty check");
+		pw.println("  STRPC $"+Long.toHexString(mp.getProgramCounterPointer())+"; Dynamic dispatch check");
 		pw.println("  LSIP R10");
 		pw.println("  AND R1 R10 #1");
 		pw.println("  SUBV R10 R1 #1");
