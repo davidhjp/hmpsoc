@@ -24,8 +24,8 @@ public class Linker {
 	private static final String PATTERN_ARGS = "\"([^,]+)\"";
 	private static final String PATTERN_JOP_METHOD = "(\\d+):.*?(\\w+).MethodCall_(\\d+)";
 
-	public Linker(String a, String jopbin) {
-		ifile = a;
+	public Linker(String rasm, String jopbin) {
+		ifile = rasm;
 		ofile = new File(ifile.split("\\.(?=[^\\.]+$)")[0] + ".asm");
 		this.jopbin = jopbin;
 	}
