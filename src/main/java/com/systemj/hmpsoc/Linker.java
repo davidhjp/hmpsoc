@@ -32,7 +32,7 @@ public class Linker {
 	}
 	
 	private static String getTarget(String jopid, String cdname) {
-		return (jopid == null ? "" : "JOP" + jopid + "_") + cdname;
+		return (jopid == null ? "" : UglyPrinter.getJOPPackageName(Integer.valueOf(jopid)) + "_") + cdname;
 	}
 
 	public void link() throws IOException {

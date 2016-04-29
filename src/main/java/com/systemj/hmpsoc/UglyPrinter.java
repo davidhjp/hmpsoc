@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -144,7 +143,7 @@ public class UglyPrinter {
 					IntStream ist = IntStream.range(0, Helper.pMap.nJOP);
 					ist.forEachOrdered(jopi -> {
 						List<List<ActionNode>> actlists = actsDist.get(jopi);
-						File subdir = new File(dir, "JOP" + jopi);
+						File subdir = new File(dir, getJOPPackageName(jopi));
 						try {
 							printJavaClockDomainDistributed(subdir, mp, actlists.get(cdi), declolist.get(cdi), cdi, jopi);
 						} catch (Exception e) {
@@ -173,13 +172,12 @@ public class UglyPrinter {
 		
 		if(Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION)){
 			IntStream.range(0, Helper.pMap.nJOP).forEachOrdered(i -> {
-				File ff = new File(dir, "JOP"+i);
+				File ff = new File(dir, getJOPPackageName(i));
 				ff.mkdirs();});
 			distributeActions();
 			printASM(dir);
 			printJavaClockDomain(dir);
 			IntStream.range(0, Helper.pMap.nJOP).forEachOrdered(i -> {
-				File ff = new File(dir, "JOP"+i);
 				List<List<ActionNode>> l = actsDist.get(i);
 				try {
 					printJavaMainDistributed(dir, l, i);
@@ -526,6 +524,10 @@ public class UglyPrinter {
 		pw.println("  SUBV R10 R1 #1");
 		pw.println("  PRESENT R10 AJOIN"+cdi+"; checking if it is okay to launch dcall");
 //		pw.println("  STR R11 $"+Long.toHexString(mp.getProgramCounterPointer())+"; Clearing PC");
+	}
+	
+	public static String getJOPPackageName(int i){
+		return "JOP" + i;
 	}
 
 	private void printASM(File dir) throws FileNotFoundException {

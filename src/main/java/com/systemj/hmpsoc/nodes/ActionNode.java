@@ -213,11 +213,11 @@ public class ActionNode extends BaseGRCNode {
 		if (Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)) {
 			if(dyn) printJOPPending(pw, mp);
 			pw.println("  LDR R10 @Datacall(\"" + doo.getCDName() + "\", \"" + jopId + "\", \"" + casenumber + "\") " + dCallAnnotFormat());
-			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
+			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL "+doo.getCDName()+" - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
 		} else {
 			if(dyn) printJOPPending(pw, mp);
 			pw.println("  LDR R10 #" + casenumber);
-			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
+			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopId << 8) | (cdi & 0xFF)) + "; DCALL "+doo.getCDName()+" - jop=" + jopId + ", cd=" + cdi + ", casenumber=" + casenumber);
 		}
 	}
 
