@@ -221,7 +221,8 @@ public class UglyPrinter {
 		pw.println("int cd = 0;");
 		pw.println("int data = 0;");
 		pw.println("int rval = 0;");
-		pw.println("int[] dl = new int[]{0};");
+		pw.println("int[] dl = new int[]{0,0,0};");
+		pw.println("int __arg = com.jopdesign.sys.Native.toInt(dl);");
 		pw.println("int recopId = 0;");
 		pw.println("int result = 0;");
 		pw.println();
@@ -238,38 +239,41 @@ public class UglyPrinter {
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
 		pw.println("data = dpcr & 0xFFFF; // dpcr(15 downto 0)");
 
-		pw.println("switch (cd) {");
+		if(!Helper.getSingleArgInstance().hasOption(Helper.METHOD_OPTION) || jopID == 0){
+			pw.println("switch (cd) {");
+			for (int i = 0; i < declolist.size(); i++) {
+				String cdName = declolist.get(i).getCDName();
 
-		for (int i = 0; i < declolist.size(); i++) {
-			String cdName = declolist.get(i).getCDName();
+				if (systemConfig != null) {
+					if (!systemConfig.isLocalClockDomain(cdName)) {
+						// This clock domain does not run on this device
+						continue;
+					}
+				}
 
-			if (systemConfig != null) {
-				if (!systemConfig.isLocalClockDomain(cdName)) {
-					// This clock domain does not run on this device
-					continue;
+				if(jopID == 0){
+					pw.println("case " + i + ":");
+					pw.incrementIndent();
+					pw.println("recopId = " + cdName + ".recopId;");
+					pw.println("rval = " + cdName + ".housekeeping(data, dl);");
+					pw.println("break;");
+					pw.decrementIndent();
+				} else if (!actList.get(i).isEmpty()) {
+					pw.println("case " + i + ":");
+					pw.incrementIndent();
+					pw.println("recopId = " + cdName + ".recopId;");
+					pw.println("rval = "+cdName+".MethodCall_0(data, dl) ? 3 : 2;");
+					pw.println("break;");
+					pw.decrementIndent();
 				}
 			}
-
-			if(jopID == 0){
-				pw.println("case " + i + ":");
-				pw.incrementIndent();
-				pw.println("recopId = " + cdName + ".recopId;");
-				pw.println("rval = " + cdName + ".housekeeping(data, dl);");
-				pw.println("break;");
-				pw.decrementIndent();
-			} else if (!actList.get(i).isEmpty()) {
-				pw.println("case " + i + ":");
-				pw.incrementIndent();
-				pw.println("recopId = " + cdName + ".recopId;");
-				pw.println("rval = "+cdName+".MethodCall_0(data, dl) ? 3 : 2;");
-				pw.println("break;");
-				pw.decrementIndent();
-			}
+			pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+			pw.println("}");
+		} else {
+			pw.println("com.jopdesign.sys.Native.invoke(__arg, data);");
+			pw.println("rval = dl[1] == 1 ? 3 : 2;");
+			pw.println("recopId = dl[2];");
 		}
-
-		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
-
-		pw.println("}");
 
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
 				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +
@@ -689,14 +693,14 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-//							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
-//								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"1\") "+BaseGRCNode.dCallAnnotFormat());
-//								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-//							}
-//							else{
+							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
+								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"1\") "+BaseGRCNode.dCallAnnotFormat());
+								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
+							}
+							else{
 								pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
 								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-//							}
+							}
 							dls.add(dl_h);
 						}
 					});
@@ -715,14 +719,14 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-//							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
-//								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"0\") "+BaseGRCNode.dCallAnnotFormat());
-//								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-//							}
-//							else{
+							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
+								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"0\") "+BaseGRCNode.dCallAnnotFormat());
+								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
+							}
+							else{
 								pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
 								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-//							}
+							}
 							dls.add(dl_h);
 						}
 					});
@@ -991,7 +995,8 @@ public class UglyPrinter {
 		pw.println("int cd = 0;");
 		pw.println("int osigs = 0;");
 		pw.println("int isigs = 0;");
-		pw.println("int[] dl = new int[]{0};");
+		pw.println("int[] dl = new int[]{0,0,0};");
+		pw.println("int __arg = com.jopdesign.sys.Native.toInt(dl);");
 		pw.println("int recopId = 0;");
 		pw.println("int result = 0;");
 		pw.println();
@@ -1008,7 +1013,7 @@ public class UglyPrinter {
 
 		pw.println("switch (cd) {");
 		pw.incrementIndent();
-
+		
 		for (int i = 0; i < declolist.size(); i++) {
 			String cdName = declolist.get(i).getCDName();
 
@@ -1018,30 +1023,47 @@ public class UglyPrinter {
 					continue;
 				}
 			}
-
-			pw.println("case " + i + ":");
-			pw.incrementIndent();
-			
-			if(Helper.pMap.nJOP == 1){
-				pw.println("recopId = " + cdName + ".recopId;");
-				pw.println("isigs = " + cdName + ".MethodCall_0(osigs, dl) ? 3 : 2;");
-				pw.println("break;");
-				pw.decrementIndent();
+			if(Helper.pMap.nJOP == 1)
 				pw.println("case 0x" + (Integer.toHexString(MAX_RECOP - i)) + ":");
-				pw.incrementIndent();
-				pw.println("recopId = " + cdName + ".recopId;");
-				pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
-			} else {
-				pw.println("recopId = " + cdName + ".recopId;");
-				pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
-			}
-			
-
+			else
+				pw.println("case " + i + ":");
+			pw.incrementIndent();
+			pw.println("recopId = " + cdName + ".recopId;");
+			pw.println("isigs = " + cdName + ".housekeeping(osigs, dl);");
 			pw.println("break;");
 			pw.decrementIndent();
 		}
 
-		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
+		if (Helper.pMap.nJOP == 1) {
+			if (Helper.getSingleArgInstance().hasOption(Helper.METHOD_OPTION)) {
+				pw.println("default:");
+				pw.incrementIndent();
+				pw.println("com.jopdesign.sys.Native.invoke(__arg, osigs);");
+				pw.println("isigs = dl[1] == 1 ? 3 : 2;");
+				pw.println("recopId = dl[2];");
+				pw.println("break;");
+				pw.decrementIndent();
+			} else {
+				for (int i = 0; i < declolist.size(); i++) {
+					String cdName = declolist.get(i).getCDName();
+					if (systemConfig != null) {
+						if (!systemConfig.isLocalClockDomain(cdName)) {
+							// This clock domain does not run on this device
+							continue;
+						}
+					}
+					pw.println("case " + i + ":");
+					pw.incrementIndent();
+					pw.println("recopId = " + cdName + ".recopId;");
+					pw.println("isigs = " + cdName + ".MethodCall_0(osigs, dl) ? 3 : 2;");
+					pw.println("break;");
+					pw.decrementIndent();
+				}
+			}
+		}
+		
+		if (!Helper.getSingleArgInstance().hasOption(Helper.METHOD_OPTION))
+			pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 
 		pw.decrementIndent();
 		pw.println("}");
