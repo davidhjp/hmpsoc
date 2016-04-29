@@ -23,12 +23,16 @@ public class Linker {
 	private String[] jopbin;
 	private static final String PATTERN_DCALL_ANNOTATION = "\\.*@Datacall\\s*\\((.*?)\\)";
 	private static final String PATTERN_ARGS = "\"([^,]+)\"";
-	private static final String PATTERN_JOP_METHOD = "(\\d+):.*?(\\w+).MethodCall_(\\d+)";
+	private static final String PATTERN_JOP_METHOD = "(\\d+):.*?(?:JOP(\\d+))?.(\\w+).MethodCall_(\\d+)";
 
 	public Linker(String rasm, String[] jopbin) {
 		ifile = rasm;
 		ofile = new File(Paths.get(ifile.split("\\.(?=[^\\.]+$)")[0] + ".asm").getFileName().toString());
 		this.jopbin = jopbin;
+	}
+	
+	private static String getTarget(String jopid, String cdname) {
+		return (jopid == null ? "" : "JOP" + jopid + "_") + cdname;
 	}
 
 	public void link() throws IOException {
@@ -43,11 +47,13 @@ public class Linker {
 					Matcher m = jm.matcher(l);
 					if (m.find()) {
 						String adr = m.group(1);
-						String cdname = m.group(2);
-						String casen = m.group(3);
-						if (!madr.containsKey(cdname))
-							madr.put(cdname, new HashMap<>());
-						Map<String, String> adrm = madr.get(cdname);
+						String jopid = m.group(2);
+						String cdname = m.group(3);
+						String casen = m.group(4);
+						final String target = getTarget(jopid, cdname);
+						if (!madr.containsKey(target))
+							madr.put(target, new HashMap<>());
+						Map<String, String> adrm = madr.get(target);
 						adrm.put(casen, adr);
 					}
 				});
@@ -65,9 +71,13 @@ public class Linker {
 						q.push(m.group(1));
 					}
 					String cdname = q.removeLast();
-					String joid = q.removeLast();
+					String jopid = q.removeLast();
+					jopid = jopbin.length == 1 ? null : jopid;
 					String casen = q.removeLast();
-					Map<String,String> adrm = madr.get(cdname);
+					final String target = getTarget(jopid, cdname);
+					Map<String,String> adrm = madr.get(target);
+					if(adrm == null)
+						throw new RuntimeException("Could not resolve symbolic link "+target);
 					String adr = adrm.get(casen);
 					if(adr == null)
 						throw new RuntimeException("Could not resolve symolic link "+annot);
@@ -86,10 +96,10 @@ public class Linker {
 	}
 
 	public static void main(String[] args) {
-		Pattern dc = Pattern.compile("(\\d+):.*?(\\w+).MethodCall_(\\d+)");
-		Matcher m = dc.matcher("// 1232: hmpsoc.ConveyorCD.MethodCall_123(sfwpaga) ");
+		Pattern dc = Pattern.compile("(\\d+):.*?(?:JOP(\\d+))?.(\\w+).MethodCall_(\\d+)");
+		Matcher m = dc.matcher("// 1232: hmpsoc.JOP2.ConveyorCD.MethodCall_123(sfwpaga) ");
 		if(m.find()){
-			System.out.println(m.group(3));
+			System.out.println(m.group(4));
 		} else
 			System.out.println("not match");
 		System.exit(1);
