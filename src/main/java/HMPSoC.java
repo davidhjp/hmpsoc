@@ -43,7 +43,7 @@ public class HMPSoC {
 		options.addOption(Option.builder(Helper.METHOD_OPTION).desc("Generate separate methods for the action nodes").build());
 //		options.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		OptionGroup og = new OptionGroup();
-		og.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
+		og.addOption(Option.builder(Helper.LINK_OPTION).hasArgs().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		og.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links (cannot be used with -"+Helper.LINK_OPTION+")").build());
 		options.addOptionGroup(og);
 		return options;
@@ -117,7 +117,7 @@ public class HMPSoC {
 			if(!arglists.isEmpty()){
 				if(cmd.hasOption(Helper.LINK_OPTION)){
 					for(String f : arglists){
-						Linker l = new Linker(f, cmd.getOptionValue(Helper.LINK_OPTION));
+						Linker l = new Linker(f, cmd.getOptionValues(Helper.LINK_OPTION));
 						l.link();
 					}
 				} else {

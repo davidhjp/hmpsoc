@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,14 +20,14 @@ import args.Helper;
 public class Linker {
 	private String ifile;
 	private File ofile;
-	private String jopbin;
+	private String[] jopbin;
 	private static final String PATTERN_DCALL_ANNOTATION = "\\.*@Datacall\\s*\\((.*?)\\)";
 	private static final String PATTERN_ARGS = "\"([^,]+)\"";
 	private static final String PATTERN_JOP_METHOD = "(\\d+):.*?(\\w+).MethodCall_(\\d+)";
 
-	public Linker(String rasm, String jopbin) {
+	public Linker(String rasm, String[] jopbin) {
 		ifile = rasm;
-		ofile = new File(ifile.split("\\.(?=[^\\.]+$)")[0] + ".asm");
+		ofile = new File(Paths.get(ifile.split("\\.(?=[^\\.]+$)")[0] + ".asm").getFileName().toString());
 		this.jopbin = jopbin;
 	}
 
@@ -35,20 +36,25 @@ public class Linker {
 		Pattern dc = Pattern.compile(PATTERN_DCALL_ANNOTATION);
 		Pattern args = Pattern.compile(PATTERN_ARGS);
 		Pattern jm = Pattern.compile(PATTERN_JOP_METHOD);
-		try (Stream<String> rlines = Files.lines(Paths.get(ifile)); Stream<String> jlines = Files.lines(Paths.get(jopbin));) {
-			jlines.forEach(l -> {
-				Matcher m = jm.matcher(l);
-				if (m.find()) {
-					String adr = m.group(1);
-					String cdname = m.group(2);
-					String casen = m.group(3);
-					if (!madr.containsKey(cdname))
-						madr.put(cdname, new HashMap<>());
-					Map<String, String> adrm = madr.get(cdname);
-					adrm.put(casen, adr);
-				}
-			});
-
+		
+		for(String jopbin : jopbin){
+			try(Stream<String> jlines = Files.lines(Paths.get(jopbin));){
+				jlines.forEach(l -> {
+					Matcher m = jm.matcher(l);
+					if (m.find()) {
+						String adr = m.group(1);
+						String cdname = m.group(2);
+						String casen = m.group(3);
+						if (!madr.containsKey(cdname))
+							madr.put(cdname, new HashMap<>());
+						Map<String, String> adrm = madr.get(cdname);
+						adrm.put(casen, adr);
+					}
+				});
+			}
+		}
+		
+		try (Stream<String> rlines = Files.lines(Paths.get(ifile));) {
 			Stream<String> mapped = rlines.map(l -> {
 				Matcher m = dc.matcher(l);
 				if(m.find()){
