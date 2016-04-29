@@ -11,6 +11,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -37,10 +38,14 @@ public class HMPSoC {
 		options.addOption(Option.builder(Helper.HELP_OPTION).longOpt(Helper.HELP_LONG_OPTION).desc("Print this help message").build());
 		options.addOption(Option.builder(Helper.CONFIG_OPTION).longOpt(Helper.CONFIG_LONG_OPTION).hasArg().argName("file").desc("Specify SystemJ Configuration").build());
 		options.addOption(Option.builder(Helper.DIST_MEM_OPTION).longOpt(Helper.DIST_MEM_LONG_OPTION).desc("Target distributed memory system").build());
-		options.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links").build());
+//		options.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links").build());
 		options.addOption(Option.builder(Helper.DYN_DISPATCH_OPTION).desc("Datacall based on dynamic dispatching").build());
 		options.addOption(Option.builder(Helper.METHOD_OPTION).desc("Generate separate methods for the action nodes").build());
-		options.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
+//		options.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
+		OptionGroup og = new OptionGroup();
+		og.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
+		og.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links (cannot be used with -"+Helper.LINK_OPTION+")").build());
+		options.addOptionGroup(og);
 		return options;
 	}
 
@@ -127,7 +132,7 @@ public class HMPSoC {
 				cu.process();
 			}
 		} catch (Exception | Error e){
-			if(cmd.hasOption(Helper.VERBOSE_OPTION))
+			if(cmd != null && cmd.hasOption(Helper.VERBOSE_OPTION))
 				e.printStackTrace();
 			else
 				log.severe(e.toString());
