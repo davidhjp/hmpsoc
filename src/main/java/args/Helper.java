@@ -18,6 +18,8 @@ public class Helper {
 	public static final String DIST_MEM_LONG_OPTION = "distmem";
 	public static final String COMPILE_ONLY_OPTION = "S";
 	public static final String DYN_DISPATCH_OPTION = "y";
+	public static final String METHOD_OPTION = "m";
+	public static final String LINK_OPTION = "l";
 	
 	private static CommandLine cmd;
 	

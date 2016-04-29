@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -688,14 +689,14 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
-								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"1\") "+BaseGRCNode.dCallAnnotFormat());
-								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-							}
-							else{
+//							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
+//								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"1\") "+BaseGRCNode.dCallAnnotFormat());
+//								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
+//							}
+//							else{
 								pw.println("  LDR R10 #" + CASE_WRITE + "; casenumber 1 for writing");
 								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; writing, jop:" + jopi + " cd:" + cdi + " casenumber 1");
-							}
+//							}
 							dls.add(dl_h);
 						}
 					});
@@ -714,14 +715,14 @@ public class UglyPrinter {
 							long dl = (actsDist.get(jopi).get(cdi).get(CASE_WRITE).getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer();
 							String dl_h = Long.toHexString(dl);
 							pw.println("  STR R11 $" + dl_h + "; locking this thread");
-							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
-								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"0\") "+BaseGRCNode.dCallAnnotFormat());
-								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-							}
-							else{
+//							if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION)){
+//								pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \""+jopi+"\", \"0\") "+BaseGRCNode.dCallAnnotFormat());
+//								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
+//							}
+//							else{
 								pw.println("  LDR R10 #" + CASE_READ + "; casenumber 0 for reading");
 								pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (jopi << 8) | (cdi & 0xFF)) + "; reading, jop:" + jopi + " cd:" + cdi + " casenumber 0");
-							}
+//							}
 							dls.add(dl_h);
 						}
 					});
@@ -739,11 +740,11 @@ public class UglyPrinter {
 				long tnum = topnode.getThnum() - mp.getToplevelThnum();
 				dl_ptr += tnum;
 				pw.println("  STR R11 $"+Long.toHexString(dl_ptr)+"; locking this thread");
-				if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
-					pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \"0\", \"Osig\") ; TODO: need to send output signals to IOJOP, need some protocol here..");
-				else{
+//				if(Helper.getSingleArgInstance().hasOption(Helper.COMPILE_ONLY_OPTION))
+//					pw.println("  LDR R10 @Datacall(\""+topnode.getCDName()+"\", \"0\", \"Osig\") ; TODO: need to send output signals to IOJOP, need some protocol here..");
+//				else{
 					pw.println("  LDR R10 $"+Long.toHexString(mp.getOutputSignalPointer())+"; Loading OSigs");
-				}
+//				}
 				pw.println("; Send OSig vals (R10) to JOP");
 				if(Helper.pMap.nJOP == 1){
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (MAX_RECOP - cdi)) + " ; EOT Datacall ; Format = 1|IO-JOP| MAXNUM - CD-ID | OSigs");
@@ -1541,109 +1542,172 @@ public class UglyPrinter {
 	private void printJavaCDMethods(IndentPrinter pw, MemoryPointer mp, List<ActionNode> l, int cdi) {
 		// Non IO-JOP stuffs from here
 		pw.println();
+		if(Helper.getSingleArgInstance().hasOption(Helper.METHOD_OPTION)){
+			l.forEach(an -> {
+				int casenum = an.getCasenumber();
+				TYPE t = an.getActionType();
+				
+				Function<Object, Boolean> mheader = tt -> {
+					pw.println("public static void MethodCall_" + casenum + "(int __arg) {");
+					pw.incrementIndent();
+					pw.println("int[] __arga = com.jopdesign.sys.Native.toIntArray(__arg);");
+					pw.println("__arga[2] = recopId;");
+					return true;
+				};
 
-		pw.println("public static boolean MethodCall_0(int casen, int[] dl) {");
-		pw.incrementIndent();
-		pw.println("switch (casen) {");
-		pw.incrementIndent();
-
-		Iterator<ActionNode> nodeIterator = l.iterator();
-		boolean caseGen = false;
-		int numCasesGened = 0;
-		while (nodeIterator.hasNext()) {
-			ActionNode an = nodeIterator.next();
-			int methodNum = numCasesGened / 50;
-			boolean genMethod = caseGen && numCasesGened % 50 == 0;
-
-			if (genMethod) {
-				pw.println("default: return MethodCall_" + (methodNum) + "(casen, dl);");
-				pw.println("}"); // Switch end
-				pw.decrementIndent();
-				pw.println("return false;");
-				pw.println("}"); // Method end
-				pw.decrementIndent();
-				pw.println();
-
-				pw.println("public static boolean MethodCall_" + methodNum + "(int casen, int[] dl) {");
-				pw.incrementIndent();
-				pw.println("switch (casen) {");
-				pw.incrementIndent();
-			}
-
-			switch (an.getActionType()) {
-			case JAVA:
-				if (an.getCasenumber() < 0)
-					throw new RuntimeException("Unresolved Action Case");
-
-				pw.println("case " + an.getCasenumber() + ": ");
-				pw.incrementIndent();
-				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-				if (an.isBeforeTestNode()) {
-					pw.println("return " + an.getStmt() + ";");
-					pw.decrementIndent();
-				} else {
-					pw.println(an.getStmt() + "");
-					pw.println("break;");
-					pw.decrementIndent();
-				}
-				numCasesGened++;
-				caseGen = true;
-				break;
-			case GROUPED_JAVA:
-				if (an.getCasenumber() < 0)
-					throw new RuntimeException("Unresolved Action Case");
-				pw.println("case " + an.getCasenumber() + ":");
-				pw.incrementIndent();
-				pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-				IntStream.range(0, an.getNumStmts()).forEachOrdered(i -> {
-					if (i == an.getNumStmts() - 1) {
-						if (an.isBeforeTestNode())
-							pw.println("return " + an.getStmt(i) + ";");
-						else {
-							pw.println(an.getStmt(i));
-							pw.println("break;");
-						}
-
+				switch (t) {
+				case JAVA:
+					pw.println("// Java");
+					mheader.apply(null);
+					pw.println("__arga[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+					if (an.isBeforeTestNode()) {
+						pw.println("__arga[1] =  " + an.getStmt() + " ? 1 : 0;");
 					} else {
-						pw.println(an.getStmt(i));
+						pw.println(an.getStmt() + "");
+						pw.println("__arga[1] = 0;");
 					}
-				});
-				pw.decrementIndent();
-				numCasesGened++;
-				caseGen = true;
-				break;
-			case EMIT:
-				if (an.hasEmitVal()) {
+					pw.decrementIndent();
+					pw.println("}");
+					break;
+				case GROUPED_JAVA:
+					pw.println("// Grouped Java");
+					mheader.apply(null);
+					pw.println("__arga[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+					IntStream.range(0, an.getNumStmts()).forEachOrdered(i -> {
+						if (i == an.getNumStmts() - 1) {
+							if (an.isBeforeTestNode())
+								pw.println("__arga[1] = " + an.getStmt(i) + " ? 1 : 0;");
+							else {
+								pw.println(an.getStmt(i));
+								pw.println("__arga[1] = 0;");
+							}
+
+						} else {
+							pw.println(an.getStmt(i));
+						}
+					});
+					pw.decrementIndent();
+					pw.println("}");
+					break;
+				case EMIT:
+					if (an.hasEmitVal()) {
+						pw.println("// Emit val");
+						mheader.apply(null);
+						if (an.getCasenumber() < 0)
+							throw new RuntimeException("Unresolved Action Case");
+						pw.println("__arga[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+						pw.println(an.getStmt() + "");
+						pw.println("currentSignals.addElement(" + an.getSigName() + ");");
+						pw.decrementIndent();
+						pw.println("}");
+					}
+				default:
+				}
+			});
+		} else {
+			pw.println("public static boolean MethodCall_0(int casen, int[] dl) {");
+			pw.incrementIndent();
+			pw.println("switch (casen) {");
+			pw.incrementIndent();
+
+			Iterator<ActionNode> nodeIterator = l.iterator();
+			boolean caseGen = false;
+			int numCasesGened = 0;
+			while (nodeIterator.hasNext()) {
+				ActionNode an = nodeIterator.next();
+				int methodNum = numCasesGened / 50;
+				boolean genMethod = caseGen && numCasesGened % 50 == 0;
+
+				if (genMethod) {
+					pw.println("default: return MethodCall_" + (methodNum) + "(casen, dl);");
+					pw.println("}"); // Switch end
+					pw.decrementIndent();
+					pw.println("return false;");
+					pw.println("}"); // Method end
+					pw.decrementIndent();
+					pw.println();
+
+					pw.println("public static boolean MethodCall_" + methodNum + "(int casen, int[] dl) {");
+					pw.incrementIndent();
+					pw.println("switch (casen) {");
+					pw.incrementIndent();
+				}
+
+				switch (an.getActionType()) {
+				case JAVA:
+					if (an.getCasenumber() < 0)
+						throw new RuntimeException("Unresolved Action Case");
+
+					pw.println("case " + an.getCasenumber() + ": ");
+					pw.incrementIndent();
+					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+					if (an.isBeforeTestNode()) {
+						pw.println("return " + an.getStmt() + ";");
+						pw.decrementIndent();
+					} else {
+						pw.println(an.getStmt() + "");
+						pw.println("break;");
+						pw.decrementIndent();
+					}
+					numCasesGened++;
+					caseGen = true;
+					break;
+				case GROUPED_JAVA:
 					if (an.getCasenumber() < 0)
 						throw new RuntimeException("Unresolved Action Case");
 					pw.println("case " + an.getCasenumber() + ":");
 					pw.incrementIndent();
 					pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
-					pw.println(an.getStmt() + "");
-					pw.println("currentSignals.addElement(" + an.getSigName() + ");");
-					pw.println("break;");
-					pw.decrementIndent();
+					IntStream.range(0, an.getNumStmts()).forEachOrdered(i -> {
+						if (i == an.getNumStmts() - 1) {
+							if (an.isBeforeTestNode())
+								pw.println("return " + an.getStmt(i) + ";");
+							else {
+								pw.println(an.getStmt(i));
+								pw.println("break;");
+							}
 
+						} else {
+							pw.println(an.getStmt(i));
+						}
+					});
+					pw.decrementIndent();
 					numCasesGened++;
 					caseGen = true;
-				} else {
+					break;
+				case EMIT:
+					if (an.hasEmitVal()) {
+						if (an.getCasenumber() < 0)
+							throw new RuntimeException("Unresolved Action Case");
+						pw.println("case " + an.getCasenumber() + ":");
+						pw.incrementIndent();
+						pw.println("dl[0] = " + ((an.getThnum() - mp.getToplevelThnum()) + mp.getDataLockPointer()) + ";");
+						pw.println(an.getStmt() + "");
+						pw.println("currentSignals.addElement(" + an.getSigName() + ");");
+						pw.println("break;");
+						pw.decrementIndent();
+
+						numCasesGened++;
+						caseGen = true;
+					} else {
+						caseGen = false;
+						continue;
+					}
+					break;
+				default:
 					caseGen = false;
 					continue;
 				}
-				break;
-			default:
-				caseGen = false;
-				continue;
 			}
-		}
 
-		pw.println("default: if(1==1) throw new RuntimeException(\"Unexpected case number \"+casen);");
-		pw.decrementIndent();
-		pw.println("}"); // Switch end
-		pw.decrementIndent();
-		pw.println("return false;");
-		pw.println("}"); // Method end
-		pw.println();
+			pw.println("default: if(1==1) throw new RuntimeException(\"Unexpected case number \"+casen);");
+			pw.decrementIndent();
+			pw.println("}"); // Switch end
+			pw.decrementIndent();
+			pw.println("return false;");
+			pw.println("}"); // Method end
+			pw.println();
+		}
 	}
 	
 	private void printJavaClockDomainShared(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi) throws FileNotFoundException {
@@ -1704,7 +1768,8 @@ public class UglyPrinter {
 		// Response variables
 		pw.println("int status = 0;");
 		pw.println("int recopId = 0;");
-		pw.println("int[] dl = new int[]{0};");
+		pw.println("int[] dl = new int[]{0,0,0};");
+		pw.println("int __arg = com.jopdesign.sys.Native.toInt(dl);");
 		pw.println("try{");
 		pw.incrementIndent();
 		pw.println("while(true){");
@@ -1719,30 +1784,37 @@ public class UglyPrinter {
 		pw.println("cd = (dpcr >> 16) & 0xFF; // dpcr(23 downto 16)");
 		pw.println("casen = dpcr & 0xFFFF; // dpcr(15 downto 0)");
 
-		pw.println("switch(cd){");
-		pw.incrementIndent();
+		if (Helper.getSingleArgInstance().hasOption(Helper.METHOD_OPTION)) {
+			pw.println("com.jopdesign.sys.Native.invoke(__arg, casen);");
+			pw.println("status = dl[1] == 1 ? 3 : 2;");
+			pw.println("recopId = dl[2];");
+		} else {
+			pw.println("switch(cd){");
+			pw.incrementIndent();
 
-		for(int i=0; i<declolist.size(); i++){
-			String cdName = declolist.get(i).getCDName();
+			for (int i = 0; i < declolist.size(); i++) {
+				String cdName = declolist.get(i).getCDName();
 
-			if (systemConfig != null) {
-				if (!systemConfig.isLocalClockDomain(cdName)) {
-					// This clock domain does not run on this device
-					continue;
+				if (systemConfig != null) {
+					if (!systemConfig.isLocalClockDomain(cdName)) {
+						// This clock domain does not run on this device
+						continue;
+					}
 				}
+
+				pw.println("case " + i + ":");
+				pw.incrementIndent();
+				pw.println("recopId = " + cdName + ".recopId; // Set recop id");
+				pw.println("status = " + cdName + ".MethodCall_0(casen, dl) ? 3 : 2;");
+				pw.println("break;");
+				pw.decrementIndent();
 			}
 
-			pw.println("case "+i+":");
-			pw.incrementIndent();
-			pw.println("recopId = "+cdName+".recopId; // Set recop id");
-			pw.println("status = "+cdName+".MethodCall_0(casen, dl) ? 3 : 2;");
-			pw.println("break;");
+			pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
 			pw.decrementIndent();
+			pw.println("}");
 		}
-		
-		pw.println("default: throw new RuntimeException(\"Unrecognized CD number :\"+cd);");
-		pw.decrementIndent();
-		pw.println("}");
+
 		pw.println();
 		pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
 				"| ((recopId & 0x7F) << 24) /*RecopId*/ " +

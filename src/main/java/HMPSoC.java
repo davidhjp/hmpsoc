@@ -1,3 +1,5 @@
+import static com.systemj.hmpsoc.util.Helper.log;
+
 import java.io.FileReader;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -12,12 +14,11 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import args.Helper;
-
 import com.google.gson.Gson;
 import com.systemj.hmpsoc.CompilationUnit;
+import com.systemj.hmpsoc.Linker;
 
-import static com.systemj.hmpsoc.util.Helper.log;
+import args.Helper;
 
 /**
  * HMPSoC main class
@@ -38,6 +39,8 @@ public class HMPSoC {
 		options.addOption(Option.builder(Helper.DIST_MEM_OPTION).longOpt(Helper.DIST_MEM_LONG_OPTION).desc("Target distributed memory system").build());
 		options.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links").build());
 		options.addOption(Option.builder(Helper.DYN_DISPATCH_OPTION).desc("Datacall based on dynamic dispatching").build());
+		options.addOption(Option.builder(Helper.METHOD_OPTION).desc("Generate separate methods for the action nodes").build());
+		options.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		return options;
 	}
 
@@ -107,9 +110,16 @@ public class HMPSoC {
 
 			List<String> arglists = cmd.getArgList();
 			if(!arglists.isEmpty()){
-				for(String f : arglists){
-					CompilationUnit cu = new CompilationUnit(f, systemJConfig);
-					cu.process();
+				if(cmd.hasOption(Helper.LINK_OPTION)){
+					for(String f : arglists){
+						Linker l = new Linker(f, cmd.getOptionValue(Helper.LINK_OPTION));
+						l.link();
+					}
+				} else {
+					for(String f : arglists){
+						CompilationUnit cu = new CompilationUnit(f, systemJConfig);
+						cu.process();
+					}
 				}
 			}
 			else{
