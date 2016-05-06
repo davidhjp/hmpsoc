@@ -1,5 +1,5 @@
 # HMPSoC
-SystemJ backend for HMPSOC platform.
+SystemJ backend for the HMPSOC platform.
 
 In order to build the tool, first install Gradle and type `gradle` in the root directory of the repository.
 
