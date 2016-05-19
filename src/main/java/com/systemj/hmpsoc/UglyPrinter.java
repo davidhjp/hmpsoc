@@ -520,8 +520,8 @@ public class UglyPrinter {
 	private void printJOPPending(PrintWriter pw, MemoryPointer mp, int cdi){
 		pw.println("  STRPC $"+Long.toHexString(mp.getProgramCounterPointer())+"; Dynamic dispatch check");
 		pw.println("  LSIP R10");
-		pw.println("  AND R1 R10 #1");
-		pw.println("  SUBV R10 R1 #1");
+//		pw.println("  AND R1 R10 #1");
+//		pw.println("  SUBV R10 R1 #1");
 		pw.println("  PRESENT R10 AJOIN"+cdi+"; checking if it is okay to launch dcall");
 //		pw.println("  STR R11 $"+Long.toHexString(mp.getProgramCounterPointer())+"; Clearing PC");
 	}

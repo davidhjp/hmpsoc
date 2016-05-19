@@ -189,8 +189,8 @@ public class ActionNode extends BaseGRCNode {
 		pc_ptr += ttnum;
 		pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Dynamic dispatch check");
 		pw.println("  LSIP R10");
-		pw.println("  AND R1 R10 #1");
-		pw.println("  SUBV R10 R1 #1");
+//		pw.println("  AND R1 R10 #1");
+//		pw.println("  SUBV R10 R1 #1");
 		String nf = ((TestLock)this.getChild(0)).getElseLabel();
 		pw.println("  PRESENT R10 "+nf+"; checking if it is okay to launch dcall");
 //		pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC");
