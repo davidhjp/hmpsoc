@@ -740,7 +740,7 @@ public class UglyPrinter {
 					pw.println("; --------- Internal house keeping done ----------");
 				}
 				
-//				if(dyn) printJOPPending(pw, mp, cdi);
+				if(dyn) printJOPPending(pw, mp, cdi);
 				
 				long dl_ptr = mp.getDataLockPointer();
 				long tnum = topnode.getThnum() - mp.getToplevelThnum();
