@@ -45,6 +45,7 @@ public class HMPSoC {
 		OptionGroup og = new OptionGroup();
 		og.addOption(Option.builder(Helper.LINK_OPTION).hasArgs().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		og.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links (cannot be used with -"+Helper.LINK_OPTION+")").build());
+		og.addOption(Option.builder(Helper.SCHEDULING_OPTION).hasArg().argName("int").desc("Scheduling option").build());
 		options.addOptionGroup(og);
 		return options;
 	}
@@ -113,6 +114,7 @@ public class HMPSoC {
 				}
 			}
 
+			Helper.setSchedulingPolicty();
 			List<String> arglists = cmd.getArgList();
 			if(!arglists.isEmpty()){
 				if(cmd.hasOption(Helper.LINK_OPTION)){

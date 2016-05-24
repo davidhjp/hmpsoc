@@ -612,6 +612,9 @@ public class UglyPrinter {
 						mp.switchMap.put(iii.next(), counter++);
 					}
 					c += sws.size();
+					
+					mp.setEOTPointer(c);
+					c++;
 
 					mp.setLastAddr(c);
 				}
@@ -628,6 +631,7 @@ public class UglyPrinter {
 				+ "PC         :"+mp.getProgramCounterPointer()	   + "\n"
 				+ "Term       :"+mp.getTerminateCodePointer()	   + "\n"
 				+ "Switch     :"+mp.getSwitchNodePointer()		   + "\n"
+				+ "EOT        :"+mp.getEOTPointer()				   + "\n"
 				+ "LastAddr+1 :"+mp.getLastAddr()				         );
 
 				lmp.add(mp);
@@ -650,6 +654,7 @@ public class UglyPrinter {
 				pw.println("; PC         :"+mp.getProgramCounterPointer());
 				pw.println("; Term       :"+mp.getTerminateCodePointer());
 				pw.println("; Switch     :"+mp.getSwitchNodePointer());
+				pw.println("; EOT        :"+mp.getEOTPointer());
 				pw.println("; LastAddr+1 :"+mp.getLastAddr());
 
 				Iterator<String> iter = mp.switchMap.keySet().iterator();
@@ -787,12 +792,27 @@ public class UglyPrinter {
 
 				DeclaredObjects doo = declolist.get(cdi);
 				topnode.weirdPrint(pw, mp, 0, cdi, null, doo);
+				
+				if(Helper.SCHED_POLICY.equals(Helper.SCHED_1)){
+					pw.println("AJOIN" + cdi);
+					for (int j = (i + 1) % nodes.size(); j != i; j = (j + 1) % nodes.size()) {
+						MemoryPointer mpp = lmp.get(j);
+						pw.println("  LDR R1 $" + Long.toHexString(mpp.getEOTPointer()) + " ; EOT bit for CD" + ((SwitchNode) nodes.get(j)).getCDid());
+						pw.println("  PRESENT R1 RUN" + j);
+					}
+					pw.println("  LDR R1 $" + Long.toHexString(mp.getEOTPointer()) + " ; EOT bit for CD" + ((SwitchNode) nodes.get(i)).getCDid());
+					pw.println("  PRESENT R1 RUN" + i);
 
-				if(i == nodes.size()-1)
-					pw.println("AJOIN"+cdi+" JMP RUN0");
-				else
-					pw.println("AJOIN"+cdi+" JMP RUN"+(i+1));
-
+					for (int j = 0; j < nodes.size(); j++) {
+						pw.println("  STR R11 $"+Long.toHexString(lmp.get(j).getEOTPointer()));
+					}
+					pw.println("  JMP RUN0");
+				} else {
+					if(i == nodes.size()-1)
+						pw.println("AJOIN"+cdi+" JMP RUN0");
+					else
+						pw.println("AJOIN"+cdi+" JMP RUN"+(i+1));
+				}
 			}
 
 			pw.println("ENDPROG");

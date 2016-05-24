@@ -20,6 +20,14 @@ public class Helper {
 	public static final String DYN_DISPATCH_OPTION = "y";
 	public static final String METHOD_OPTION = "m";
 	public static final String LINK_OPTION = "l";
+	public static final String SCHEDULING_OPTION = "s";
+	
+	public static String SCHED_POLICY = "NONE";
+	public static final String SCHED_1 = "1";
+	
+	public static void setSchedulingPolicty(){
+		SCHED_POLICY = cmd.getOptionValue(SCHEDULING_OPTION);
+	}
 	
 	private static CommandLine cmd;
 	

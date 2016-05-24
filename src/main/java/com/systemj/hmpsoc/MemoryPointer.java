@@ -15,9 +15,10 @@ public class MemoryPointer {
 	public static final int ptrProgramCounter     = 7;
 	public static final int ptrTerminateCode      = 8;
 	public static final int ptrSwitchNode         = 9;
+	public static final int ptrEOT		          = 10;
 	
-	public static final int ptrLastAddressPlusOne = 10; // This must be fixed
-	private Long[] ptrMemory = new Long[11];
+	public static final int ptrLastAddressPlusOne = 11; // This must be fixed
+	private Long[] ptrMemory = new Long[12];
 	public Map<String, Integer> signalMap = new HashMap<String, Integer>();
 	public Map<String, Integer> insignalMap = new HashMap<String, Integer>();
 	public Map<String, Integer> osignalMap = new HashMap<String, Integer>();
@@ -77,6 +78,7 @@ public class MemoryPointer {
 	public long getLastAddr(){
 		return ptrMemory[ptrLastAddressPlusOne];
 	}
+	
 	public void setLastAddr(long i){
 		ptrMemory[ptrLastAddressPlusOne] = i;	
 	}
@@ -91,8 +93,17 @@ public class MemoryPointer {
 	public long getTerminateCodePointer(){
 		return ptrMemory[ptrTerminateCode];
 	}
+	
 	public void setTermianteCodePointer(long i){
 		ptrMemory[ptrTerminateCode] = i;
+	}
+	
+	public long getEOTPointer(){
+		return ptrMemory[ptrEOT];
+	}
+	
+	public void setEOTPointer(long i){
+		ptrMemory[ptrEOT] = i;
 	}
 	
 	public long getProgramCounterPointer(){
