@@ -745,7 +745,7 @@ public class UglyPrinter {
 					pw.println("; --------- Internal house keeping done ----------");
 				}
 				
-				if(dyn) printJOPPending(pw, mp, cdi);
+//				if(dyn) printJOPPending(pw, mp, cdi);
 				
 				long dl_ptr = mp.getDataLockPointer();
 				long tnum = topnode.getThnum() - mp.getToplevelThnum();
@@ -760,7 +760,10 @@ public class UglyPrinter {
 				if(Helper.pMap.nJOP == 1){
 					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | (MAX_RECOP - cdi)) + " ; EOT Datacall ; Format = 1|IO-JOP| MAXNUM - CD-ID | OSigs");
 				} else{
-					pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+					if(dyn)
+						pw.println("  IOCALL R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+					else
+						pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				}
 				
 				pw.println("  LDR R10 $"+Long.toHexString(mp.getInputSignalPointer()) + "; Backup ISig");
