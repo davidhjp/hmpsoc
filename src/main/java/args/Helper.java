@@ -27,7 +27,8 @@ public class Helper {
 	public static final String SCHED_2 = "2";
 	
 	public static void setSchedulingPolicty(){
-		SCHED_POLICY = cmd.getOptionValue(SCHEDULING_OPTION);
+		if(cmd.hasOption(SCHEDULING_OPTION))
+			SCHED_POLICY = cmd.getOptionValue(SCHEDULING_OPTION);
 	}
 	
 	private static CommandLine cmd;
