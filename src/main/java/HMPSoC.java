@@ -41,11 +41,11 @@ public class HMPSoC {
 //		options.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links").build());
 		options.addOption(Option.builder(Helper.DYN_DISPATCH_OPTION).desc("Datacall based on dynamic dispatching").build());
 		options.addOption(Option.builder(Helper.METHOD_OPTION).desc("Generate separate methods for the action nodes").build());
+		options.addOption(Option.builder(Helper.SCHEDULING_OPTION).hasArg().argName("int").desc("Scheduling option").build());
 //		options.addOption(Option.builder(Helper.LINK_OPTION).hasArg().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		OptionGroup og = new OptionGroup();
 		og.addOption(Option.builder(Helper.LINK_OPTION).hasArgs().argName("JOP binary").desc("Resolve symbolic links using <JOP binary>").build());
 		og.addOption(Option.builder(Helper.COMPILE_ONLY_OPTION).desc("Do not resolve symbolic links (cannot be used with -"+Helper.LINK_OPTION+")").build());
-		og.addOption(Option.builder(Helper.SCHEDULING_OPTION).hasArg().argName("int").desc("Scheduling option").build());
 		options.addOptionGroup(og);
 		return options;
 	}
