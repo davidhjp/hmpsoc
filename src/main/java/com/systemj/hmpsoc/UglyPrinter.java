@@ -781,7 +781,10 @@ public class UglyPrinter {
 				pw.println("  LDR R10 #HOUSEKEEPING_JOP"+i+" ; Save state in housekeeping");
 				pw.println("  STR R10 $" + Long.toHexString(mp.getProgramCounterPointer()));
 				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(dl_ptr));
-				pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
+				if(Helper.SCHED_POLICY.equals(Helper.SCHED_2)){
+					pw.println("  PRESENT R10 HOUSEKEEPING_JOP"+i+"; Check for updated ISigs");
+				} else
+					pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 				pw.println("  AND R10 R10 #$0FFF ; Keep only ISigs");
 
