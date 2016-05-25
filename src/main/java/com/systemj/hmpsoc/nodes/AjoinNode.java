@@ -29,6 +29,7 @@ public class AjoinNode extends BaseGRCNode {
 				pc_ptr += ttnum;
 				pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC (parent = term 1)");
 				this.setEOT(pw, mp, cdi);
+//				pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 				pw.println("  JMP AJOIN"+cdi+"; Normal termination");
 			} else if (parent.getTermcode() == TerminateNode.MAX_TERM){
 				pw.println("  JMP AJOIN"+cdi+"; data-call is pending (parent = term inf)");
@@ -40,6 +41,7 @@ public class AjoinNode extends BaseGRCNode {
 			pc_ptr += ttnum;
 			pw.println("  STR R11 $"+Long.toHexString(pc_ptr)+"; Clearing PC (parent == enternode)");
 			this.setEOT(pw, mp, cdi);
+//			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 			pw.println("  JMP AJOIN"+cdi+"; Normal termination");
 		} 
 		
