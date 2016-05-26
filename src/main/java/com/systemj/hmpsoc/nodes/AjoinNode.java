@@ -1,6 +1,7 @@
 package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
+import java.util.stream.IntStream;
 
 import com.systemj.hmpsoc.DeclaredObjects;
 import com.systemj.hmpsoc.MemoryPointer;
@@ -11,16 +12,14 @@ public class AjoinNode extends BaseGRCNode {
 
 	private void setEOT(PrintWriter pw, MemoryPointer mp, int cdi, BaseGRCNode parent){
 		if(Helper.SCHED_POLICY.equals(Helper.SCHED_1)){
-//			long dl_ptr = mp.getDataLockPointer();
-//			long tnum = parent.getThnum() - mp.getToplevelThnum();
-//			dl_ptr += tnum;
-//			long pc_ptr = mp.getProgramCounterPointer();
-//			pc_ptr += tnum;
-//			pw.println("  STR R11 $" + Long.toHexString(dl_ptr) + "; Thread is locked");
-//			pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Dynamic dispatch check");
-//			pw.println("  LSIP R10");
-//			pw.println("  PRESENT R10 AJOIN"+cdi);
-//			pw.println("  DCALLNB R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+//			pw.println("  IOCALL R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
+//			pw.println("  LDR R1 #5");
+//			final String label1 = "LOOP"+(mp.cc++)+"CD"+cdi;
+//			final String label2 = "LOOP"+(mp.cc++)+"CD"+cdi;
+//			pw.println(label2+"  PRESENT R1 "+label1);
+//			pw.println("  SUBV R1 R1 #1");
+//			pw.println(" JMP "+label2);
+//			pw.println(label1);
 			
 			pw.println("  LDR R1 #1");
 			pw.println("  STR R1 $"+Long.toHexString(mp.getEOTPointer())+"; setting EOT bit");
