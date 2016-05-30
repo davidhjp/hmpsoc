@@ -12,6 +12,9 @@ public class AjoinNode extends BaseGRCNode {
 
 	private void setEOT(PrintWriter pw, MemoryPointer mp, int cdi, BaseGRCNode parent){
 		if(Helper.SCHED_POLICY.equals(Helper.SCHED_1)){
+//			long pc_ptr = mp.getProgramCounterPointer();
+//			long dl_ptr = mp.getDataLockPointer();
+//			pw.println("  STR R11 $" + Long.toHexString(dl_ptr) + "; Thread is locked");
 //			pw.println("  IOCALL R10 #$" + Long.toHexString(0x8000 | cdi) + " ; EOT Datacall ; Format = 1|IO-JOP|CD-ID|OSigs");
 //			pw.println("  LDR R1 #5");
 //			final String label1 = "LOOP"+(mp.cc++)+"CD"+cdi;
@@ -20,6 +23,9 @@ public class AjoinNode extends BaseGRCNode {
 //			pw.println("  SUBV R1 R1 #1");
 //			pw.println(" JMP "+label2);
 //			pw.println(label1);
+//			pw.println("  STRPC $"+Long.toHexString(pc_ptr)+"; Testlock storing PC");
+//			pw.println("  LDR R10 $"+Long.toHexString(dl_ptr)+"; Loading datalock");
+//			pw.println("  PRESENT R10 AJOIN"+cdi+"; checking result");
 			
 			pw.println("  LDR R1 #1");
 			pw.println("  STR R1 $"+Long.toHexString(mp.getEOTPointer())+"; setting EOT bit");
