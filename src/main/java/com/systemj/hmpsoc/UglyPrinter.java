@@ -145,7 +145,7 @@ public class UglyPrinter {
 						List<List<ActionNode>> actlists = actsDist.get(jopi);
 						File subdir = new File(dir, getJOPPackageName(jopi));
 						try {
-							printJavaClockDomainDistributed(subdir, mp, actlists.get(cdi), declolist.get(cdi), cdi, jopi);
+							printJavaClockDomainDistributed(subdir, mp, actlists.get(cdi), declolist.get(cdi), cdi, jopi, rid, indx);
 						} catch (Exception e) {
 							e.printStackTrace();
 							System.exit(1);
@@ -153,7 +153,7 @@ public class UglyPrinter {
 					});
 				} else {
 					try {
-						printJavaClockDomainShared(dir, mp, this.acts.get(cdi), declolist.get(cdi), cdi);
+						printJavaClockDomainShared(dir, mp, this.acts.get(cdi), declolist.get(cdi), cdi, rid, indx);
 					} catch (Exception e) {
 						e.printStackTrace();
 						System.exit(1);
@@ -786,8 +786,12 @@ public class UglyPrinter {
 				pw.println("HOUSEKEEPING_JOP"+i+"  LDR R10 $"+Long.toHexString(dl_ptr));
 				if(Helper.SCHED_POLICY.equals(Helper.SCHED_2)){
 					pw.println("  PRESENT R10 HOUSEKEEPING_JOP"+i+"; Check for updated ISigs");
-				} else
-					pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
+				} else {
+					if(Helper.SCHED_POLICY.equals(Helper.SCHED_1) && i == 0)
+						pw.println("  PRESENT R10 HOUSEKEEPING_JOP"+i+"; Check for updated ISigs");
+					else
+						pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
+				}
 				pw.println("  STR R11 $" + Long.toHexString(mp.getProgramCounterPointer()) + " ; Clear housekeeping state");
 				pw.println("  AND R10 R10 #$0FFF ; Keep only ISigs");
 
@@ -971,6 +975,7 @@ public class UglyPrinter {
 		pw.println("public class RTSMain {");
 		pw.incrementIndent();
 		
+		pw.println("public static boolean[] tdone = new boolean["+Helper.pMap.nReCOP+"];");
 		pw.println("private static final StringBuffer sb = new StringBuffer();");
 		pw.println("public static final java.io.PrintStream out = new java.io.PrintStream(new java.io.OutputStream() {");
 		pw.incrementIndent();
@@ -1445,7 +1450,7 @@ public class UglyPrinter {
 		pw.println();
 	}
 	
-	private void printJavaCDHK(IndentPrinter pw, DeclaredObjects d, MemoryPointer mp) {
+	private void printJavaCDHK(IndentPrinter pw, DeclaredObjects d, MemoryPointer mp, int rid, int indx) {
 		String cdName = d.getCDName();
 		boolean dist = Helper.getSingleArgInstance().hasOption(Helper.DIST_MEM_OPTION);
 		
@@ -1535,6 +1540,34 @@ public class UglyPrinter {
 		pw.println("// Write to isigs memory address");
 		pw.println("dl[0] = 0x" + Long.toHexString(mp.getDataLockPointer()) + ";");
 
+		if(Helper.SCHED_POLICY.equals(Helper.SCHED_1) || Helper.SCHED_POLICY.equals(Helper.SCHED_2)){
+			if(indx == 0){
+				pw.println("RTSMain.tdone["+rid+"] = true;");
+				pw.println("for(int i=0;i<RTSMain.tdone.length;i++){");
+				pw.incrementIndent();
+				pw.println("if(!RTSMain.tdone[i]) {isigs = 0; break;}");
+				pw.println("if(i == RTSMain.tdone.length-1){");
+				pw.incrementIndent();
+				pw.println("int result;");
+				for(int i=0; i< mps.size();i++){
+					if(i != rid){
+						List<MemoryPointer> mpl = mps.get(i);
+						MemoryPointer pointer = mpl.get(0);
+						pw.println("result = 0x80000000 /*Valid Result Bit*/ " +
+								"| (("+i+" & 0x7F) << 24) /*RecopId*/ " +
+								"| (("+pointer.getDataLockPointer()+" & 0xFFF) << 12) /*WritebackAddress*/ " +
+								"| (isigs & 0xFFF); /*Input Signals*/");
+						pw.println("com.jopdesign.sys.Native.setDatacallResult(result);");
+					}
+				}
+				pw.println("for(int j=0;j<RTSMain.tdone.length;j++) RTSMain.tdone[j] = false;");
+				pw.decrementIndent();
+				pw.println("}");
+				pw.decrementIndent();
+				pw.println("}");
+			}
+		}
+		
 		pw.println("return isigs;");
 
 		pw.decrementIndent();
@@ -1543,7 +1576,7 @@ public class UglyPrinter {
 		pw.println();
 	}
 	
-	private void printJavaClockDomainDistributed(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi, int jopID) throws FileNotFoundException {
+	private void printJavaClockDomainDistributed(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi, int jopID, int rid, int indx) throws FileNotFoundException {
 		if (!actlists.isEmpty() || jopID == 0) {
 			String cdName = d.getCDName();
 
@@ -1574,7 +1607,7 @@ public class UglyPrinter {
 			printJavaCDInit(pw, d);
 
 			if (jopID == 0)
-				printJavaCDHK(pw, d, mp);
+				printJavaCDHK(pw, d, mp, rid, indx);
 			
 			if (jopID != 0){
 				// Inserting non-io house-keeping actions to the list
@@ -1760,7 +1793,7 @@ public class UglyPrinter {
 		}
 	}
 	
-	private void printJavaClockDomainShared(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi) throws FileNotFoundException {
+	private void printJavaClockDomainShared(File dir, MemoryPointer mp, List<ActionNode> actlists, DeclaredObjects d, int cdi, int rid, int indx) throws FileNotFoundException {
 		String cdName = d.getCDName();
 
 		if (systemConfig != null) {
@@ -1787,7 +1820,7 @@ public class UglyPrinter {
 		
 		printJavaFields(pw, d);
 		printJavaCDInit(pw, d);
-		printJavaCDHK(pw, d, mp);
+		printJavaCDHK(pw, d, mp, rid, indx);
 		printJavaCDMethods(pw, mp, actlists, cdi);
 
 		pw.decrementIndent();

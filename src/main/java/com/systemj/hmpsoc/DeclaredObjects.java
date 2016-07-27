@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class DeclaredObjects {
 	private String name;
-	
+
 	public enum Mod {
 		INPUT, OUTPUT, INTERNAL
 	}
