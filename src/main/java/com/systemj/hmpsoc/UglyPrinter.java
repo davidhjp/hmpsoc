@@ -787,7 +787,7 @@ public class UglyPrinter {
 				if(Helper.SCHED_POLICY.equals(Helper.SCHED_2)){
 					pw.println("  PRESENT R10 HOUSEKEEPING_JOP"+i+"; Check for updated ISigs");
 				} else {
-					if(Helper.SCHED_POLICY.equals(Helper.SCHED_1) && i == 0)
+					if(Helper.SCHED_POLICY.equals(Helper.SCHED_1) && i == 0 && Helper.pMap.nReCOP > 1)
 						pw.println("  PRESENT R10 HOUSEKEEPING_JOP"+i+"; Check for updated ISigs");
 					else
 						pw.println("  PRESENT R10 AJOIN"+cdi+"; Check for updated ISigs");
@@ -1540,7 +1540,7 @@ public class UglyPrinter {
 		pw.println("// Write to isigs memory address");
 		pw.println("dl[0] = 0x" + Long.toHexString(mp.getDataLockPointer()) + ";");
 
-		if(Helper.SCHED_POLICY.equals(Helper.SCHED_1) || Helper.SCHED_POLICY.equals(Helper.SCHED_2)){
+		if((Helper.SCHED_POLICY.equals(Helper.SCHED_1) || Helper.SCHED_POLICY.equals(Helper.SCHED_2)) && Helper.pMap.nReCOP > 1){
 			if(indx == 0){
 				pw.println("RTSMain.tdone["+rid+"] = true;");
 				pw.println("for(int i=0;i<RTSMain.tdone.length;i++){");
