@@ -313,6 +313,10 @@ public class CompilationUnit {
 			splitTestAction(n);
 			n.resetVisited();
 		}
+		
+		glist.stream().forEachOrdered(n -> {
+			n.setSwitches();
+		});
 
 		for(BaseGRCNode n : glist)
 			groupActions(n);

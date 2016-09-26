@@ -641,6 +641,7 @@ public class UglyPrinter {
 			pw.println("start NOOP");
 			for(int i=0; i<lmp.size(); i++){
 				MemoryPointer mp = lmp.get(i);
+				BaseGRCNode topnode = nodes.get(i);
 				pw.println("; ====== "+((SwitchNode)nodes.get(i)).getCDName()+" constructed memory map =====");
 				pw.println("; iSignal    :"+mp.getInputSignalPointer());
 				pw.println("; oSignal    :"+mp.getOutputSignalPointer());
@@ -660,9 +661,15 @@ public class UglyPrinter {
 				Iterator<String> iter = mp.switchMap.keySet().iterator();
 				while(iter.hasNext()){
 					String swname = iter.next();
-					String label = swname.toLowerCase()+"_1";
-					pw.println("  LDR R10 #"+label);
-					pw.println("  STR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
+					if(topnode.getSwitches().containsKey(swname)){
+						SwitchNode sn = topnode.getSwitches().get(swname);
+						if(sn.getNumChildren() > 0){
+							String label = swname.toLowerCase()+"_1";
+							pw.println("  LDR R10 #"+label);
+							pw.println("  STR R10 $"+Long.toHexString(mp.getSwitchNodePointer()+mp.switchMap.get(swname)));
+						}
+					} else
+						throw new RuntimeException("Tried to encode a switchnode that does not exist");
 				}
 			}
 			pw.println("  LDR R11 #0; Content of R11 is always ZERO");

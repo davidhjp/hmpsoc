@@ -2,6 +2,7 @@ package com.systemj.hmpsoc.nodes;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.systemj.hmpsoc.DeclaredObjects;
@@ -26,8 +27,18 @@ public class BaseGRCNode {
 	protected int thnum = -1;
 	
 	public String id;
-
 	
+	HashMap<String, SwitchNode> switches = new HashMap<>();
+	
+
+	public HashMap<String, SwitchNode> getSwitches() {
+		return switches;
+	}
+
+	public void setSwitches(HashMap<String, SwitchNode> switches) {
+		this.switches = switches;
+	}
+
 	public static final String dCallAnnotFormat(){
 		return " ; format : @Datacall(CDname, JOPid, casenumber)";
 	}
@@ -198,5 +209,27 @@ public class BaseGRCNode {
 				return r;
 		}
 		return null;
+	}
+
+	protected void tSwitches(HashMap<String, SwitchNode> hm) {
+		if (!this.isVisited()) {
+			this.setVisited(true);
+			if (this instanceof SwitchNode) {
+				SwitchNode sn = (SwitchNode) this;
+				if (!hm.containsKey(sn.getStatename()))
+					hm.put(sn.getStatename(), sn);
+			} else if (this instanceof EnterNode) {
+				((EnterNode) this).setSwitchMap(hm);
+			}
+
+			this.getChildren().stream().forEachOrdered(nn -> nn.tSwitches(hm));
+		}
+	}
+
+	public void setSwitches() {
+		HashMap<String, SwitchNode> hm = new HashMap<>();
+		tSwitches(hm);
+		this.resetVisited();
+		this.setSwitches(hm);
 	}
 }
