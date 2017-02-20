@@ -73,11 +73,11 @@ public class ForkNode extends BaseGRCNode {
 			if(child instanceof TerminateNode){
 				TerminateNode tn = (TerminateNode)child;
 				tncode = tn.getTermcode();
-				label = "JOINBR"+cc+"CD"+cdi+"CODE"+tncode;
+				label = "Jb"+cc+"C"+cdi+"O"+tncode;
 			}
 			else{
 				tncode = 0;
-				label = "JOINBR"+cc+"CD"+cdi+"CODE"+tncode;
+				label = "Jb"+cc+"C"+cdi+"O"+tncode;
 			}
 			if(!lbs.containsKey(tncode)){
 				pw.println("  SUBV R1 R10 #"+tncode);
