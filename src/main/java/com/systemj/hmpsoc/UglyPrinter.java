@@ -1451,7 +1451,7 @@ public class UglyPrinter {
 			Iterator<Var> iter = d.getVarDeclIterator();
 			while(iter.hasNext()){
 				Var s = iter.next();
-				pw.println("public static "+s.type+(s.array ? "[]" : "")+" "+s.name+";");
+				pw.println("public static "+s.type+" "+s.name+";");
 			}
 		}
 		pw.println();
