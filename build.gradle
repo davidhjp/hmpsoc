@@ -13,16 +13,4 @@ dependencies {
 	compile group: 'com.google.code.gson', name: 'gson', version: '2.3.1'
 }
 
-jar { 
-	classifier = ''
-}
 
-task buildInfo {
-	def cmd = 'git rev-parse --short HEAD'
-	try{
-		def proc = cmd.execute()
-		project.version = 'SNAPSHOT-' + proc.text.trim()
-	} catch (e) { 
-		project.version = 'SNAPSHOT-unspecified'
-	}
-}
